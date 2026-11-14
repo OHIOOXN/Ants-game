@@ -415,7 +415,7 @@
         <div class="stat">🐜 Hormigas: <span id="ant-count">0</span></div>
         <div class="stat sandbox-only">🏗️ Termitas: <span id="termite-count">0</span></div>
         <div class="stat stat-enemy sandbox-only">☠️ Enemigos: <span id="enemy-count">0</span></div>
-        <div class="stat sandbox-only">🥚 Cría: <span id="spawn-progress">0/5 🍓</span></div>
+        <div class="stat sandbox-only">🥚 Cría: <span id="spawn-progress">0/10 🍓</span></div>
         <div class="stat stat-hp normal-only">👑 Reina: <span id="queen-hp">—</span></div>
         <div class="stat stat-hp normal-only">🏰 Nido: <span id="nest-hp">—</span></div>
         <div class="stat normal-only">🌊 Oleada: <span id="wave-info">—</span></div>
@@ -451,6 +451,7 @@
         <button id="tool-scorpion" class="tool-btn btn-predator" onclick="setTool('scorpion')">🦂 Escorpión</button>
         <button id="tool-centipede" class="tool-btn btn-predator" onclick="setTool('centipede')">🐛 Ciempiés</button>
         <button id="tool-wasp" class="tool-btn btn-predator" onclick="setTool('wasp')">🐝 Avispa Cazadora</button>
+        <button id="tool-anteater" class="tool-btn btn-predator" onclick="setTool('anteater')">🐻 Oso Hormiguero (Jefe)</button>
     </div>
 
     <!-- Barra de herramientas Modo Normal (Historia) -->
@@ -483,7 +484,7 @@ const WORLD_W = 3000;
 const WORLD_H = 1800;
 const TILT = 0.78;
 const STEP = 1 / 60;
-const EGG_COST = 5;
+const EGG_COST = 10;
 const EGG_TIME = 20;
 const FOOD_LIFETIME = 300;
 const QUEEN_CAPACITY = 5;
@@ -509,8 +510,8 @@ const SPECIES = {
         name: 'Leptogenys processionalis',
         family: 'Leptogenys',
         title: 'Cazadora procesional',
-        blurb: 'Raideadora de termiteros. Su aguijón inocula veneno y esconde la colonia bajo la hojarasca. Marca un termitero con clic y activa la incursión precisa para saquearlo.',
-        traits: ['Aguijón venenoso', 'Incursión precisa', 'Marca termiteros', 'Nido de hojarasca'],
+        blurb: 'Raideadora de termiteros. Su aguijón inocula veneno y esconde la colonia bajo la hojarasca. Activa la incursión y ella elige sola el termitero más cercano para saquearlo.',
+        traits: ['Aguijón venenoso', 'Incursión automática', 'Termitero más cercano', 'Nido de hojarasca'],
         nestStyle: 'litter',
         queenHp: 390, queenDamage: 2.6, queenSpeed: 3.05,
         workerHp: 26, workerDamage: 0.75, workerSpeed: 2.5, workerScale: 0.98,
@@ -581,6 +582,10 @@ let sandboxSpecies = 'camponotus';
 
 function S() { return SPECIES[speciesKey] || SPECIES.generic; }
 function SP(key) { return SPECIES[key] || SPECIES.generic; }
+function termiteStats() {
+    const sp = S();
+    return { hp: sp.workerHp, damage: sp.workerDamage, speed: sp.workerSpeed };
+}
 
 function shadeColor(hex, factor) {
     const h = hex.replace('#', '');
@@ -1790,6 +1795,10 @@ class Ant extends Entity {
         this.slowTimer = 0;
         this.trapped = 0;
         this.walkCycle = Math.random() * Math.PI * 2;
+        this.orbitPhase = Math.random() * Math.PI * 2;
+        this.orbitDir = Math.random() < 0.5 ? -1 : 1;
+        this.targetFood = null;
+        this.attackClaim = null;
         this.jawCharge = 0;
         this.jawCD = 0;
         this.nestAtkCD = 0;
@@ -1832,6 +1841,15 @@ class Ant extends Entity {
         if (this.leafCD > 0) this.leafCD--;
         this.walkCycle += currentSpeed * 0.28;
 
+        if (behaviorMode !== 'attack' && this.attackClaim) {
+            if (this.attackClaim.claimedBy === this) this.attackClaim.claimedBy = null;
+            this.attackClaim = null;
+        }
+        if (behaviorMode !== 'gather' && this.targetFood) {
+            if (this.targetFood.claimedBy === this) this.targetFood.claimedBy = null;
+            this.targetFood = null;
+        }
+
         const raid = !this.hasFood ? getRaidTarget() : null;
         if (raid) {
             const ra = Math.atan2((raid.y - this.y) / TILT, raid.x - this.x);
@@ -1857,6 +1875,8 @@ class Ant extends Entity {
             if (dist < this.nest.radius) {
                 this.hasFood = false;
                 this.carriesLeaf = false;
+                if (this.targetFood && this.targetFood.claimedBy === this) this.targetFood.claimedBy = null;
+                this.targetFood = null;
                 if (this.nest.style === 'fungus') {
                     this.nest.hunger = Math.min(100, (this.nest.hunger ?? 100) + 9);
                     this.nest.hp = Math.min(this.nest.maxHp, this.nest.hp + 3);
@@ -1867,7 +1887,14 @@ class Ant extends Entity {
                     foodSpawnCounter += 2;
                     checkAutoSpawn();
                 }
-                if (gameMode === 'normal') this.hp = Math.min(this.maxHp, this.hp + 6);
+                if (gameMode === 'normal') {
+                    this.hp = Math.min(this.maxHp, this.hp + 6);
+                    if (normal && normal.founded && storedFood >= EGG_COST && eggs.length < 5 && layEgg(this.nest)) {
+                        normal.layTimer = 22;
+                        spawnHitParticles(this.nest.x, this.nest.y, '#ffd166', 12);
+                        setStatus('🥚 ¡Huevo puesto automáticamente! (10 🍓 de la colonia)');
+                    }
+                }
                 this.angle += Math.PI;
                 updateUI();
             }
@@ -1884,6 +1911,7 @@ class Ant extends Entity {
         let target = null;
         let minDist = behaviorMode === 'attack' ? 1300 : 105;
         const considerTarget = (e) => {
+            if (behaviorMode === 'attack' && e.claimedBy && e.claimedBy !== this && e.claimedBy.hp > 0 && e.claimedBy.attackClaim === e) return;
             const d = Math.hypot(e.x - this.x, (e.y - this.y) / TILT);
             if (d >= minDist) return;
             if (behaviorMode === 'defend' && Math.hypot(e.x - hx, (e.y - hy) / TILT) > 300) return;
@@ -1893,6 +1921,12 @@ class Ant extends Entity {
         for (const t of termites) considerTarget(t);
         for (const en of enemies) considerTarget(en);
         for (const b of beetles) considerTarget(b);
+
+        if (target && behaviorMode === 'attack' && this.attackClaim !== target) {
+            if (this.attackClaim && this.attackClaim.claimedBy === this) this.attackClaim.claimedBy = null;
+            this.attackClaim = target;
+            target.claimedBy = this;
+        }
 
         if (target) {
             const targetAngle = Math.atan2((target.y - this.y) / TILT, target.x - this.x);
@@ -1929,11 +1963,16 @@ class Ant extends Entity {
         if (this.jawCharge > 0) this.jawCharge = Math.max(0, this.jawCharge - 0.8);
 
         if (behaviorMode === 'defend') {
-            if (home && distHome > home.radius + 80) {
+            if (home && distHome > home.radius + 95) {
                 this.angle = this.lerpAngle(this.angle, Math.atan2((hy - this.y) / TILT, hx - this.x), 0.14);
                 moveEntitySmooth(this, currentSpeed, 4);
-            } else {
-                this.angle += 0.012;
+            } else if (home) {
+                this.orbitPhase += 0.016 * this.orbitDir * (currentSpeed / 2.2);
+                const orbitR = home.radius + 30 + (this.orbitDir > 0 ? 12 : 24);
+                const ox = home.x + Math.cos(this.orbitPhase) * orbitR;
+                const oy = home.y + Math.sin(this.orbitPhase) * orbitR * TILT;
+                this.angle = this.lerpAngle(this.angle, Math.atan2((oy - this.y) / TILT, ox - this.x), 0.2);
+                moveEntitySmooth(this, currentSpeed * 0.85, 4);
             }
             return;
         }
@@ -1946,14 +1985,25 @@ class Ant extends Entity {
             return;
         }
 
+        if (this.targetFood && (this.targetFood.amount <= 0 || !foods.includes(this.targetFood))) {
+            if (this.targetFood.claimedBy === this) this.targetFood.claimedBy = null;
+            this.targetFood = null;
+        }
+
         let bestFood = null;
         let bestFoodD = Infinity;
         for (const f of foods) {
+            if (f.claimedBy && f.claimedBy !== this && f.claimedBy.hp > 0 && f.claimedBy.targetFood === f) continue;
             const d = Math.hypot(f.x - this.x, (f.y - this.y) / TILT);
             if (d < bestFoodD) { bestFoodD = d; bestFood = f; }
         }
 
         if (bestFood) {
+            if (this.targetFood !== bestFood) {
+                if (this.targetFood && this.targetFood.claimedBy === this) this.targetFood.claimedBy = null;
+                this.targetFood = bestFood;
+                bestFood.claimedBy = this;
+            }
             const targetAngle = Math.atan2((bestFood.y - this.y) / TILT, bestFood.x - this.x);
             this.angle = this.lerpAngle(this.angle, targetAngle, 0.25);
             if (bestFoodD < 9) {
@@ -1961,6 +2011,8 @@ class Ant extends Entity {
                 if (idx > -1) {
                     this.hasFood = true;
                     this.carriesLeaf = false;
+                    bestFood.claimedBy = null;
+                    this.targetFood = null;
                     bestFood.amount--;
                     if (bestFood.amount <= 0) foods.splice(idx, 1);
                 }
@@ -2082,11 +2134,12 @@ class Termite extends Entity {
     constructor(x, y, nestRef) {
         super(x, y);
         this.nest = nestRef;
-        this.speed = 2.0;
-        this.hp = 30;
-        this.maxHp = 30;
-        this.damage = 3;
-        this.meleeInterval = 25;
+        const st = termiteStats();
+        this.speed = st.speed;
+        this.hp = st.hp;
+        this.maxHp = st.hp;
+        this.damage = st.damage;
+        this.meleeInterval = 18;
         this.meleeCD = 0;
         this.hasFood = false;
         this.slowTimer = 0;
@@ -2148,7 +2201,7 @@ class Termite extends Entity {
             this.angle = this.lerpAngle(this.angle, targetAngle, 0.22);
             if (minDist < (target.radius || 12) + 7 && this.meleeCD <= 0) {
                 this.meleeCD = this.meleeInterval;
-                target.hp -= this.soldier ? this.damage + 2 : this.damage;
+                target.hp -= this.damage;
                 if (!target.isStatic) {
                     target.x += Math.cos(targetAngle) * 2.5;
                     target.y += Math.sin(targetAngle) * 2.5 * TILT;
@@ -2450,12 +2503,13 @@ class Beetle extends Entity {
 }
 
 const ENEMY_STATS = {
-    spider:    { speed: 1.75, radius: 16, hp: 100, damage: 6,  melee: 30, sight: 260, drop: 15 },
-    mantis:    { speed: 2.3,  radius: 22, hp: 190, damage: 10, melee: 28, sight: 300, drop: 30 },
-    antlion:   { speed: 1.05, radius: 24, hp: 340, damage: 14, melee: 40, sight: 240, drop: 45 },
-    scorpion:  { speed: 1.5,  radius: 20, hp: 270, damage: 11, melee: 34, sight: 280, drop: 40 },
-    centipede: { speed: 2.6,  radius: 14, hp: 120, damage: 5,  melee: 16, sight: 320, drop: 22 },
-    wasp:      { speed: 3.9,  radius: 13, hp: 58,  damage: 12, melee: 24, sight: 360, drop: 28 }
+    spider:    { speed: 1.75, radius: 16, hp: 100, damage: 9.5,  melee: 30, sight: 260, drop: 15 },
+    mantis:    { speed: 2.3,  radius: 22, hp: 190, damage: 16,   melee: 28, sight: 300, drop: 30 },
+    antlion:   { speed: 1.05, radius: 24, hp: 340, damage: 22,   melee: 40, sight: 240, drop: 45 },
+    scorpion:  { speed: 1.5,  radius: 20, hp: 270, damage: 18,   melee: 34, sight: 280, drop: 40 },
+    centipede: { speed: 2.6,  radius: 14, hp: 120, damage: 8,    melee: 16, sight: 320, drop: 22 },
+    wasp:      { speed: 3.9,  radius: 13, hp: 58,  damage: 19,   melee: 24, sight: 360, drop: 28 },
+    anteater:  { speed: 1.35, radius: 30, hp: 850, damage: 24,   melee: 45, sight: 560, drop: 90 }
 };
 
 class Enemy extends Entity {
@@ -2481,12 +2535,17 @@ class Enemy extends Entity {
         this.poisonDmg = 0.05;
         this.trapCD = this.type === 'antlion' ? 4 + Math.random() * 4 : 0;
         this.trapTarget = null;
+        this.tongueCD = this.type === 'anteater' ? 1.5 : 0;
+        this.tongueT = 0;
+        this.tongueEnd = null;
         this.isAnt = false;
     }
 
     update() {
         if (this.attackCooldown > 0) this.attackCooldown--;
         if (this.meleeCD > 0) this.meleeCD--;
+        if (this.tongueCD > 0) this.tongueCD -= STEP;
+        if (this.tongueT > 0) this.tongueT -= STEP;
         this.walkCycle += this.speed * 0.25;
 
         if (this.trapTarget && (this.trapTarget.hp <= 0 || !ants.includes(this.trapTarget))) {
@@ -2557,6 +2616,20 @@ class Enemy extends Entity {
             const targetAngle = Math.atan2((target.y - this.y) / TILT, target.x - this.x);
             this.angle = this.lerpAngle(this.angle, targetAngle, 0.16);
 
+            if (this.type === 'anteater' && minDist < 300 && minDist > this.radius + 10 && this.tongueCD <= 0) {
+                this.tongueCD = 2.8;
+                this.tongueT = 0.3;
+                this.tongueEnd = { x: target.x, y: target.y };
+                target.hp -= this.damage * 1.5;
+                if (!target.isStatic) {
+                    target.x += Math.cos(targetAngle) * 24;
+                    target.y += Math.sin(targetAngle) * 24 * TILT;
+                }
+                spawnHitParticles(target.x, target.y, '#ff8fab', 8);
+                spawnHitParticles(this.x + Math.cos(this.angle) * 30, this.y + Math.sin(this.angle) * 30 * TILT, '#ffd166', 3);
+                if (target.hp <= 0) setStatus('👅 El oso hormiguero se comió una hormiga con su lengua', true);
+            }
+
             if (this.type === 'spider' && minDist < 230 && minDist > 50 && this.attackCooldown === 0) {
                 webs.push({ x: this.x, y: this.y, angle: targetAngle, speed: 5.2, life: 75 });
                 this.attackCooldown = 75;
@@ -2599,6 +2672,33 @@ class Enemy extends Entity {
 
     draw() {
         ctx.save();
+
+        if (this.type === 'anteater' && this.tongueT > 0 && this.tongueEnd) {
+            const mx = this.x + Math.cos(this.angle) * 28;
+            const my = this.y + Math.sin(this.angle) * 28 * TILT;
+            const ex = this.tongueEnd.x;
+            const ey = this.tongueEnd.y - 2;
+            const cx = (mx + ex) / 2;
+            const cy = (my + ey) / 2 - 16;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#ff7aa2';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(mx, my);
+            ctx.quadraticCurveTo(cx, cy, ex, ey);
+            ctx.stroke();
+            ctx.strokeStyle = '#ffb3c6';
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.moveTo(mx, my);
+            ctx.quadraticCurveTo(cx, cy, ex, ey);
+            ctx.stroke();
+            ctx.fillStyle = '#ff4d6d';
+            ctx.beginPath();
+            ctx.arc(ex, ey, 3.2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
         ctx.translate(this.x, this.y);
 
         if (this.poison > 0) {
@@ -2612,7 +2712,7 @@ class Enemy extends Entity {
         const barWidth = this.radius * 2.2;
         ctx.fillStyle = 'rgba(0,0,0,0.65)';
         ctx.fillRect(-barWidth / 2, -this.radius - 16, barWidth, 4.5);
-        const barColors = { mantis: '#ffbe0b', antlion: '#f4a261', scorpion: '#e5383b', centipede: '#e76f51', wasp: '#ffd166' };
+        const barColors = { mantis: '#ffbe0b', antlion: '#f4a261', scorpion: '#e5383b', centipede: '#e76f51', wasp: '#ffd166', anteater: '#b08968' };
         ctx.fillStyle = barColors[this.type] || '#ff4d6d';
         ctx.fillRect(-barWidth / 2, -this.radius - 16, barWidth * Math.max(0, this.hp / this.maxHp), 4.5);
 
@@ -2820,6 +2920,76 @@ class Enemy extends Entity {
             ctx.beginPath();
             ctx.moveTo(-18, 0); ctx.lineTo(-23, 0);
             ctx.stroke();
+        } else if (this.type === 'anteater') {
+            const sw = Math.sin(this.walkCycle) * 3;
+
+            ctx.fillStyle = '#6b503a';
+            ctx.beginPath();
+            ctx.ellipse(-30, 0, 20, 12, 0.35, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#513a28';
+            ctx.lineWidth = 1.2;
+            for (let i = 0; i < 5; i++) {
+                ctx.beginPath();
+                ctx.moveTo(-38 + i * 3, -7 + i * 2.4);
+                ctx.quadraticCurveTo(-47 + i * 2, -2 + i * 2.4, -37 + i * 2, 4 + i * 2.4);
+                ctx.stroke();
+            }
+
+            ctx.strokeStyle = '#3a2a1c';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(-14, 7); ctx.lineTo(-18 + sw, 19);
+            ctx.moveTo(-4, 8); ctx.lineTo(-6 - sw, 20);
+            ctx.moveTo(10, 7); ctx.lineTo(14 + sw, 17);
+            ctx.moveTo(17, 6); ctx.lineTo(21 - sw, 15);
+            ctx.stroke();
+
+            ctx.strokeStyle = '#f1e3c8';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(14 + sw, 17); ctx.lineTo(20 + sw, 21);
+            ctx.moveTo(21 - sw, 15); ctx.lineTo(27 - sw, 18);
+            ctx.stroke();
+
+            ctx.fillStyle = '#8d6e4f';
+            ctx.beginPath();
+            ctx.ellipse(-4, 0, 24, 14, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#2b2018';
+            ctx.beginPath();
+            ctx.ellipse(-12, 0, 7, 13.2, 0.1, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#a1815c';
+            ctx.beginPath();
+            ctx.ellipse(16, 0, 10, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#8f7150';
+            ctx.beginPath();
+            ctx.moveTo(22, -4.5);
+            ctx.lineTo(38, -2.2);
+            ctx.lineTo(39, 2.2);
+            ctx.lineTo(22, 4.5);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = '#3b2a1b';
+            ctx.beginPath();
+            ctx.arc(39, 0, 1.8, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#7d6144';
+            ctx.beginPath();
+            ctx.ellipse(12, -7, 4, 2.6, -0.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#1b120b';
+            ctx.beginPath();
+            ctx.arc(19, -2.5, 1.5, 0, Math.PI * 2);
+            ctx.fill();
         } else {
             ctx.strokeStyle = '#0f0f0f';
             ctx.lineWidth = 2.4;
@@ -4013,12 +4183,13 @@ function spawnRaidTermiteNest(beacon, termitesCount, diff) {
         isWaveNest: false, wave: null, isRaidNest: true, style: 'termite'
     };
     termiteNests.push(nest);
+    const tb = termiteStats();
     for (let i = 0; i < termitesCount; i++) {
         const t = new Termite(nest.x, nest.y, nest);
         t.soldier = Math.random() < 0.45;
-        t.maxHp = (t.soldier ? 34 : 30) * (0.9 + diff * 0.15);
+        t.maxHp = tb.hp * (0.9 + diff * 0.15);
         t.hp = t.maxHp;
-        t.damage = (t.soldier ? 5 : 3) * (0.9 + diff * 0.2);
+        t.damage = tb.damage;
         termites.push(t);
     }
     return nest;
@@ -4080,15 +4251,16 @@ function startWave() {
 
     const count = Math.min(30, 4 + Math.floor(normal.wave * 1.5) + Math.max(0, normal.wave - MAX_WAVES) * 2);
     const termiteChance = clamp(0.5 - normal.wave * 0.03, 0.28, 0.5);
+    const tb = termiteStats();
 
     for (let i = 0; i < count; i++) {
         const p = waveSpawnPoint(beacon);
         if (Math.random() < termiteChance) {
             const t = new Termite(p.x, p.y, null);
             t.soldier = Math.random() < 0.7;
-            t.maxHp = (t.soldier ? 34 : 30) * diff;
+            t.maxHp = tb.hp * diff;
             t.hp = t.maxHp;
-            t.damage = (t.soldier ? 5 : 3) * (0.9 + diff * 0.2);
+            t.damage = tb.damage;
             t.wave = normal.wave;
             t.beacon = beacon;
             termites.push(t);
@@ -4127,6 +4299,19 @@ function startWave() {
         hp: whp, maxHp: whp,
         foodIn: 0, isStatic: true, isWaveNest: true, wave: normal.wave, style: 'wave'
     });
+
+    if (normal.wave >= MAX_WAVES) {
+        const bp2 = waveSpawnPoint(beacon);
+        const boss = new Enemy(bp2.x, bp2.y, 'anteater');
+        boss.maxHp = Math.round(boss.maxHp * diff);
+        boss.hp = boss.maxHp;
+        boss.damage = boss.damage * (0.9 + diff * 0.15);
+        boss.wave = normal.wave;
+        boss.beacon = beacon;
+        enemies.push(boss);
+        setStatus(`🐻 ¡JEFE! Un oso hormiguero ataca la colonia con su lengua larga — oleada ${normal.wave}`, true);
+    }
+
     normal.spawnTimer = Math.max(7, 10 - Math.max(0, normal.wave - MAX_WAVES));
 
     updateUI();
@@ -4135,6 +4320,7 @@ function startWave() {
 function startTermiteCathedra(beacon, diff) {
     normal.cathedra = true;
     let created = 0;
+    const tb = termiteStats();
 
     const targetNests = 8;
     let attempts = 0;
@@ -4156,9 +4342,9 @@ function startTermiteCathedra(beacon, diff) {
             for (let k = 0; k < 5; k++) {
                 const t = new Termite(x + (Math.random() - 0.5) * 34, y + (Math.random() - 0.5) * 34 * TILT, nest);
                 t.soldier = k % 2 === 0;
-                t.maxHp = (t.soldier ? 40 : 30) * diff;
+                t.maxHp = tb.hp * diff;
                 t.hp = t.maxHp;
-                t.damage = (t.soldier ? 6 : 3) * (0.9 + diff * 0.2);
+                t.damage = tb.damage;
                 t.wave = normal.wave;
                 t.beacon = beacon;
                 termites.push(t);
@@ -4254,12 +4440,13 @@ function updateNormalStep() {
                 const cNests = termiteNests.filter(n => n.isWaveNest && n.wave === normal.wave);
                 if (cNests.length > 0 && waveAlive() < 46) {
                     const src = cNests[Math.floor(Math.random() * cNests.length)];
+                    const tb = termiteStats();
                     for (let i = 0; i < 3; i++) {
                         const t = new Termite(src.x + (Math.random() - 0.5) * 34, src.y + (Math.random() - 0.5) * 34 * TILT, src);
                         t.soldier = Math.random() < 0.6;
-                        t.maxHp = (t.soldier ? 40 : 30) * diff;
+                        t.maxHp = tb.hp * diff;
                         t.hp = t.maxHp;
-                        t.damage = (t.soldier ? 6 : 3) * (0.9 + diff * 0.2);
+                        t.damage = tb.damage;
                         t.wave = normal.wave;
                         t.beacon = antNests[0] || queen;
                         termites.push(t);
@@ -4274,13 +4461,14 @@ function updateNormalStep() {
                     normal.spawnTimer = Math.max(7, 10 - Math.max(0, normal.wave - MAX_WAVES));
                     if (waveAlive() < 12 + Math.max(0, normal.wave - MAX_WAVES) * 2) {
                         const diff = waveDifficulty();
+                        const tb = termiteStats();
                         for (let i = 0; i < 2; i++) {
                             const p = waveSpawnPoint(wnest);
                             const t = new Termite(p.x, p.y, null);
                             t.soldier = true;
-                            t.maxHp = 34 * diff;
+                            t.maxHp = tb.hp * diff;
                             t.hp = t.maxHp;
-                            t.damage = 5 * (0.9 + diff * 0.2);
+                            t.damage = tb.damage;
                             t.wave = normal.wave;
                             t.beacon = antNests[0] || queen;
                             termites.push(t);
@@ -4496,7 +4684,7 @@ function applySave(d) {
         const termite = new Termite(t.x, t.y, nest);
         termite.angle = t.angle || 0;
         termite.soldier = !!t.soldier;
-        termite.maxHp = t.maxHp ?? (termite.soldier ? 34 : 30);
+        termite.maxHp = t.maxHp ?? termiteStats().hp;
         termite.hp = Math.min(t.hp ?? termite.maxHp, termite.maxHp);
         termite.hasFood = !!t.hasFood;
         termite.wave = t.wave ?? null;
@@ -4614,12 +4802,13 @@ const toolDescriptions = {
     scorpion: '🦂 Invocar Escorpión (su aguijón ralentiza)',
     centipede: '🐛 Invocar Ciempiés (rápido y escurridizo)',
     wasp: '🐝 Invocar Avispa Cazadora (muy rápida y frágil)',
+    anteater: '🐻 Invocar Oso Hormiguero (JEFE: 850 HP, atrapa hormigas a distancia con su lengua)',
     queen: '👑 Haz clic en el suelo del bosque para colocar a tu Hormiga Reina',
     normal_nest: '🏠 Haz clic en un lugar despejado para fundar tu única Colonia',
     sandbox_queen: '👑 Coloca una Reina de la especie elegida · clic en una criatura para que la muerda',
     sandbox_nest: '🏰 Coloca una Colonia de la especie elegida (Cephalotes y Camponotus solo en árboles)',
     remove_food: '🗑️ Haz clic para eliminar la comida del mapa en un radio cercano',
-    control_queen: '👑 Mueve la Reina con WASD/flechas o clic. Recoge hasta 5 🍓 y llévalas al nido (5 🍓 = 1 huevo)'
+    control_queen: '👑 Mueve la Reina con WASD/flechas o clic. Recoge hasta 5 🍓 y llévalas al nido (10 🍓 = 1 huevo)'
 };
 
 function setTool(tool) {
@@ -5202,6 +5391,7 @@ function render() {
             : (currentTool === 'antlion') ? 24
             : (currentTool === 'scorpion') ? 20
             : (currentTool === 'spider' || currentTool === 'beetle' || currentTool === 'queen' || currentTool === 'sandbox_queen') ? 16
+            : (currentTool === 'anteater') ? 30
             : (currentTool === 'remove_food') ? 70 : 12;
 
         ctx.strokeStyle = valid ? 'rgba(181, 228, 140, 0.95)' : 'rgba(255, 77, 109, 0.98)';
@@ -5410,6 +5600,7 @@ function handleLeftClick(wx, wy) {
     else if (currentTool === 'scorpion') enemies.push(new Enemy(wx, wy, 'scorpion'));
     else if (currentTool === 'centipede') enemies.push(new Enemy(wx, wy, 'centipede'));
     else if (currentTool === 'wasp') enemies.push(new Enemy(wx, wy, 'wasp'));
+    else if (currentTool === 'anteater') enemies.push(new Enemy(wx, wy, 'anteater'));
 
     updateUI();
 }
