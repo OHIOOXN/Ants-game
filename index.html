@@ -444,7 +444,7 @@
     <!-- Pantalla de Título -->
     <div id="start-screen" class="overlay show">
         <h1>Ants Empires and Colony</h1>
-        <p>Construye y dirige tu imperio subterráneo en un bosque ampliado. Elige un modo de juego:</p>
+        <p>Construye y dirige tu imperio subterráneo en cinco biomas ampliados. Elige un modo de juego:</p>
         <div class="menu-buttons">
             <button class="menu-btn btn-continue" id="btn-continue" style="display:none;">Continuar partida</button>
             <button class="menu-btn btn-mode-normal" id="btn-normal">Modo Normal (Historia)</button>
@@ -525,6 +525,7 @@
         <div class="stat normal-only">Oleada: <span id="wave-info">—</span></div>
         <div class="stat stat-egg normal-only">Huevos: <span id="egg-count">0</span></div>
         <div class="stat">Nidos: <span id="nest-count">0</span></div>
+        <div class="stat">Bioma: <span id="biome-name">—</span></div>
         <div class="stat">Ciclo: <span id="day-clock">Día 3:00</span></div>
         <div class="stat normal-only"><span id="species-label">—</span></div>
         <div class="stat pvp-only">Rivales: <span id="pvp-foe">—</span></div>
@@ -607,6 +608,138 @@ const WORLD_W = 4200;
 const WORLD_H = 2400;
 const DAY_SEGMENT = 180;
 const DAY_CYCLE = DAY_SEGMENT * 2;
+
+const BIOME_ORDER = ['forest', 'meadow', 'dry', 'sandy', 'wet'];
+const BIOMES = {
+    forest: {
+        name: 'Bosque verde',
+        top: '#2d5522', bottom: '#1f3b16',
+        mottleA: 'rgba(96, 142, 62, 0.055)', mottleB: 'rgba(12, 32, 10, 0.055)',
+        grass: ['#224215', '#346221', '#487d2e'],
+        tuft: ['#4f8433', '#5f9c3c', '#3f6f28'],
+        trailA: 'rgba(122, 88, 52, 0.22)', trailB: 'rgba(168, 128, 80, 0.15)',
+        sandClusters: 8, dryClusters: 4, mudClusters: 0, puddles: 3, mounds: 18,
+        shrubs: 10, reeds: 0, succulents: 0, sway: 150,
+        glowMushrooms: 0.04, fog: 0.035, rain: 0.35, dust: 0.0,
+        critters: 6, critterType: 'gnat',
+        food: '#e63946', tint: 'rgba(70, 130, 60, 0.035)',
+        rootCol: '#4a3018', shrubCol: '#5b4a24',
+        swayCols: ['#4f8433', '#3f6f28', '#6aa84a'],
+        sandA: '#a98d58', sandB: '#8d7448'
+    },
+    meadow: {
+        name: 'Pradera',
+        top: '#4c7c2c', bottom: '#35601f',
+        mottleA: 'rgba(180, 205, 110, 0.06)', mottleB: 'rgba(32, 70, 22, 0.045)',
+        grass: ['#356b1f', '#4c8a2c', '#64a33c'],
+        tuft: ['#6aa83e', '#7dbb4a', '#4f8a30'],
+        trailA: 'rgba(136, 104, 60, 0.2)', trailB: 'rgba(186, 150, 92, 0.14)',
+        sandClusters: 4, dryClusters: 5, mudClusters: 0, puddles: 4, mounds: 14,
+        shrubs: 14, reeds: 0, succulents: 0, sway: 170,
+        glowMushrooms: 0.0, fog: 0.0, rain: 0.18, dust: 0.02,
+        critters: 9, critterType: 'gnat',
+        food: '#e63946', tint: 'rgba(190, 215, 90, 0.03)',
+        rootCol: '#5a3d1e', shrubCol: '#4d6b28',
+        swayCols: ['#6aa83e', '#7dbb4a', '#8fca58'],
+        sandA: '#b09460', sandB: '#947a4a'
+    },
+    dry: {
+        name: 'Bosque seco',
+        top: '#6b6233', bottom: '#4a4222',
+        mottleA: 'rgba(186, 166, 88, 0.055)', mottleB: 'rgba(62, 46, 20, 0.06)',
+        grass: ['#6b6a2c', '#858331', '#9c983c'],
+        tuft: ['#8f8c39', '#a39f45', '#716f2e'],
+        trailA: 'rgba(132, 102, 58, 0.24)', trailB: 'rgba(190, 154, 96, 0.16)',
+        sandClusters: 18, dryClusters: 20, mudClusters: 0, puddles: 0, mounds: 22,
+        shrubs: 34, reeds: 0, succulents: 4, sway: 110,
+        glowMushrooms: 0.0, fog: 0.0, rain: 0.0, dust: 0.05,
+        critters: 4, critterType: 'fly',
+        food: '#d97706', tint: 'rgba(255, 190, 90, 0.04)',
+        rootCol: '#4f381c', shrubCol: '#6d5a2d',
+        swayCols: ['#a39f45', '#8f8c39', '#b8ae55'],
+        sandA: '#b3945c', sandB: '#967a49'
+    },
+    sandy: {
+        name: 'Zona arenosa',
+        top: '#b79a63', bottom: '#937a49',
+        mottleA: 'rgba(238, 214, 164, 0.065)', mottleB: 'rgba(124, 98, 58, 0.05)',
+        grass: ['#8a8a3c', '#9c9c46', '#b0aa52'],
+        tuft: ['#a8a14a', '#bdb757', '#8d873c'],
+        trailA: 'rgba(150, 118, 70, 0.2)', trailB: 'rgba(214, 184, 128, 0.16)',
+        sandClusters: 34, dryClusters: 12, mudClusters: 0, puddles: 0, mounds: 26,
+        shrubs: 18, reeds: 0, succulents: 22, sway: 90,
+        glowMushrooms: 0.0, fog: 0.0, rain: 0.0, dust: 0.08,
+        critters: 3, critterType: 'fly',
+        food: '#ca8a04', tint: 'rgba(255, 214, 140, 0.05)',
+        rootCol: '#6b4c24', shrubCol: '#7d6a35',
+        swayCols: ['#bdb757', '#a8a14a', '#cfc56b'],
+        sandA: '#cdb079', sandB: '#b09058'
+    },
+    wet: {
+        name: 'Suelo humedo',
+        top: '#26422c', bottom: '#162a1c',
+        mottleA: 'rgba(72, 132, 84, 0.06)', mottleB: 'rgba(4, 20, 12, 0.075)',
+        grass: ['#1f4a2a', '#2e6338', '#3f7d47'],
+        tuft: ['#367a44', '#458c50', '#2a6036'],
+        trailA: 'rgba(84, 70, 42, 0.24)', trailB: 'rgba(126, 112, 68, 0.16)',
+        sandClusters: 0, dryClusters: 0, mudClusters: 16, puddles: 15, mounds: 16,
+        shrubs: 8, reeds: 32, succulents: 0, sway: 180,
+        glowMushrooms: 0.22, fog: 0.07, rain: 0.55, dust: 0.0,
+        critters: 10, critterType: 'dragonfly',
+        food: '#9d4edd', tint: 'rgba(60, 130, 140, 0.045)',
+        rootCol: '#3f2b14', shrubCol: '#2f5a34',
+        swayCols: ['#458c50', '#367a44', '#57a05f'],
+        sandA: '#7a6a44', sandB: '#5f5234'
+    }
+};
+
+/* Paleta de arte por bioma: arboles, arbustos, rocas y ambiente. */
+const BIOME_ART = {
+    forest: {
+        tree: { dark: '#103218', mid: '#23512a', light: '#3d7c34', rim: '#7fba5c', trunk: '#4a2c14', trunkLight: '#6d4a26', bark: '#2b1808', accent: null },
+        bush: { dark: '#15401f', mid: '#256b32', light: '#3f8f45', rim: '#7dc46a' },
+        rock: { base: '#6d766f', dark: '#3a423d', light: '#9aa59d', moss: '#4a7a3c' },
+        log: { bark: '#4c3020', light: '#8a6238', ring: '#d0a76c' },
+        pollen: 0.35, leafFall: 1, ridges: 8,
+        ridgeA: 'rgba(72, 108, 52, 0.10)', ridgeB: 'rgba(12, 28, 10, 0.10)'
+    },
+    meadow: {
+        tree: { dark: '#1c4a1c', mid: '#377227', light: '#63a13e', rim: '#a8d86a', trunk: '#5a3a1c', trunkLight: '#805a32', bark: '#33200c', accent: null },
+        bush: { dark: '#1d4d1e', mid: '#337a2a', light: '#559d3e', rim: '#95d46c' },
+        rock: { base: '#7d8172', dark: '#4a4d3f', light: '#a8ab94', moss: '#5a8a44' },
+        log: { bark: '#553922', light: '#966c40', ring: '#d8b078' },
+        pollen: 0.8, leafFall: 0.55, ridges: 5,
+        ridgeA: 'rgba(196, 214, 120, 0.12)', ridgeB: 'rgba(46, 78, 30, 0.10)'
+    },
+    dry: {
+        tree: { dark: '#393d1e', mid: '#5d6228', light: '#8a8a3e', rim: '#b8b268', trunk: '#5a4124', trunkLight: '#82603a', bark: '#2e1f0c', accent: 'rgba(214, 196, 120, 0.55)' },
+        bush: { dark: '#494a1e', mid: '#6d6a2b', light: '#96903c', rim: '#c2ba68' },
+        rock: { base: '#8d8069', dark: '#564c3a', light: '#b7a98d', moss: '#7a7a3c' },
+        log: { bark: '#4a3722', light: '#8a7048', ring: '#cbb080' },
+        pollen: 0.12, leafFall: 0.85, ridges: 22,
+        ridgeA: 'rgba(190, 168, 96, 0.18)', ridgeB: 'rgba(58, 42, 18, 0.14)'
+    },
+    sandy: {
+        tree: { dark: '#3d4929', mid: '#62713a', light: '#8ea253', rim: '#c6d28c', trunk: '#7a5c34', trunkLight: '#a58252', bark: '#4a3620', accent: 'rgba(244, 230, 176, 0.7)' },
+        bush: { dark: '#3f4c26', mid: '#5f7034', light: '#85984a', rim: '#bbc97c' },
+        rock: { base: '#b0a184', dark: '#7a6e57', light: '#d6c9a8', moss: '#8a8a4a' },
+        log: { bark: '#6a5236', light: '#a98a58', ring: '#e2c896' },
+        pollen: 0.06, leafFall: 0.28, ridges: 30,
+        ridgeA: 'rgba(232, 210, 164, 0.26)', ridgeB: 'rgba(136, 110, 66, 0.16)'
+    },
+    wet: {
+        tree: { dark: '#0b291a', mid: '#1a492a', light: '#31733e', rim: '#5fae6c', trunk: '#3d2a14', trunkLight: '#5e4426', bark: '#241608', accent: null },
+        bush: { dark: '#0e3520', mid: '#1f5c33', light: '#357a43', rim: '#66b070' },
+        rock: { base: '#5a6a5e', dark: '#2d3a31', light: '#83968a', moss: '#4f9a52' },
+        log: { bark: '#3c2a18', light: '#745336', ring: '#bb9a68' },
+        pollen: 0.25, leafFall: 0.4, ridges: 9,
+        ridgeA: 'rgba(104, 154, 122, 0.12)', ridgeB: 'rgba(4, 16, 10, 0.16)'
+    }
+};
+
+function biomeForSeed(seed) {
+    return BIOME_ORDER[((seed >>> 0) % BIOME_ORDER.length + BIOME_ORDER.length) % BIOME_ORDER.length];
+}
 const TILT = 0.78;
 const STEP = 1 / 60;
 const EGG_COST = 10;
@@ -831,6 +964,7 @@ const pvpHintEl = document.getElementById('pvp-hint');
 const pvpFoeEl = document.getElementById('pvp-foe');
 const pvpReadyEl = document.getElementById('pvp-ready');
 const dayClockEl = document.getElementById('day-clock');
+const biomeNameEl = document.getElementById('biome-name');
 
 let viewW = 800;
 let viewH = 600;
@@ -888,6 +1022,8 @@ const mouse = { x: -100, y: -100, overMinimap: false };
 
 /* Entorno estático */
 let grassBlades = [];
+let grassTufts = [];
+let ridgeLines = [];
 let dirtPatches = [];
 let pebbles = [];
 let mushrooms = [];
@@ -906,6 +1042,19 @@ let clearings = [];
 let cloverPatches = [];
 let flowerBeds = [];
 let fireflies = [];
+let sandPatches = [];
+let dryPatches = [];
+let mudPatches = [];
+let mounds = [];
+let puddles = [];
+let roots = [];
+let shrubs = [];
+let reeds = [];
+let succulents = [];
+let swayPlants = [];
+let critters = [];
+let worldBiome = 'forest';
+let biome = null;
 
 /* Capa estática pre-renderizada */
 const bgCanvas = document.createElement('canvas');
@@ -3706,8 +3855,16 @@ function triggerNatureHarvest() {
 
 function generateEnvironment(seed) {
     rng = mulberry32(seed >>> 0);
+    // RNG aparte para decoracion extra: conserva intactas las posiciones
+    // originales de obstaculos y recursos de cada semilla.
+    const decoRng = mulberry32(((seed >>> 0) ^ 0x27d4eb2d) >>> 0);
+    worldBiome = biomeForSeed(seed);
+    biome = BIOMES[worldBiome] || BIOMES.forest;
+    if (biomeNameEl) biomeNameEl.textContent = biome.name;
 
     grassBlades = [];
+    grassTufts = [];
+    ridgeLines = [];
     dirtPatches = [];
     pebbles = [];
     mushrooms = [];
@@ -3718,6 +3875,18 @@ function generateEnvironment(seed) {
     trees = [];
     flowers = [];
     foods = [];
+
+    sandPatches = [];
+    dryPatches = [];
+    mudPatches = [];
+    mounds = [];
+    puddles = [];
+    roots = [];
+    shrubs = [];
+    reeds = [];
+    succulents = [];
+    swayPlants = [];
+    critters = [];
 
     for (let i = 0; i < 140; i++) {
         dirtPatches.push({
@@ -3737,17 +3906,41 @@ function generateEnvironment(seed) {
             color: rng() > 0.5 ? '#58615d' : '#7f8a86'
         });
     }
+    const extraPebbles = worldBiome === 'sandy' ? 340 : worldBiome === 'dry' ? 180 : 0;
+    for (let i = 0; i < extraPebbles; i++) {
+        pebbles.push({
+            x: decoRng() * WORLD_W,
+            y: decoRng() * WORLD_H,
+            r: 1.5 + decoRng() * 3.5,
+            color: decoRng() > 0.5 ? '#58615d' : '#7f8a86'
+        });
+    }
 
     for (let i = 0; i < 84; i++) {
         mushrooms.push({
             x: rng() * WORLD_W,
             y: rng() * WORLD_H,
             color: rng() > 0.5 ? '#e76f51' : '#f4a261',
-            size: 3.5 + rng() * 3
+            size: 3.5 + rng() * 3,
+            glow: worldBiome === 'wet' && (i * 17 + (seed >>> 0)) % 13 < 3
         });
     }
+    const extraMushrooms = worldBiome === 'wet' ? 52 : worldBiome === 'meadow' ? 0 : 0;
+    for (let i = 0; i < extraMushrooms; i++) {
+        mushrooms.push({
+            x: decoRng() * WORLD_W,
+            y: decoRng() * WORLD_H,
+            color: decoRng() > 0.5 ? '#e76f51' : '#f4a261',
+            size: 3.5 + decoRng() * 3,
+            glow: worldBiome === 'wet' && (i * 29 + (seed >>> 0)) % 9 < 3
+        });
+    }
+    const mushroomTrim = worldBiome === 'sandy' ? 64 : worldBiome === 'dry' ? 42 : worldBiome === 'meadow' ? 20 : 0;
+    for (let k = 0; k < mushroomTrim && mushrooms.length; k++) {
+        mushrooms.splice(Math.floor(decoRng() * mushrooms.length), 1);
+    }
 
-    const grassColors = ['#224215', '#346221', '#487d2e'];
+    const grassColors = biome.grass;
     for (let i = 0; i < 12000; i++) {
         grassBlades.push({
             x: rng() * WORLD_W,
@@ -3755,6 +3948,31 @@ function generateEnvironment(seed) {
             h: 6 + rng() * 9,
             lean: (rng() - 0.5) * 6,
             color: grassColors[Math.floor(rng() * grassColors.length)]
+        });
+    }
+    const extraBlades = worldBiome === 'meadow' ? 2000 : worldBiome === 'wet' ? 1100 : 0;
+    for (let i = 0; i < extraBlades; i++) {
+        grassBlades.push({
+            x: decoRng() * WORLD_W,
+            y: decoRng() * WORLD_H,
+            h: 6 + decoRng() * 9,
+            lean: (decoRng() - 0.5) * 6,
+            color: grassColors[Math.floor(decoRng() * grassColors.length)]
+        });
+    }
+
+    const tuftCount = worldBiome === 'meadow' ? 5200 : worldBiome === 'wet' ? 4200
+        : worldBiome === 'forest' ? 3800 : worldBiome === 'dry' ? 1700 : 1100;
+    for (let i = 0; i < tuftCount; i++) {
+        const tuftCol = biome.tuft;
+        grassTufts.push({
+            x: decoRng() * WORLD_W,
+            y: decoRng() * WORLD_H,
+            h: 7 + decoRng() * 15,
+            lean: (decoRng() - 0.5) * 9,
+            blades: 2 + Math.floor(decoRng() * 3),
+            spread: 3 + decoRng() * 6,
+            col: tuftCol[Math.floor(decoRng() * tuftCol.length)]
         });
     }
 
@@ -3798,8 +4016,24 @@ function generateEnvironment(seed) {
         flowers.push({
             x: 50 + rng() * (WORLD_W - 100),
             y: 50 + rng() * (WORLD_H - 100),
-            color: flowerColors[Math.floor(rng() * flowerColors.length)]
+            color: flowerColors[Math.floor(rng() * flowerColors.length)],
+            size: 0.8 + rng() * 0.8,
+            angle: rng() * Math.PI * 2
         });
+    }
+    const extraFlowers = worldBiome === 'meadow' ? 110 : worldBiome === 'wet' ? 0 : 0;
+    for (let i = 0; i < extraFlowers; i++) {
+        flowers.push({
+            x: 50 + decoRng() * (WORLD_W - 100),
+            y: 50 + decoRng() * (WORLD_H - 100),
+            color: flowerColors[Math.floor(decoRng() * flowerColors.length)],
+            size: 0.8 + decoRng() * 0.8,
+            angle: decoRng() * Math.PI * 2
+        });
+    }
+    const flowerTrim = worldBiome === 'sandy' ? 240 : worldBiome === 'dry' ? 160 : 0;
+    for (let k = 0; k < flowerTrim && flowers.length; k++) {
+        flowers.splice(Math.floor(decoRng() * flowers.length), 1);
     }
 
     for (let i = 0; i < 75; i++) {
@@ -3873,6 +4107,24 @@ function generateEnvironment(seed) {
         }
         flowerBeds.push({ x: bx, y: by, blooms });
     }
+    const extraBeds = worldBiome === 'meadow' ? 12 : worldBiome === 'wet' ? 0 : 0;
+    for (let i = 0; i < extraBeds; i++) {
+        const bx = 140 + decoRng() * (WORLD_W - 280);
+        const by = 140 + decoRng() * (WORLD_H - 280);
+        const colors = [bedColors[Math.floor(decoRng() * bedColors.length)], bedColors[Math.floor(decoRng() * bedColors.length)]];
+        const blooms = [];
+        const n = 7 + Math.floor(decoRng() * 7);
+        for (let k = 0; k < n; k++) {
+            const a = decoRng() * Math.PI * 2;
+            const d = Math.sqrt(decoRng()) * (28 + decoRng() * 42);
+            blooms.push({ x: Math.cos(a) * d, y: Math.sin(a) * d * TILT, c: colors[k % 2] });
+        }
+        flowerBeds.push({ x: bx, y: by, blooms });
+    }
+    const bedTrim = worldBiome === 'sandy' ? 26 : worldBiome === 'dry' ? 18 : 0;
+    for (let k = 0; k < bedTrim && flowerBeds.length; k++) {
+        flowerBeds.splice(Math.floor(decoRng() * flowerBeds.length), 1);
+    }
 
     for (let i = 0; i < 240; i++) {
         fireflies.push({
@@ -3942,220 +4194,816 @@ function generateEnvironment(seed) {
         });
     }
 
+    generateBiomeDecor(seed);
     paintStaticBase(bgCtx);
+}
+
+function generateBiomeDecor(seed) {
+    const b = biome || BIOMES.forest;
+
+    const clusterTerrain = (list, clusters, minR, maxR, toneA, toneB) => {
+        for (let i = 0; i < clusters; i++) {
+            const cx = 180 + rng() * (WORLD_W - 360);
+            const cy = 160 + rng() * (WORLD_H - 320);
+            const blobs = 3 + Math.floor(rng() * 5);
+            for (let k = 0; k < blobs; k++) {
+                const rx = minR + rng() * (maxR - minR);
+                list.push({
+                    x: clamp(cx + (rng() - 0.5) * maxR * 3.2, 60, WORLD_W - 60),
+                    y: clamp(cy + (rng() - 0.5) * maxR * 2.0 * TILT, 60, WORLD_H - 60),
+                    rx,
+                    ry: rx * (0.5 + rng() * 0.35) * TILT,
+                    angle: rng() * Math.PI,
+                    tone: rng() > 0.45 ? toneA : toneB
+                });
+            }
+        }
+    };
+
+    clusterTerrain(sandPatches, b.sandClusters, 45, 130, b.sandA, b.sandB);
+    const dryStrength = 0.15 + Math.min(0.13, b.dryClusters * 0.006);
+    clusterTerrain(dryPatches, b.dryClusters, 40, 120,
+        `rgba(118, 96, 48, ${dryStrength})`, `rgba(146, 122, 64, ${dryStrength * 0.82})`);
+    const mudStrength = 0.16 + Math.min(0.2, b.mudClusters * 0.012);
+    clusterTerrain(mudPatches, b.mudClusters, 42, 125,
+        `rgba(40, 52, 30, ${mudStrength})`, `rgba(56, 72, 42, ${mudStrength * 0.8})`);
+
+    for (let i = 0; i < b.mounds; i++) {
+        const rx = 80 + rng() * 170;
+        mounds.push({
+            x: 160 + rng() * (WORLD_W - 320),
+            y: 140 + rng() * (WORLD_H - 280),
+            rx,
+            ry: rx * (0.45 + rng() * 0.25) * TILT,
+            angle: rng() * Math.PI,
+            deep: rng() > 0.45 ? 1 : -1
+        });
+    }
+
+    for (let i = 0; i < b.puddles; i++) {
+        const cx = 220 + rng() * (WORLD_W - 440);
+        const cy = 200 + rng() * (WORLD_H - 400);
+        const rings = 1 + Math.floor(rng() * 3);
+        for (let k = 0; k < rings; k++) {
+            const rx = 28 + rng() * 72;
+            puddles.push({
+                x: clamp(cx + (rng() - 0.5) * 150, 80, WORLD_W - 80),
+                y: clamp(cy + (rng() - 0.5) * 100, 80, WORLD_H - 80),
+                rx,
+                ry: rx * (0.4 + rng() * 0.25) * TILT,
+                angle: rng() * Math.PI
+            });
+        }
+    }
+
+    for (const t of trees) {
+        const n = 3 + Math.floor(rng() * 4);
+        for (let k = 0; k < n; k++) {
+            const a = rng() * Math.PI * 2;
+            roots.push({
+                x: t.x + Math.cos(a) * t.trunkR * 0.8,
+                y: t.y + Math.sin(a) * t.trunkR * 0.5,
+                angle: a,
+                len: t.trunkR * (0.7 + rng() * 1.1),
+                bend: (rng() - 0.5) * 18,
+                col: b.rootCol
+            });
+        }
+        t.artScale = 0.88 + rng() * 0.18;
+        t.swayPhase = rng() * Math.PI * 2;
+    }
+
+    const extraFerns = worldBiome === 'wet' ? 90 : worldBiome === 'forest' ? 34 : 0;
+    for (let i = 0; i < extraFerns; i++) {
+        ferns.push({
+            x: 60 + rng() * (WORLD_W - 120),
+            y: 60 + rng() * (WORLD_H - 120),
+            size: 20 + rng() * 16,
+            angle: rng() * Math.PI * 2,
+            tone: rng() > 0.5 ? 1 : 0
+        });
+    }
+    const fernTrim = worldBiome === 'sandy' ? 96 : worldBiome === 'dry' ? 64 : 0;
+    for (let k = 0; k < fernTrim && ferns.length; k++) {
+        ferns.splice(Math.floor(rng() * ferns.length), 1);
+    }
+
+    const art = BIOME_ART[worldBiome] || BIOME_ART.forest;
+    for (let i = 0; i < art.ridges; i++) {
+        const dune = worldBiome === 'sandy' || worldBiome === 'dry';
+        const ang = dune ? (rng() - 0.5) * 0.6 : rng() * Math.PI * 2;
+        ridgeLines.push({
+            x: 140 + rng() * (WORLD_W - 280),
+            y: 120 + rng() * (WORLD_H - 240),
+            len: 90 + rng() * 220,
+            ang,
+            bend: (rng() - 0.5) * 46,
+            w: 1.6 + rng() * 4,
+            a: art.ridgeA,
+            b: art.ridgeB
+        });
+    }
+
+    for (let i = 0; i < b.shrubs; i++) {
+        shrubs.push({
+            x: 120 + rng() * (WORLD_W - 240),
+            y: 100 + rng() * (WORLD_H - 200),
+            size: 10 + rng() * 18,
+            angle: rng() * Math.PI * 2,
+            col: b.shrubCol
+        });
+    }
+
+    for (let i = 0; i < b.reeds; i++) {
+        reeds.push({
+            x: 100 + rng() * (WORLD_W - 200),
+            y: 100 + rng() * (WORLD_H - 200),
+            h: 22 + rng() * 30,
+            lean: (rng() - 0.5) * 12,
+            phase: rng() * Math.PI * 2
+        });
+    }
+
+    for (let i = 0; i < b.succulents; i++) {
+        succulents.push({
+            x: 100 + rng() * (WORLD_W - 200),
+            y: 100 + rng() * (WORLD_H - 200),
+            size: 6 + rng() * 9,
+            angle: rng() * Math.PI * 2
+        });
+    }
+
+    for (let i = 0; i < b.sway; i++) {
+        swayPlants.push({
+            x: 80 + rng() * (WORLD_W - 160),
+            y: 80 + rng() * (WORLD_H - 160),
+            h: 12 + rng() * 20,
+            bend: 3 + rng() * 5,
+            phase: rng() * Math.PI * 2,
+            speed: 0.5 + rng() * 0.7,
+            col: b.swayCols[Math.floor(rng() * b.swayCols.length)],
+            kind: b.reeds > 0 ? (rng() > 0.4 ? 'reed' : 'grass') : 'grass'
+        });
+    }
+
+    for (let i = 0; i < b.critters; i++) {
+        critters.push({
+            x: 160 + rng() * (WORLD_W - 320),
+            y: 160 + rng() * (WORLD_H - 320),
+            phase: rng() * Math.PI * 2,
+            speed: 0.5 + rng() * 0.8,
+            amp: 18 + rng() * 30,
+            type: b.critterType
+        });
+    }
+}
+
+/* ---------- Utilidades de pintura natural (capa estatica) ---------- */
+function artPalette() {
+    return BIOME_ART[worldBiome] || BIOME_ART.forest;
+}
+
+function hexAlpha(hex, a) {
+    const h = hex.replace('#', '');
+    const full = h.length === 3 ? h.split('').map(x => x + x).join('') : h;
+    const r = parseInt(full.slice(0, 2), 16);
+    const g = parseInt(full.slice(2, 4), 16);
+    const b = parseInt(full.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
+function fadeColor(color) {
+    const m = String(color).match(/rgba?\(([^)]+)\)/);
+    if (m) {
+        const p = m[1].split(',').map(s => s.trim());
+        return `rgba(${p[0]}, ${p[1]}, ${p[2]}, 0)`;
+    }
+    return 'rgba(0, 0, 0, 0)';
+}
+
+function hash01(a, b) {
+    const v = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453;
+    return v - Math.floor(v);
+}
+
+function paintSoftPatch(c, x, y, rx, ry, angle, inner, outer) {
+    if (!(rx > 0) || !(ry > 0)) return;
+    c.save();
+    c.translate(x, y);
+    c.rotate(angle);
+    c.scale(1, ry / rx);
+    const g = c.createRadialGradient(0, 0, rx * 0.08, 0, 0, rx);
+    g.addColorStop(0, inner);
+    g.addColorStop(0.58, inner);
+    g.addColorStop(1, outer);
+    c.fillStyle = g;
+    c.beginPath();
+    c.arc(0, 0, rx, 0, Math.PI * 2);
+    c.fill();
+    c.restore();
+}
+
+function paintSoftShadow(c, x, y, rx, ry, alpha = 0.22) {
+    if (!(rx > 0) || !(ry > 0)) return;
+    c.save();
+    c.translate(x, y);
+    c.scale(1, ry / rx);
+    const g = c.createRadialGradient(0, 0, rx * 0.15, 0, 0, rx);
+    g.addColorStop(0, `rgba(4, 10, 3, ${alpha})`);
+    g.addColorStop(0.68, `rgba(4, 10, 3, ${alpha * 0.55})`);
+    g.addColorStop(1, 'rgba(4, 10, 3, 0)');
+    c.fillStyle = g;
+    c.beginPath();
+    c.arc(0, 0, rx, 0, Math.PI * 2);
+    c.fill();
+    c.restore();
+}
+
+function paintSpeckles(c, x, y, rx, ry, angle, n, seed, light, dark) {
+    const rnd = mulberry32((seed >>> 0) || 1);
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    for (let i = 0; i < n; i++) {
+        const a = rnd() * Math.PI * 2;
+        const d = Math.sqrt(rnd()) * 0.82;
+        const ox = Math.cos(a) * rx * d;
+        const oy = Math.sin(a) * ry * d;
+        const px = x + ox * cos - oy * sin;
+        const py = y + ox * sin + oy * cos;
+        c.fillStyle = rnd() > 0.5 ? light : dark;
+        c.beginPath();
+        c.ellipse(px, py, 0.8 + rnd() * 1.7, 0.5 + rnd() * 1.1, a, 0, Math.PI * 2);
+        c.fill();
+    }
+}
+
+function bushClumps(b) {
+    if (b._clumps) return b._clumps;
+    const seed = (((b.x * 977) | 0) ^ ((b.y * 1319) | 0)) >>> 0;
+    const rnd = mulberry32(seed || 7);
+    const n = 22 + Math.floor(rnd() * 8);
+    const list = [];
+    for (let i = 0; i < n; i++) {
+        const a = rnd() * Math.PI * 2;
+        const d = Math.sqrt(rnd());
+        const cx = Math.cos(a) * d * b.radius * 0.88;
+        const cy = Math.sin(a) * d * b.radius * 0.6 * TILT;
+        const r = b.radius * (0.17 + rnd() * 0.16);
+        const bias = 0.12 + rnd() * 0.86 - (cx + cy * 0.7) / (b.radius * 5);
+        const tone = bias > 0.72 ? 2 : (bias > 0.32 ? 1 : 0);
+        list.push({ x: cx, y: cy, r, tone, a });
+    }
+    list.sort((p, q) => p.tone - q.tone);
+    b._clumps = list;
+    return list;
+}
+
+function paintBushBody(c, b) {
+    const pal = artPalette().bush;
+    const seed = (((b.x * 977) | 0) ^ ((b.y * 1319) | 0)) >>> 0;
+    const clumps = bushClumps(b);
+    paintSoftShadow(c, b.x + 8, b.y + 11, b.radius * 1.18, b.radius * 0.85, 0.22);
+    c.save();
+    c.translate(b.x, b.y);
+
+    const fills = [pal.dark, pal.mid, pal.light];
+    for (let tone = 0; tone < 3; tone++) {
+        c.fillStyle = fills[tone];
+        for (const cl of clumps) {
+            if (cl.tone !== tone) continue;
+            c.beginPath();
+            c.ellipse(cl.x, cl.y - tone * 1.5, cl.r, cl.r * TILT, cl.a, 0, Math.PI * 2);
+            c.fill();
+        }
+    }
+
+    c.strokeStyle = hexAlpha(pal.rim, 0.4);
+    c.lineWidth = 1;
+    let rims = 0;
+    for (const cl of clumps) {
+        if (cl.tone !== 2 || rims >= 3) continue;
+        if (cl.x + cl.y > 0) continue;
+        c.beginPath();
+        c.ellipse(cl.x, cl.y - 3, cl.r * 0.7, cl.r * 0.7 * TILT, cl.a, -2.5, 0.8);
+        c.stroke();
+        rims++;
+    }
+
+    const rnd = mulberry32(seed || 7);
+    c.strokeStyle = hexAlpha(pal.rim, 0.3);
+    c.lineWidth = 1;
+    for (let i = 0; i < 14; i++) {
+        const cl = clumps[i % clumps.length];
+        const a = rnd() * Math.PI * 2;
+        const d = Math.sqrt(rnd()) * cl.r * 0.7;
+        const px = cl.x + Math.cos(a) * d;
+        const py = cl.y + Math.sin(a) * d * TILT - 3;
+        c.beginPath();
+        c.moveTo(px - 1.5, py);
+        c.quadraticCurveTo(px, py - 2.6, px + 2, py - 0.4);
+        c.stroke();
+    }
+
+    const berries = 6 + (seed % 4);
+    for (let i = 0; i < berries; i++) {
+        const cl = clumps[(i * 3 + 1) % clumps.length];
+        const a = rnd() * Math.PI * 2;
+        const d = Math.sqrt(rnd()) * cl.r * 0.6;
+        const bx = cl.x + Math.cos(a) * d;
+        const by = cl.y + Math.sin(a) * d * TILT - 5;
+        c.fillStyle = 'rgba(90, 12, 22, 0.9)';
+        c.beginPath();
+        c.arc(bx + 0.5, by + 0.7, 1.8, 0, Math.PI * 2);
+        c.fill();
+        c.fillStyle = '#e5383b';
+        c.beginPath();
+        c.arc(bx, by, 1.7, 0, Math.PI * 2);
+        c.fill();
+        c.fillStyle = 'rgba(255, 235, 220, 0.75)';
+        c.beginPath();
+        c.arc(bx - 0.6, by - 0.6, 0.6, 0, Math.PI * 2);
+        c.fill();
+    }
+    c.restore();
+}
+
+function paintRockBody(c, r) {
+    const pal = artPalette().rock;
+    const seed = (((r.x * 613) | 0) ^ ((r.y * 271) | 0)) >>> 0;
+    paintSoftShadow(c, r.x + 9, r.y + 12, r.radius * 1.3, r.radius * 0.92, 0.3);
+    c.save();
+    c.translate(r.x, r.y);
+
+    const rockPath = (dy, sx, sy) => {
+        c.beginPath();
+        c.moveTo(r.points[0].x * sx, r.points[0].y * sy + dy);
+        for (const pt of r.points) c.lineTo(pt.x * sx, pt.y * sy + dy);
+        c.closePath();
+    };
+
+    rockPath(8, 1, 1);
+    c.fillStyle = hexAlpha(pal.dark, 0.85);
+    c.fill();
+
+    const grad = c.createLinearGradient(-r.radius * 0.8, -r.radius * 0.9, r.radius * 0.75, r.radius * 0.85);
+    grad.addColorStop(0, pal.light);
+    grad.addColorStop(0.42, pal.base);
+    grad.addColorStop(1, pal.dark);
+    rockPath(0, 1, 1);
+    c.fillStyle = grad;
+    c.fill();
+
+    rockPath(-r.radius * 0.14, 0.84, 0.88);
+    c.fillStyle = hexAlpha(pal.light, 0.22);
+    c.fill();
+
+    c.strokeStyle = hexAlpha(pal.dark, 0.55);
+    c.lineWidth = 1.1;
+    c.beginPath();
+    c.moveTo(-r.radius * 0.42, -r.radius * 0.08);
+    c.lineTo(-r.radius * 0.06, r.radius * 0.12);
+    c.lineTo(r.radius * 0.22, -r.radius * 0.04);
+    c.moveTo(r.radius * 0.05, r.radius * 0.32);
+    c.lineTo(r.radius * 0.3, r.radius * 0.18);
+    c.stroke();
+
+    paintSpeckles(c, 0, -r.radius * 0.1, r.radius * 0.7, r.radius * 0.5 * TILT, 0, 12, seed, hexAlpha(pal.light, 0.3), hexAlpha(pal.dark, 0.3));
+
+    if (r.hasMoss) {
+        paintSoftPatch(c, r.radius * 0.14, -r.radius * 0.22 * TILT - 3, r.radius * 0.48, r.radius * 0.28, 0.2, hexAlpha(pal.moss, 0.55), hexAlpha(pal.moss, 0));
+        c.fillStyle = hexAlpha(pal.moss, 0.55);
+        for (let i = 0; i < 4; i++) {
+            const a = i * 1.7 + 0.4;
+            c.beginPath();
+            c.arc(r.radius * 0.14 + Math.cos(a) * r.radius * 0.28, -r.radius * 0.22 * TILT - 3 + Math.sin(a) * r.radius * 0.14, 1.4, 0, Math.PI * 2);
+            c.fill();
+        }
+    }
+
+    c.fillStyle = 'rgba(255, 255, 255, 0.16)';
+    c.beginPath();
+    c.ellipse(-r.radius * 0.3, -r.radius * 0.34, r.radius * 0.18, r.radius * 0.1, -0.4, 0, Math.PI * 2);
+    c.fill();
+    c.restore();
+}
+
+function paintLogBody(c, l) {
+    const pal = artPalette().log;
+    paintSoftShadow(c, l.x + 7, l.y + 10, l.w * 0.62, l.h * 0.8, 0.24);
+    c.save();
+    c.translate(l.x, l.y);
+    c.scale(1, TILT);
+    c.rotate(l.angle);
+
+    const grad = c.createLinearGradient(0, -l.h / 2, 0, l.h / 2);
+    grad.addColorStop(0, pal.light);
+    grad.addColorStop(0.32, pal.bark);
+    grad.addColorStop(1, shadeColor(pal.bark, 0.68));
+    c.fillStyle = grad;
+    c.beginPath();
+    c.roundRect(-l.w / 2, -l.h / 2, l.w, l.h, 9);
+    c.fill();
+
+    c.strokeStyle = hexAlpha(pal.bark, 0.8);
+    c.lineWidth = 1.2;
+    for (let i = -1; i <= 1; i++) {
+        c.beginPath();
+        c.moveTo(-l.w / 2 + 7, i * l.h * 0.24);
+        c.quadraticCurveTo(0, i * l.h * 0.24 + 1.6, l.w / 2 - 13, i * l.h * 0.24 + 0.6);
+        c.stroke();
+    }
+
+    c.fillStyle = pal.ring;
+    c.beginPath();
+    c.ellipse(l.w / 2 - 3, 0, 7, l.h / 2 - 2.5, 0, 0, Math.PI * 2);
+    c.fill();
+    c.strokeStyle = hexAlpha(pal.bark, 0.65);
+    c.lineWidth = 1;
+    c.beginPath();
+    c.ellipse(l.w / 2 - 3, 0, 4.2, l.h / 2 - 4.6, 0, 0, Math.PI * 2);
+    c.stroke();
+    c.beginPath();
+    c.ellipse(l.w / 2 - 3, 0, 1.8, l.h / 2 - 7, 0, 0, Math.PI * 2);
+    c.stroke();
+
+    c.fillStyle = 'rgba(64, 118, 52, 0.55)';
+    c.beginPath();
+    c.ellipse(-l.w * 0.2, -l.h * 0.29, l.w * 0.23, 4.4, -0.05, 0, Math.PI * 2);
+    c.fill();
+    c.fillStyle = 'rgba(150, 196, 110, 0.28)';
+    c.beginPath();
+    c.ellipse(-l.w * 0.24, -l.h * 0.33, l.w * 0.12, 2.1, -0.05, 0, Math.PI * 2);
+    c.fill();
+
+    c.restore();
+}
+
+function paintFernBody(c, fn) {
+    const rnd = mulberry32(((((fn.x * 73) | 0) ^ ((fn.y * 197) | 0)) >>> 0) || 5);
+    const tones = fn.tone === 1
+        ? ['#21452f', '#356b43', '#4e8c55']
+        : ['#1c3d2a', '#2d5a37', '#447c48'];
+    c.save();
+    c.translate(fn.x, fn.y);
+    c.scale(1, TILT);
+    c.fillStyle = 'rgba(4, 12, 4, 0.18)';
+    c.beginPath();
+    c.ellipse(4, 5, fn.size * 0.78, fn.size * 0.5, 0, 0, Math.PI * 2);
+    c.fill();
+    c.rotate(fn.angle);
+    const fronds = 7;
+    for (let i = 0; i < fronds; i++) {
+        const a = (i / fronds) * Math.PI * 2 + 0.32 + rnd() * 0.16;
+        const len = fn.size * (0.62 + rnd() * 0.42);
+        c.save();
+        c.rotate(a);
+        c.strokeStyle = tones[0];
+        c.lineWidth = 1.5;
+        c.beginPath();
+        c.moveTo(0, 0);
+        c.quadraticCurveTo(len * 0.5, -len * 0.18, len, 0);
+        c.stroke();
+        c.strokeStyle = tones[2];
+        c.lineWidth = 0.9;
+        c.beginPath();
+        for (let k = 1; k <= 5; k++) {
+            const t = k / 6;
+            const px = len * t;
+            const py = -len * 0.18 * 2 * t * (1 - t);
+            const ll = 3.6 * (1 - t * 0.55);
+            c.moveTo(px, py);
+            c.lineTo(px - ll * 0.45, py - ll * 0.95);
+            c.moveTo(px, py);
+            c.lineTo(px - ll * 0.45, py + ll * 0.95);
+        }
+        c.stroke();
+        c.restore();
+    }
+    c.fillStyle = tones[1];
+    c.beginPath();
+    c.arc(0, 0, 2.4, 0, Math.PI * 2);
+    c.fill();
+    c.restore();
+}
+
+function paintFlowerBody(c, fl) {
+    const s = fl.size || 1;
+    const a0 = fl.angle || 0;
+    c.strokeStyle = 'rgba(47, 93, 37, 0.85)';
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(fl.x, fl.y + 1);
+    c.quadraticCurveTo(fl.x + 1.6, fl.y + 4, fl.x + 1, fl.y + 6 * s);
+    c.stroke();
+    c.fillStyle = 'rgba(56, 110, 44, 0.8)';
+    c.beginPath();
+    c.ellipse(fl.x + 3.4 * s, fl.y + 4.4, 2.4 * s, 1.1 * s, 0.5, 0, Math.PI * 2);
+    c.fill();
+    c.fillStyle = fl.color;
+    for (let p = 0; p < 5; p++) {
+        const a = a0 + p * (Math.PI * 2 / 5);
+        c.beginPath();
+        c.ellipse(fl.x + Math.cos(a) * 2.4 * s, fl.y + Math.sin(a) * 2.4 * s * TILT, 2.1 * s, 1.4 * s, a, 0, Math.PI * 2);
+        c.fill();
+    }
+    c.fillStyle = 'rgba(255, 235, 170, 0.95)';
+    c.beginPath();
+    c.arc(fl.x, fl.y, 1.25 * s, 0, Math.PI * 2);
+    c.fill();
+}
+
+function paintGrassTuft(c, tf) {
+    const rnd = mulberry32(((((tf.x * 31) | 0) ^ ((tf.y * 57) | 0)) >>> 0) || 3);
+    c.fillStyle = 'rgba(10, 24, 8, 0.12)';
+    c.beginPath();
+    c.ellipse(tf.x, tf.y + 1, 5.2, 2.1, 0, 0, Math.PI * 2);
+    c.fill();
+    c.strokeStyle = tf.col;
+    c.lineWidth = 1.5;
+    c.lineCap = 'round';
+    c.beginPath();
+    for (let b = 0; b < tf.blades; b++) {
+        const ox = (b - (tf.blades - 1) / 2) * (tf.spread / tf.blades) + (rnd() - 0.5) * 2;
+        const hh = tf.h * (0.68 + rnd() * 0.5);
+        const lean = tf.lean * (0.6 + rnd() * 0.6);
+        c.moveTo(tf.x + ox, tf.y);
+        c.quadraticCurveTo(tf.x + ox + lean * 0.4, tf.y - hh * 0.62, tf.x + ox + lean, tf.y - hh);
+    }
+    c.stroke();
+}
+
+function paintPuddleBody(c, pd) {
+    paintSoftPatch(c, pd.x, pd.y, pd.rx * 1.24, pd.ry * 1.3, pd.angle, 'rgba(28, 44, 32, 0.18)', 'rgba(28, 44, 32, 0)');
+    c.save();
+    c.translate(pd.x, pd.y);
+    c.rotate(pd.angle);
+    c.scale(1, pd.ry / pd.rx);
+    const g = c.createRadialGradient(-pd.rx * 0.2, -pd.ry * 0.2, pd.rx * 0.06, 0, 0, pd.rx);
+    g.addColorStop(0, 'rgba(126, 190, 196, 0.5)');
+    g.addColorStop(0.55, 'rgba(44, 88, 92, 0.55)');
+    g.addColorStop(1, 'rgba(10, 24, 26, 0.6)');
+    c.fillStyle = g;
+    c.beginPath();
+    c.arc(0, 0, pd.rx, 0, Math.PI * 2);
+    c.fill();
+    c.strokeStyle = 'rgba(198, 234, 230, 0.26)';
+    c.lineWidth = 1.2;
+    c.beginPath();
+    c.ellipse(0, 0, pd.rx * 0.78, pd.ry * 0.72, 0, 0, Math.PI * 2);
+    c.stroke();
+    c.fillStyle = 'rgba(235, 250, 246, 0.15)';
+    c.beginPath();
+    c.ellipse(-pd.rx * 0.28, -pd.ry * 0.3, pd.rx * 0.26, pd.ry * 0.2, 0, 0, Math.PI * 2);
+    c.fill();
+    c.fillStyle = 'rgba(220, 244, 240, 0.1)';
+    c.beginPath();
+    c.ellipse(pd.rx * 0.2, pd.ry * 0.16, pd.rx * 0.14, pd.ry * 0.1, 0, 0, Math.PI * 2);
+    c.fill();
+    c.restore();
 }
 
 function paintStaticBase(c) {
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.clearRect(0, 0, WORLD_W, WORLD_H);
 
+    const pal = biome || BIOMES.forest;
+    const art = artPalette();
     const baseGrad = c.createLinearGradient(0, 0, 0, WORLD_H);
-    baseGrad.addColorStop(0, '#406d29');
-    baseGrad.addColorStop(0.45, '#345822');
-    baseGrad.addColorStop(1, '#27451b');
+    baseGrad.addColorStop(0, pal.top);
+    baseGrad.addColorStop(0.45, pal.top);
+    baseGrad.addColorStop(1, pal.bottom);
     c.fillStyle = baseGrad;
     c.fillRect(0, 0, WORLD_W, WORLD_H);
 
+    const noise = document.createElement('canvas');
+    noise.width = 160;
+    noise.height = 160;
+    const nctx = noise.getContext('2d');
+    let nseed = 987654321;
+    const nrnd = () => (nseed = (nseed * 1664525 + 1013904223) >>> 0) / 4294967296;
+    for (let i = 0; i < 2600; i++) {
+        nctx.fillStyle = nrnd() > 0.5 ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.07)';
+        nctx.fillRect(nrnd() * 160, nrnd() * 160, 1 + (nrnd() * 2 | 0), 1);
+    }
+    const noisePat = c.createPattern(noise, 'repeat');
+    if (noisePat) {
+        c.fillStyle = noisePat;
+        c.fillRect(0, 0, WORLD_W, WORLD_H);
+    }
+
+    if (pal.tint) {
+        c.fillStyle = pal.tint;
+        c.fillRect(0, 0, WORLD_W, WORLD_H);
+    }
+
+    nseed = ((worldSeed >>> 0) ^ 0x9e3779b9) >>> 0;
     for (let i = 0; i < 900; i++) {
-        const mx = rng() * WORLD_W;
-        const my = rng() * WORLD_H;
-        const mr = 18 + rng() * 60;
-        c.fillStyle = i % 2 ? 'rgba(96, 142, 62, 0.05)' : 'rgba(12, 32, 10, 0.05)';
+        const bx = nrnd() * WORLD_W;
+        const by = nrnd() * WORLD_H;
+        const br = 38 + nrnd() * 110;
+        c.fillStyle = nrnd() > 0.5 ? pal.mottleA : pal.mottleB;
+        c.beginPath();
+        c.ellipse(bx, by, br, br * 0.62, nrnd() * Math.PI, 0, Math.PI * 2);
+        c.fill();
+    }
+
+    const mottleRnd = mulberry32(((worldSeed >>> 0) ^ 0x51ed270b) >>> 0);
+    for (let i = 0; i < 1200; i++) {
+        const mx = mottleRnd() * WORLD_W;
+        const my = mottleRnd() * WORLD_H;
+        const mr = 18 + mottleRnd() * 60;
+        c.fillStyle = i % 2 ? pal.mottleA : pal.mottleB;
         c.beginPath();
         c.ellipse(mx, my, mr, mr * TILT, 0, 0, Math.PI * 2);
         c.fill();
     }
 
+    for (let i = 0; i < 2600; i++) {
+        const sx = mottleRnd() * WORLD_W;
+        const sy = mottleRnd() * WORLD_H;
+        c.fillStyle = i % 3 === 0 ? 'rgba(255, 248, 210, 0.05)' : 'rgba(12, 20, 8, 0.05)';
+        c.fillRect(sx, sy, 1.2, 1.2);
+    }
+
     for (const cl of clearings) {
-        c.save();
-        c.translate(cl.x, cl.y);
-        c.rotate(cl.angle);
-        c.fillStyle = 'rgba(206, 220, 142, 0.07)';
+        paintSoftPatch(c, cl.x, cl.y, cl.rx, cl.ry, cl.angle,
+            'rgba(226, 236, 168, 0.09)', 'rgba(226, 236, 168, 0)');
+    }
+
+    for (const m of mounds) {
+        if (m.deep > 0) {
+            paintSoftPatch(c, m.x + m.rx * 0.12, m.y + m.ry * 0.16, m.rx, m.ry, m.angle,
+                'rgba(20, 14, 6, 0.10)', 'rgba(20, 14, 6, 0)');
+            paintSoftPatch(c, m.x - m.rx * 0.1, m.y - m.ry * 0.14, m.rx * 0.82, m.ry * 0.75, m.angle,
+                'rgba(255, 246, 196, 0.06)', 'rgba(255, 246, 196, 0)');
+        } else {
+            paintSoftPatch(c, m.x - m.rx * 0.06, m.y - m.ry * 0.1, m.rx * 0.94, m.ry * 0.86, m.angle,
+                'rgba(255, 246, 196, 0.055)', 'rgba(255, 246, 196, 0)');
+            paintSoftPatch(c, m.x + m.rx * 0.1, m.y + m.ry * 0.16, m.rx * 0.78, m.ry * 0.66, m.angle,
+                'rgba(0, 0, 0, 0.10)', 'rgba(0, 0, 0, 0)');
+        }
+    }
+
+    for (const sp of sandPatches) {
+        paintSoftPatch(c, sp.x, sp.y, sp.rx, sp.ry, sp.angle,
+            hexAlpha(sp.tone, 0.42), hexAlpha(sp.tone, 0));
+        paintSpeckles(c, sp.x, sp.y, sp.rx * 0.86, sp.ry * 0.86, sp.angle, 16,
+            ((sp.x * 43) | 0) ^ ((sp.y * 71) | 0),
+            'rgba(255, 244, 205, 0.28)', 'rgba(96, 74, 40, 0.2)');
+    }
+
+    for (const dp of dryPatches) {
+        paintSoftPatch(c, dp.x, dp.y, dp.rx, dp.ry, dp.angle, dp.tone, fadeColor(dp.tone));
+        const crnd = mulberry32((((dp.x * 89) | 0) ^ ((dp.y * 113) | 0)) >>> 0);
+        c.strokeStyle = 'rgba(56, 38, 16, 0.2)';
+        c.lineWidth = 1;
         c.beginPath();
-        c.ellipse(0, 0, cl.rx, cl.ry, 0, 0, Math.PI * 2);
-        c.fill();
-        c.fillStyle = 'rgba(232, 238, 176, 0.05)';
-        c.beginPath();
-        c.ellipse(0, -4, cl.rx * 0.62, cl.ry * 0.62, 0, 0, Math.PI * 2);
-        c.fill();
-        c.restore();
+        for (let k = 0; k < 3; k++) {
+            const a = crnd() * Math.PI * 2;
+            const sx = dp.x + Math.cos(a) * dp.rx * 0.2;
+            const sy = dp.y + Math.sin(a) * dp.ry * 0.2;
+            c.moveTo(sx, sy);
+            c.quadraticCurveTo(
+                sx + Math.cos(a + 0.5) * dp.rx * 0.3,
+                sy + Math.sin(a + 0.5) * dp.ry * 0.3,
+                sx + Math.cos(a - 0.3) * dp.rx * 0.55,
+                sy + Math.sin(a - 0.3) * dp.ry * 0.55
+            );
+        }
+        c.stroke();
+    }
+
+    for (const mp of mudPatches) {
+        paintSoftPatch(c, mp.x, mp.y, mp.rx, mp.ry, mp.angle, mp.tone, fadeColor(mp.tone));
+        paintSoftPatch(c, mp.x - mp.rx * 0.12, mp.y - mp.ry * 0.2, mp.rx * 0.58, mp.ry * 0.48, mp.angle,
+            'rgba(140, 170, 110, 0.06)', 'rgba(140, 170, 110, 0)');
     }
 
     for (const m of mossPatches) {
-        c.fillStyle = m.tone;
-        c.beginPath();
-        c.ellipse(m.x, m.y, m.rx, m.ry, 0, 0, Math.PI * 2);
-        c.fill();
+        paintSoftPatch(c, m.x, m.y, m.rx, m.ry, 0, m.tone, fadeColor(m.tone));
+        const mrnd = mulberry32((((m.x * 19) | 0) ^ ((m.y * 37) | 0)) >>> 0);
+        c.fillStyle = 'rgba(150, 200, 96, 0.22)';
+        for (let k = 0; k < 4; k++) {
+            const a = mrnd() * Math.PI * 2;
+            const d = Math.sqrt(mrnd()) * 0.7;
+            c.beginPath();
+            c.arc(m.x + Math.cos(a) * m.rx * d, m.y + Math.sin(a) * m.ry * d, 1.3, 0, Math.PI * 2);
+            c.fill();
+        }
     }
 
     for (const pts of trails) {
         c.lineCap = 'round';
         c.lineJoin = 'round';
-        c.strokeStyle = 'rgba(122, 88, 52, 0.22)';
-        c.lineWidth = 30;
+        c.globalAlpha = 0.55;
+        c.strokeStyle = pal.trailA;
+        c.lineWidth = 38;
         drawSmoothTrail(c, pts);
-        c.strokeStyle = 'rgba(168, 128, 80, 0.15)';
-        c.lineWidth = 13;
+        c.globalAlpha = 0.75;
+        c.lineWidth = 22;
         drawSmoothTrail(c, pts);
+        c.globalAlpha = 0.45;
+        c.strokeStyle = pal.trailB;
+        c.lineWidth = 9;
+        drawSmoothTrail(c, pts);
+        c.globalAlpha = 1;
     }
 
     for (const d of dirtPatches) {
-        c.save();
-        c.translate(d.x, d.y);
-        c.rotate(d.angle);
-        c.fillStyle = 'rgba(67, 40, 24, 0.45)';
+        paintSoftPatch(c, d.x, d.y, d.rx, d.ry, d.angle,
+            'rgba(67, 40, 24, 0.17)', 'rgba(67, 40, 24, 0)');
+        paintSpeckles(c, d.x, d.y, d.rx * 0.8, d.ry * 0.8, d.angle, 10,
+            ((d.x * 53) | 0) ^ ((d.y * 97) | 0),
+            'rgba(148, 110, 70, 0.25)', 'rgba(32, 20, 10, 0.23)');
+    }
+
+    for (const pd of puddles) paintPuddleBody(c, pd);
+
+    for (const rt of ridgeLines) {
+        c.strokeStyle = rt.a;
+        c.lineCap = 'round';
+        c.lineWidth = rt.w;
         c.beginPath();
-        c.ellipse(0, 0, d.rx, d.ry, 0, 0, Math.PI * 2);
-        c.fill();
-        c.restore();
+        c.moveTo(rt.x, rt.y);
+        c.quadraticCurveTo(rt.x + Math.cos(rt.ang) * rt.len * 0.5 + rt.bend, rt.y + Math.sin(rt.ang) * rt.len * 0.5, rt.x + Math.cos(rt.ang) * rt.len, rt.y + Math.sin(rt.ang) * rt.len);
+        c.stroke();
+        c.strokeStyle = rt.b;
+        c.lineWidth = Math.max(1, rt.w * 0.5);
+        c.beginPath();
+        c.moveTo(rt.x + 1.4, rt.y + 1.6);
+        c.quadraticCurveTo(rt.x + Math.cos(rt.ang) * rt.len * 0.5 + rt.bend + 1.4, rt.y + Math.sin(rt.ang) * rt.len * 0.5 + 1.6, rt.x + Math.cos(rt.ang) * rt.len + 1.4, rt.y + Math.sin(rt.ang) * rt.len + 1.6);
+        c.stroke();
+    }
+
+    for (const rt of roots) {
+        c.strokeStyle = rt.col;
+        c.globalAlpha = 0.55;
+        c.lineCap = 'round';
+        for (let k = 0; k < 2; k++) {
+            const spread = k ? 3.5 : 6;
+            c.lineWidth = k ? 1.6 : 2.6;
+            c.beginPath();
+            c.moveTo(rt.x, rt.y);
+            c.quadraticCurveTo(
+                rt.x + Math.cos(rt.angle) * rt.len * 0.55 - Math.sin(rt.angle) * rt.bend,
+                rt.y + Math.sin(rt.angle) * rt.len * 0.55 * TILT + Math.cos(rt.angle) * rt.bend,
+                rt.x + Math.cos(rt.angle + spread * 0.02) * rt.len,
+                rt.y + Math.sin(rt.angle + spread * 0.02) * rt.len * TILT
+            );
+            c.stroke();
+        }
+        c.globalAlpha = 1;
     }
 
     for (const p of pebbles) {
+        c.fillStyle = 'rgba(0, 0, 0, 0.24)';
+        c.beginPath();
+        c.ellipse(p.x + 0.8, p.y + 1.2, p.r, p.r * TILT, 0, 0, Math.PI * 2);
+        c.fill();
         c.fillStyle = p.color;
         c.beginPath();
         c.ellipse(p.x, p.y, p.r, p.r * TILT, 0, 0, Math.PI * 2);
         c.fill();
+        c.fillStyle = 'rgba(255, 255, 255, 0.22)';
+        c.beginPath();
+        c.ellipse(p.x - p.r * 0.28, p.y - p.r * 0.32, p.r * 0.52, p.r * 0.34, 0, 0, Math.PI * 2);
+        c.fill();
     }
 
     for (const m of mushrooms) {
-        c.fillStyle = '#fefae0';
+        c.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        c.beginPath();
+        c.ellipse(m.x + 1, m.y + 1.5, m.size * 0.9, m.size * 0.45, 0, 0, Math.PI * 2);
+        c.fill();
+        c.fillStyle = '#f2e8c9';
         c.fillRect(m.x - 1.2, m.y - 3, 2.4, m.size + 3);
         c.fillStyle = m.color;
         c.beginPath();
         c.ellipse(m.x, m.y - 3, m.size, m.size * 0.7, 0, Math.PI, Math.PI * 2);
         c.fill();
+        c.fillStyle = 'rgba(255, 255, 255, 0.45)';
+        c.beginPath();
+        c.arc(m.x - m.size * 0.3, m.y - 3 - m.size * 0.25, m.size * 0.2, 0, Math.PI * 2);
+        c.fill();
     }
 
     for (const g of grassBlades) {
         c.strokeStyle = g.color;
-        c.lineWidth = 1.5;
+        c.lineWidth = 1.4;
         c.beginPath();
         c.moveTo(g.x, g.y);
-        c.lineTo(g.x + g.lean, g.y - g.h);
+        c.quadraticCurveTo(g.x + g.lean * 0.4, g.y - g.h * 0.62, g.x + g.lean, g.y - g.h);
         c.stroke();
     }
 
-    for (const fn of ferns) {
-        c.save();
-        c.translate(fn.x, fn.y);
-        c.scale(1, TILT);
-        c.rotate(fn.angle);
-        c.strokeStyle = '#1b4332';
-        c.lineWidth = 2.2;
-        for (let i = 0; i < 6; i++) {
-            c.rotate(Math.PI / 3);
-            c.beginPath();
-            c.moveTo(0, 0);
-            c.lineTo(fn.size, 0);
-            c.stroke();
-        }
-        c.restore();
-    }
+    for (const tf of grassTufts) paintGrassTuft(c, tf);
 
-    for (const l of logs) {
-        c.save();
-        c.translate(l.x, l.y);
-        c.scale(1, TILT);
-        c.rotate(l.angle);
+    for (const fn of ferns) paintFernBody(c, fn);
+    for (const l of logs) paintLogBody(c, l);
+    for (const r of rocks) paintRockBody(c, r);
 
-        c.fillStyle = 'rgba(0, 0, 0, 0.45)';
-        c.beginPath();
-        c.roundRect(-l.w / 2 + 8, -l.h / 2 + 10, l.w, l.h, 8);
-        c.fill();
-
-        c.fillStyle = '#432818';
-        c.beginPath();
-        c.roundRect(-l.w / 2, -l.h / 2, l.w, l.h, 8);
-        c.fill();
-
-        c.fillStyle = '#bb9457';
-        c.beginPath();
-        c.ellipse(l.w / 2 - 2, 0, 6, l.h / 2 - 1, 0, 0, Math.PI * 2);
-        c.fill();
-
-        c.fillStyle = '#386641';
-        c.beginPath();
-        c.ellipse(-10, -l.h / 3, l.w * 0.32, 6, 0, 0, Math.PI * 2);
-        c.fill();
-
-        c.restore();
-    }
-
-    for (const fl of flowers) {
-        c.fillStyle = fl.color;
-        for (let a = 0; a < Math.PI * 2; a += Math.PI / 2.5) {
-            c.beginPath();
-            c.ellipse(fl.x + Math.cos(a) * 2.8, fl.y + Math.sin(a) * 2.8 * TILT, 2, 1.5, 0, 0, Math.PI * 2);
-            c.fill();
-        }
-        c.fillStyle = '#3d1e00';
-        c.beginPath();
-        c.arc(fl.x, fl.y, 1.5, 0, Math.PI * 2);
-        c.fill();
-    }
-
-    for (const b of bushes) {
-        c.save();
-        c.translate(b.x, b.y);
-
-        c.fillStyle = 'rgba(0,0,0,0.38)';
-        for (const lob of b.lobes) {
-            c.beginPath();
-            c.ellipse(lob.x + 8, lob.y + 12, lob.r, lob.r * TILT, 0, 0, Math.PI * 2);
-            c.fill();
-        }
-
-        c.fillStyle = '#1b4332';
-        for (const lob of b.lobes) {
-            c.beginPath();
-            c.ellipse(lob.x, lob.y, lob.r, lob.r * TILT, 0, 0, Math.PI * 2);
-            c.fill();
-        }
-
-        c.fillStyle = '#2d6a4f';
-        for (const lob of b.lobes) {
-            c.beginPath();
-            c.ellipse(lob.x - 3, lob.y - 5, lob.r * 0.72, lob.r * 0.72 * TILT, 0, 0, Math.PI * 2);
-            c.fill();
-        }
-
-        c.restore();
-    }
-
-    for (const r of rocks) {
-        c.save();
-        c.translate(r.x, r.y);
-
-        c.fillStyle = 'rgba(0, 0, 0, 0.45)';
-        c.beginPath();
-        c.moveTo(r.points[0].x + 8, r.points[0].y + 12);
-        for (const pt of r.points) c.lineTo(pt.x + 8, pt.y + 12);
-        c.closePath();
-        c.fill();
-
-        c.fillStyle = '#3d4542';
-        c.beginPath();
-        c.moveTo(r.points[0].x, r.points[0].y + 6);
-        for (const pt of r.points) c.lineTo(pt.x, pt.y + 6);
-        c.closePath();
-        c.fill();
-
-        c.fillStyle = '#6c757d';
-        c.beginPath();
-        c.moveTo(r.points[0].x, r.points[0].y - 3);
-        for (const pt of r.points) c.lineTo(pt.x, pt.y - 3);
-        c.closePath();
-        c.fill();
-
-        if (r.hasMoss) {
-            c.fillStyle = '#386641';
-            c.beginPath();
-            c.ellipse(r.radius * 0.15, -r.radius * 0.25 * TILT - 3, r.radius * 0.42, r.radius * 0.28, 0, 0, Math.PI * 2);
-            c.fill();
-        }
-
-        c.restore();
-    }
+    for (const fl of flowers) paintFlowerBody(c, fl);
+    for (const b of bushes) paintBushBody(c, b);
 
     paintForestDetail(c);
 }
@@ -4175,6 +5023,8 @@ function drawSmoothTrail(c, pts) {
 
 function paintForestDetail(c) {
     for (const cl of cloverPatches) {
+        paintSoftPatch(c, cl.x, cl.y, cl.size * 2.6, cl.size * 1.8, 0,
+            'rgba(58, 118, 48, 0.09)', 'rgba(58, 118, 48, 0)');
         c.fillStyle = cl.tone;
         for (let k = 0; k < 3; k++) {
             const a = k * (Math.PI * 2 / 3) + 0.5;
@@ -4182,9 +5032,9 @@ function paintForestDetail(c) {
             c.arc(cl.x + Math.cos(a) * cl.size, cl.y + Math.sin(a) * cl.size * TILT, cl.size * 0.85, 0, Math.PI * 2);
             c.fill();
         }
-        c.fillStyle = 'rgba(190, 230, 130, 0.35)';
+        c.fillStyle = 'rgba(206, 240, 150, 0.4)';
         c.beginPath();
-        c.arc(cl.x - cl.size * 0.3, cl.y - cl.size * 0.4, cl.size * 0.32, 0, Math.PI * 2);
+        c.arc(cl.x - cl.size * 0.3, cl.y - cl.size * 0.4, cl.size * 0.3, 0, Math.PI * 2);
         c.fill();
     }
 
@@ -4192,40 +5042,107 @@ function paintForestDetail(c) {
         for (const b of bed.blooms) {
             const fx = bed.x + b.x;
             const fy = bed.y + b.y;
-            c.strokeStyle = 'rgba(47, 93, 37, 0.75)';
+            c.strokeStyle = 'rgba(47, 93, 37, 0.7)';
             c.lineWidth = 1;
             c.beginPath();
             c.moveTo(fx, fy + 1);
-            c.lineTo(fx + 1, fy + 6);
+            c.quadraticCurveTo(fx + 1.2, fy + 4, fx + 0.8, fy + 6);
             c.stroke();
+            c.fillStyle = 'rgba(70, 128, 52, 0.75)';
+            c.beginPath();
+            c.ellipse(fx + 2.8, fy + 4.4, 2.2, 1, 0.5, 0, Math.PI * 2);
+            c.fill();
             c.fillStyle = b.c;
             for (let a = 0; a < Math.PI * 2; a += Math.PI / 2.5) {
                 c.beginPath();
-                c.ellipse(fx + Math.cos(a) * 2.2, fy + Math.sin(a) * 2.2 * TILT, 1.6, 1.2, 0, 0, Math.PI * 2);
+                c.ellipse(fx + Math.cos(a) * 2.2, fy + Math.sin(a) * 2.2 * TILT, 1.7, 1.2, a, 0, Math.PI * 2);
                 c.fill();
             }
-            c.fillStyle = '#3d1e00';
+            c.fillStyle = 'rgba(255, 235, 170, 0.95)';
             c.beginPath();
-            c.arc(fx, fy, 1.1, 0, Math.PI * 2);
+            c.arc(fx, fy, 1.2, 0, Math.PI * 2);
             c.fill();
         }
     }
 
-    const tuftCols = ['#4f8433', '#5f9c3c', '#3f6f28'];
-    for (let i = 0; i < 700; i++) {
-        const x = rng() * WORLD_W;
-        const y = rng() * WORLD_H;
-        c.strokeStyle = tuftCols[i % 3];
-        c.lineWidth = 1.2;
-        c.beginPath();
-        for (let b = -1; b <= 1; b++) {
-            c.moveTo(x + b * 2, y);
-            c.lineTo(x + b * 2 + b * 3 + (rng() - 0.5) * 2, y - 5 - rng() * 5);
+    for (const sh of shrubs) {
+        paintSoftShadow(c, sh.x + 2, sh.y + 3, sh.size * 1.05, sh.size * 0.6, 0.12);
+        c.strokeStyle = sh.col;
+        c.lineWidth = 1.5;
+        c.lineCap = 'round';
+        const n = 5;
+        for (let k = 0; k < n; k++) {
+            const a = sh.angle + (k / n) * Math.PI * 2;
+            const ex = sh.x + Math.cos(a) * sh.size;
+            const ey = sh.y + Math.sin(a) * sh.size * TILT - 4;
+            c.beginPath();
+            c.moveTo(sh.x, sh.y);
+            c.quadraticCurveTo(sh.x + Math.cos(a) * sh.size * 0.45, sh.y + Math.sin(a) * sh.size * 0.3 * TILT - 8, ex, ey);
+            c.stroke();
+            c.fillStyle = 'rgba(122, 150, 70, 0.7)';
+            c.beginPath();
+            c.ellipse(ex, ey, 2, 1.1, a, 0, Math.PI * 2);
+            c.fill();
+            c.fillStyle = 'rgba(176, 200, 110, 0.45)';
+            c.beginPath();
+            c.ellipse(ex - 0.6, ey - 0.6, 1, 0.5, a, 0, Math.PI * 2);
+            c.fill();
         }
-        c.stroke();
+    }
+
+    for (const rd of reeds) {
+        paintSoftShadow(c, rd.x + 1, rd.y + 1, 6, 3, 0.12);
+        c.strokeStyle = '#3f6b3c';
+        c.lineWidth = 1.4;
+        for (let k = -1; k <= 1; k++) {
+            const tipX = rd.x + rd.lean * 0.6 + k * 3;
+            const tipY = rd.y - rd.h - k * 2;
+            c.beginPath();
+            c.moveTo(rd.x + k * 2, rd.y);
+            c.quadraticCurveTo(rd.x + k * 2 + rd.lean * 0.2, rd.y - rd.h * 0.55, tipX, tipY);
+            c.stroke();
+            c.fillStyle = 'rgba(104, 82, 44, 0.85)';
+            c.beginPath();
+            c.ellipse(tipX, tipY, 1.7, 4.4, 0.12, 0, Math.PI * 2);
+            c.fill();
+            c.fillStyle = 'rgba(176, 150, 92, 0.45)';
+            c.beginPath();
+            c.ellipse(tipX - 0.5, tipY - 1, 0.8, 2.2, 0.12, 0, Math.PI * 2);
+            c.fill();
+        }
+    }
+
+    for (const sc of succulents) {
+        paintSoftShadow(c, sc.x + 2, sc.y + 2, sc.size * 1.15, sc.size * 0.65, 0.14);
+        c.save();
+        c.translate(sc.x, sc.y);
+        c.rotate(sc.angle);
+        c.fillStyle = '#5c7a3c';
+        for (let k = 0; k < 8; k++) {
+            const a = (k / 8) * Math.PI * 2;
+            c.beginPath();
+            c.ellipse(Math.cos(a) * sc.size * 0.55, Math.sin(a) * sc.size * 0.55 * TILT, sc.size * 0.6, sc.size * 0.22, a, 0, Math.PI * 2);
+            c.fill();
+        }
+        c.fillStyle = '#87a95c';
+        for (let k = 0; k < 5; k++) {
+            const a = (k / 5) * Math.PI * 2 + 0.3;
+            c.beginPath();
+            c.ellipse(Math.cos(a) * sc.size * 0.28, Math.sin(a) * sc.size * 0.28 * TILT, sc.size * 0.36, sc.size * 0.16, a, 0, Math.PI * 2);
+            c.fill();
+        }
+        c.fillStyle = '#a9c47a';
+        c.beginPath();
+        c.arc(0, 0, sc.size * 0.22, 0, Math.PI * 2);
+        c.fill();
+        c.restore();
     }
 
     for (const l of fallenLeaves) {
+        c.fillStyle = 'rgba(0, 0, 0, 0.14)';
+        c.beginPath();
+        c.ellipse(l.x + 0.8, l.y + 1, l.r, l.r * 0.55, l.angle, 0, Math.PI * 2);
+        c.fill();
         c.fillStyle = l.color;
         c.beginPath();
         c.ellipse(l.x, l.y, l.r, l.r * 0.55, l.angle, 0, Math.PI * 2);
@@ -4236,9 +5153,24 @@ function paintForestDetail(c) {
         c.moveTo(l.x - Math.cos(l.angle) * l.r, l.y - Math.sin(l.angle) * l.r * 0.55);
         c.lineTo(l.x + Math.cos(l.angle) * l.r, l.y + Math.sin(l.angle) * l.r * 0.55);
         c.stroke();
+        c.fillStyle = 'rgba(255, 240, 200, 0.16)';
+        c.beginPath();
+        c.ellipse(l.x - l.r * 0.22, l.y - l.r * 0.18, l.r * 0.55, l.r * 0.2, l.angle, 0, Math.PI * 2);
+        c.fill();
     }
 
     for (const tw of twigs) {
+        c.strokeStyle = 'rgba(0, 0, 0, 0.16)';
+        c.lineWidth = 1.8;
+        c.beginPath();
+        c.moveTo(tw.x + 0.8, tw.y + 1);
+        c.quadraticCurveTo(
+            tw.x + Math.cos(tw.angle) * tw.len * 0.5 + 0.8,
+            tw.y + Math.sin(tw.angle) * tw.len * 0.5 + tw.bend + 1,
+            tw.x + Math.cos(tw.angle) * tw.len + 0.8,
+            tw.y + Math.sin(tw.angle) * tw.len + 1
+        );
+        c.stroke();
         c.strokeStyle = '#5b4026';
         c.lineWidth = 1.6;
         c.beginPath();
@@ -4252,139 +5184,267 @@ function paintForestDetail(c) {
         c.stroke();
     }
 
-    for (const b of bushes) {
-        for (let i = 0; i < 5; i++) {
-            const a = i * 1.9 + b.x * 0.01;
-            const dist = b.radius * (0.15 + (i % 3) * 0.18);
-            const bx = b.x + Math.cos(a) * dist;
-            const by = b.y + Math.sin(a) * dist * TILT - 6;
-            c.fillStyle = i % 2 ? '#e63946' : '#ff6b6b';
+    const litterPal = {
+        forest: ['#7f5539', '#9c6644', '#6b4f2a', '#5b6b2a'],
+        meadow: ['#8a6a3c', '#a37c46', '#6f7a30', '#5b6b2a'],
+        dry: ['#a08a4a', '#b09a58', '#7a6636', '#8a7438'],
+        sandy: ['#b8a070', '#a08658', '#8a7448', '#c2b080'],
+        wet: ['#5a4226', '#6b5230', '#4a5a2a', '#7a5a34']
+    }[worldBiome] || ['#7f5539', '#9c6644', '#6b4f2a', '#5b6b2a'];
+    const tuftCols = (biome || BIOMES.forest).tuft;
+    for (const t of trees) {
+        paintSoftPatch(c, t.x, t.y, t.trunkR * 2.7, t.trunkR * 1.9, 0,
+            'rgba(38, 64, 28, 0.09)', 'rgba(38, 64, 28, 0)');
+        const arnd = mulberry32((((t.x * 31) | 0) ^ ((t.y * 67) | 0)) >>> 0);
+        for (let i = 0; i < 16; i++) {
+            const a = arnd() * Math.PI * 2;
+            const d = t.trunkR * (0.7 + arnd() * 1.9);
+            const lx = t.x + Math.cos(a) * d;
+            const ly = t.y + Math.sin(a) * d * TILT + 3;
+            c.fillStyle = litterPal[i % litterPal.length];
             c.beginPath();
-            c.arc(bx, by, 1.9, 0, Math.PI * 2);
+            c.ellipse(lx, ly, 2.2 + arnd() * 1.3, 1.2 + arnd() * 0.6, a, 0, Math.PI * 2);
             c.fill();
-            c.fillStyle = 'rgba(255, 255, 255, 0.55)';
+            c.strokeStyle = 'rgba(28, 18, 8, 0.3)';
+            c.lineWidth = 0.5;
             c.beginPath();
-            c.arc(bx - 0.6, by - 0.6, 0.6, 0, Math.PI * 2);
-            c.fill();
+            c.moveTo(lx - Math.cos(a) * 1.8, ly - Math.sin(a) * 1);
+            c.lineTo(lx + Math.cos(a) * 1.8, ly + Math.sin(a) * 1);
+            c.stroke();
         }
-    }
-
-    for (const fl of flowers) {
-        c.strokeStyle = '#2f5d25';
-        c.lineWidth = 1;
-        c.beginPath();
-        c.moveTo(fl.x, fl.y + 1);
-        c.lineTo(fl.x + 1, fl.y + 6);
-        c.stroke();
-    }
-
-    for (const r of rocks) {
-        c.save();
-        c.translate(r.x, r.y);
-        c.strokeStyle = 'rgba(25, 30, 28, 0.5)';
-        c.lineWidth = 1.1;
-        c.beginPath();
-        c.moveTo(-r.radius * 0.4, -r.radius * 0.1);
-        c.lineTo(-r.radius * 0.05, r.radius * 0.1);
-        c.lineTo(r.radius * 0.2, -r.radius * 0.05);
-        c.stroke();
-        c.fillStyle = 'rgba(120, 150, 110, 0.35)';
-        c.beginPath();
-        c.ellipse(r.radius * 0.28, r.radius * 0.32 * TILT, r.radius * 0.22, r.radius * 0.14, 0.3, 0, Math.PI * 2);
-        c.fill();
-        c.restore();
+        for (let i = 0; i < 4; i++) {
+            const a = arnd() * Math.PI * 2;
+            const d = t.trunkR * (0.5 + arnd() * 1.6);
+            paintGrassTuft(c, {
+                x: t.x + Math.cos(a) * d,
+                y: t.y + Math.sin(a) * d * TILT + 2,
+                h: 5 + arnd() * 7,
+                lean: (arnd() - 0.5) * 5,
+                blades: 2,
+                spread: 3,
+                col: tuftCols[i % tuftCols.length]
+            });
+        }
+        for (let i = 0; i < 2; i++) {
+            const a = arnd() * Math.PI * 2;
+            const d = t.trunkR * (1.1 + arnd() * 1.2);
+            c.strokeStyle = 'rgba(70, 50, 26, 0.7)';
+            c.lineWidth = 1.2;
+            c.beginPath();
+            c.moveTo(t.x + Math.cos(a) * d, t.y + Math.sin(a) * d * TILT);
+            c.lineTo(t.x + Math.cos(a + 0.4) * (d + 7), t.y + Math.sin(a + 0.4) * (d + 7) * TILT);
+            c.stroke();
+        }
     }
 
     for (const l of logs) {
-        c.save();
-        c.translate(l.x, l.y);
-        c.scale(1, TILT);
-        c.rotate(l.angle);
-        c.strokeStyle = 'rgba(45, 26, 10, 0.55)';
-        c.lineWidth = 1.4;
-        for (let i = -1; i <= 1; i++) {
+        const lrnd = mulberry32((((l.x * 41) | 0) ^ ((l.y * 83) | 0)) >>> 0);
+        const n = lrnd() > 0.45 ? 1 + Math.floor(lrnd() * 2) : 0;
+        for (let i = 0; i < n; i++) {
+            const mx = l.x + (lrnd() - 0.5) * l.w * 0.8;
+            const my = l.y + (lrnd() - 0.5) * l.h;
+            const size = 2.4 + lrnd() * 2;
+            c.fillStyle = 'rgba(0, 0, 0, 0.2)';
             c.beginPath();
-            c.moveTo(-l.w / 2 + 6, i * l.h * 0.22);
-            c.lineTo(l.w / 2 - 12, i * l.h * 0.22 + 2);
-            c.stroke();
+            c.ellipse(mx + 0.8, my + 1, size * 0.9, size * 0.4, 0, 0, Math.PI * 2);
+            c.fill();
+            c.fillStyle = '#f2e8c9';
+            c.fillRect(mx - 1, my - 2, 2, size + 2);
+            c.fillStyle = lrnd() > 0.5 ? '#e76f51' : '#d9a066';
+            c.beginPath();
+            c.ellipse(mx, my - 2, size, size * 0.68, 0, Math.PI, Math.PI * 2);
+            c.fill();
         }
-        c.strokeStyle = 'rgba(214, 178, 120, 0.35)';
-        c.beginPath();
-        c.ellipse(l.w / 2 - 2, 0, 4, l.h * 0.32, 0, 0, Math.PI * 2);
-        c.stroke();
-        c.fillStyle = 'rgba(80, 130, 60, 0.32)';
-        c.beginPath();
-        c.ellipse(-l.w * 0.18, -l.h * 0.28, l.w * 0.2, 4.5, 0, 0, Math.PI * 2);
-        c.fill();
-        c.restore();
     }
 
-    for (const p of pebbles) {
-        c.fillStyle = 'rgba(255, 255, 255, 0.18)';
-        c.beginPath();
-        c.ellipse(p.x - p.r * 0.25, p.y - p.r * 0.35, p.r * 0.5, p.r * 0.35, 0, 0, Math.PI * 2);
-        c.fill();
+    for (const r of rocks) {
+        const rrnd = mulberry32((((r.x * 29) | 0) ^ ((r.y * 61) | 0)) >>> 0);
+        const pal = artPalette().rock;
+        for (let i = 0; i < 3; i++) {
+            const a = rrnd() * Math.PI * 2;
+            const d = r.radius * (1.02 + rrnd() * 0.4);
+            const px = r.x + Math.cos(a) * d;
+            const py = r.y + Math.sin(a) * d * TILT;
+            const pr = 1.6 + rrnd() * 2.4;
+            c.fillStyle = 'rgba(0, 0, 0, 0.22)';
+            c.beginPath();
+            c.ellipse(px + 0.6, py + 0.9, pr, pr * TILT, 0, 0, Math.PI * 2);
+            c.fill();
+            c.fillStyle = rrnd() > 0.5 ? pal.base : pal.light;
+            c.beginPath();
+            c.ellipse(px, py, pr, pr * TILT, 0, 0, Math.PI * 2);
+            c.fill();
+        }
     }
 }
 
-const TREE_PALETTES = {
-    oak: { dark: 'rgba(14, 42, 16, 0.92)', mid: 'rgba(34, 82, 38, 0.9)', light: 'rgba(78, 132, 58, 0.7)', trunk: '#4a2c14', bark: '#2f1a0b', blossom: null },
-    pine: { dark: 'rgba(9, 32, 18, 0.94)', mid: 'rgba(22, 60, 33, 0.92)', light: 'rgba(48, 100, 56, 0.7)', trunk: '#3b2412', bark: '#221305', blossom: null },
-    birch: { dark: 'rgba(30, 66, 26, 0.9)', mid: 'rgba(58, 106, 40, 0.88)', light: 'rgba(126, 172, 80, 0.66)', trunk: '#d8cdb4', bark: '#4a4234', blossom: 'rgba(255, 244, 210, 0.85)' }
-};
+/* ---------- Arboles: sombras suaves, copa por capas y transparencia ---------- */
+let _treeShadowSprite = null;
+function treeShadowSprite() {
+    if (_treeShadowSprite) return _treeShadowSprite;
+    const cv = document.createElement('canvas');
+    cv.width = 256;
+    cv.height = 256;
+    const c = cv.getContext('2d');
+    const g = c.createRadialGradient(128, 128, 10, 128, 128, 124);
+    g.addColorStop(0, 'rgba(5, 12, 4, 0.62)');
+    g.addColorStop(0.5, 'rgba(5, 12, 4, 0.34)');
+    g.addColorStop(1, 'rgba(5, 12, 4, 0)');
+    c.fillStyle = g;
+    c.beginPath();
+    c.arc(128, 128, 124, 0, Math.PI * 2);
+    c.fill();
+    _treeShadowSprite = cv;
+    return cv;
+}
+
+function treeArt(t) {
+    if (t._art) return t._art;
+    const seed = (((t.x * 73856093) | 0) ^ ((t.y * 19349663) | 0)) >>> 0;
+    const rnd = mulberry32(seed || 11);
+    const kind = t.kind || 'oak';
+    const count = (kind === 'pine' ? 58 : 64) + Math.floor(rnd() * 20);
+    const spreadX = kind === 'pine' ? 0.78 : 0.92;
+    const spreadY = kind === 'pine' ? 0.84 : 0.68;
+    const clumps = [];
+    for (let i = 0; i < count; i++) {
+        const a = rnd() * Math.PI * 2;
+        const d = Math.sqrt(rnd());
+        const cx = Math.cos(a) * d * t.radius * spreadX;
+        const cy = Math.sin(a) * d * t.radius * spreadY * TILT;
+        let r = t.radius * (0.14 + rnd() * 0.13) * (kind === 'birch' ? 0.88 : 1);
+        const bias = 0.12 + rnd() * 0.86 - (cx + cy * 0.7) / (t.radius * 6);
+        let tone = bias > 0.74 ? 2 : (bias > 0.32 ? 1 : 0);
+        if (kind === 'dry' || worldBiome === 'dry') tone = Math.min(2, tone);
+        if (tone === 0) r *= 0.72;
+        clumps.push({ x: cx, y: cy, r, tone, a });
+    }
+    clumps.sort((p, q) => p.tone - q.tone);
+    t._art = {
+        clumps,
+        phase: t.swayPhase != null ? t.swayPhase : rnd() * Math.PI * 2,
+        scale: t.artScale != null ? t.artScale : 0.88 + rnd() * 0.18,
+        moss: 3 + Math.floor(rnd() * 3)
+    };
+    return t._art;
+}
+
+let treeOcclClock = 0;
+function updateTreeOcclusion() {
+    treeOcclClock = (treeOcclClock + 1) % 6;
+    const refresh = treeOcclClock === 0;
+    let targets = null;
+    if (refresh) {
+        targets = [];
+        if (queen) targets.push(queen);
+        for (const n of antNests) targets.push(n);
+        for (const a of ants) targets.push(a);
+        for (const e of enemies) targets.push(e);
+        for (const t of termites) targets.push(t);
+        if (pvp) {
+            for (const s of pvpActiveSides()) {
+                const c = pvp.colonies[s];
+                if (c.nest) targets.push(c.nest);
+                if (c.queen) targets.push(c.queen);
+            }
+        }
+    }
+    for (const t of trees) {
+        if (refresh) {
+            let hit = 0;
+            const lim = t.radius * 0.94 + 16;
+            const lim2 = lim * lim;
+            for (const o of targets) {
+                const dx = o.x - t.x;
+                const dy = (o.y - t.y) / TILT;
+                if (dx * dx + dy * dy < lim2) { hit = 1; break; }
+            }
+            t._occlTarget = hit;
+        }
+        const target = t._occlTarget || 0;
+        t._occl = t._occl == null ? target : t._occl + (target - t._occl) * 0.16;
+    }
+}
+
+function drawTreeShadows(light) {
+    if (!trees.length) return;
+    const spr = treeShadowSprite();
+    for (const t of trees) {
+        if (!isInView(t.x, t.y, t.radius * 2.4 + 40)) continue;
+        const info = treeArt(t);
+        const r = t.radius * info.scale;
+        ctx.globalAlpha = 0.26 * (0.3 + 0.7 * light);
+        ctx.drawImage(spr, t.x - r * 1.42 + 14, t.y - r * 0.96 + 18, r * 2.8, r * 1.9);
+        ctx.globalAlpha = 0.1 * (0.3 + 0.7 * light);
+        ctx.drawImage(spr, t.x - r * 1.0 - 10, t.y - r * 0.66 - 8, r * 2.0, r * 1.4);
+    }
+    ctx.globalAlpha = 1;
+}
 
 function drawCanopyLayer() {
+    const basePal = artPalette().tree;
     for (const t of trees) {
-        const pal = TREE_PALETTES[t.kind] || TREE_PALETTES.oak;
-        const swayX = Math.sin(gameTime * 0.55 + t.x * 0.01) * 1.8;
-        const swayY = Math.cos(gameTime * 0.4 + t.y * 0.012) * 0.9;
+        if (!isInView(t.x, t.y, t.radius * 2.4 + 40)) continue;
+        const kind = t.kind || 'oak';
+        const info = treeArt(t);
+        let pal = basePal;
+        if (kind === 'pine') {
+            pal = {
+                dark: shadeColor(basePal.dark, 0.8), mid: shadeColor(basePal.mid, 0.88),
+                light: shadeColor(basePal.light, 0.92), rim: basePal.rim,
+                trunk: shadeColor(basePal.trunk, 0.9), trunkLight: basePal.trunkLight,
+                bark: basePal.bark, accent: null
+            };
+        } else if (kind === 'birch') {
+            pal = {
+                dark: shadeColor(basePal.dark, 1.14), mid: shadeColor(basePal.mid, 1.14),
+                light: shadeColor(basePal.light, 1.16), rim: basePal.rim,
+                trunk: '#d9cfb6', trunkLight: '#f0e8d3', bark: '#4a4234',
+                accent: basePal.accent || 'rgba(255, 248, 220, 0.8)'
+            };
+        }
+        const s = info.scale;
+        const swayX = Math.sin(gameTime * 0.5 + info.phase) * 2.3;
+        const swayY = Math.cos(gameTime * 0.36 + info.phase) * 1.05;
+        const lift = kind === 'pine' ? 22 : 26;
+        const occl = t._occl || 0;
 
         ctx.save();
         ctx.translate(t.x, t.y);
+        ctx.globalAlpha = 1 - occl * 0.66;
+        ctx.scale(s, s);
 
-        let occludes = false;
-        for (const focus of [queen, ...antNests]) {
-            if (!focus || occludes) continue;
-            const fx = focus.x - t.x;
-            const fy = focus.y - t.y;
-            for (const lob of t.lobes) {
-                const dx = fx - lob.x;
-                const dy = (fy - (lob.y - 25)) / TILT;
-                if (dx * dx + dy * dy < (lob.r + 18) * (lob.r + 18)) { occludes = true; break; }
-            }
-        }
-
-        ctx.globalAlpha = occludes ? 0.1 : 1;
-        ctx.fillStyle = 'rgba(4, 12, 2, 0.38)';
-        for (const lob of t.lobes) {
-            ctx.beginPath();
-            ctx.ellipse(lob.x + 30 + swayX, lob.y + 36 + swayY, lob.r * 1.02, lob.r * 1.02 * TILT, 0, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = pal.trunk;
+        ctx.fillStyle = 'rgba(4, 9, 3, 0.22)';
         ctx.beginPath();
-        ctx.moveTo(-10, -25);
-        ctx.lineTo(-7, 8);
-        ctx.lineTo(-16, 14);
-        ctx.lineTo(-5, 12);
-        ctx.lineTo(0, 16);
-        ctx.lineTo(5, 12);
-        ctx.lineTo(16, 14);
-        ctx.lineTo(7, 8);
-        ctx.lineTo(10, -25);
-        ctx.closePath();
+        ctx.ellipse(6, 8, 24, 9 * TILT, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.strokeStyle = pal.bark;
-        ctx.lineWidth = 1.4;
+        ctx.fillStyle = pal.trunk;
         ctx.beginPath();
-        ctx.moveTo(-5, -22); ctx.lineTo(-4, 6);
-        ctx.moveTo(3, -20); ctx.lineTo(2, 8);
+        ctx.moveTo(-10, -26);
+        ctx.lineTo(-7, 8);
+        ctx.lineTo(-17, 15);
+        ctx.lineTo(-6, 13);
+        ctx.lineTo(0, 17);
+        ctx.lineTo(6, 13);
+        ctx.lineTo(17, 15);
+        ctx.lineTo(7, 8);
+        ctx.lineTo(10, -26);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = hexAlpha(pal.trunkLight, 0.5);
+        ctx.beginPath();
+        ctx.ellipse(-3.4, -12, 3.6, 13, 0.04, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = pal.bark;
+        ctx.lineWidth = 1.3;
+        ctx.beginPath();
+        ctx.moveTo(-6, -22);
+        ctx.lineTo(-4.6, 6);
+        ctx.moveTo(3, -20);
+        ctx.lineTo(2.2, 8);
         ctx.stroke();
-
-        if (t.kind === 'birch') {
+        if (kind === 'birch') {
             ctx.fillStyle = pal.bark;
             for (let i = 0; i < 5; i++) {
                 ctx.beginPath();
@@ -4393,43 +5453,124 @@ function drawCanopyLayer() {
             }
         }
 
-        ctx.globalAlpha = occludes ? 0.12 : 1;
-        ctx.fillStyle = pal.dark;
-        for (const lob of t.lobes) {
+        ctx.strokeStyle = hexAlpha(pal.trunk, 0.9);
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        const branchCount = 3 + (info.moss % 2);
+        for (let i = 0; i < branchCount; i++) {
+            const ba = info.phase + i * 2.15;
+            const bx = Math.cos(ba) * t.radius * 0.6;
+            const by = -lift + Math.sin(ba) * t.radius * 0.4;
             ctx.beginPath();
-            ctx.ellipse(lob.x + swayX * 0.6, lob.y - 26 + swayY, lob.r, lob.r * TILT, 0, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.moveTo(0, -4);
+            ctx.quadraticCurveTo(bx * 0.45, by * 0.7, bx, by);
+            ctx.stroke();
         }
 
-        ctx.fillStyle = pal.mid;
-        for (const lob of t.lobes) {
-            ctx.beginPath();
-            ctx.ellipse(lob.x - 4 + swayX, lob.y - 31 + swayY, lob.r * 0.82, lob.r * 0.82 * TILT, 0, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        ctx.fillStyle = pal.light;
-        for (const lob of t.lobes) {
-            ctx.beginPath();
-            ctx.ellipse(lob.x - 10 + swayX * 1.3, lob.y - 36 + swayY * 1.3, lob.r * 0.52, lob.r * 0.52 * TILT, 0, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        if (pal.blossom) {
-            ctx.fillStyle = pal.blossom;
-            for (let i = 0; i < t.lobes.length * 3; i++) {
-                const lob = t.lobes[i % t.lobes.length];
-                const a = i * 2.399;
-                const bx = lob.x + Math.cos(a) * lob.r * 0.55;
-                const by = lob.y - 33 + Math.sin(a) * lob.r * 0.4;
+        const toneFills = [shadeColor(pal.dark, kind === 'pine' ? 1.32 : 1.72), pal.mid, pal.light];
+        for (let tone = 0; tone < 3; tone++) {
+            ctx.fillStyle = toneFills[tone];
+            for (const cl of info.clumps) {
+                if (cl.tone !== tone) continue;
+                const wob = Math.sin(info.phase + cl.a * 2.1) * cl.r * 0.08;
                 ctx.beginPath();
-                ctx.arc(bx + swayX * 1.2, by + swayY, 1.5, 0, Math.PI * 2);
+                ctx.ellipse(cl.x + wob + swayX * (0.35 + tone * 0.2),
+                    cl.y - lift + swayY * (0.4 + tone * 0.2),
+                    cl.r, cl.r * TILT, cl.a, 0, Math.PI * 2);
                 ctx.fill();
             }
         }
 
+        const lightGrad = ctx.createRadialGradient(
+            -t.radius * 0.34, -lift - t.radius * 0.36, t.radius * 0.04,
+            -t.radius * 0.1, -lift - t.radius * 0.1, t.radius * 0.95);
+        lightGrad.addColorStop(0, hexAlpha(pal.rim, 0.16));
+        lightGrad.addColorStop(0.5, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = lightGrad;
+        ctx.beginPath();
+        ctx.ellipse(0, -lift, t.radius * 0.94, t.radius * 0.7, 0, 0, Math.PI * 2);
+        ctx.fill();
+        const darkGrad = ctx.createRadialGradient(
+            t.radius * 0.34, -lift + t.radius * 0.4, t.radius * 0.04,
+            t.radius * 0.1, -lift + t.radius * 0.1, t.radius * 1.02);
+        darkGrad.addColorStop(0, 'rgba(3, 10, 3, 0.2)');
+        darkGrad.addColorStop(0.62, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = darkGrad;
+        ctx.beginPath();
+        ctx.ellipse(0, -lift, t.radius * 0.94, t.radius * 0.7, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = hexAlpha(pal.rim, 0.5);
+        ctx.lineWidth = 1.2;
+        let rimCount = 0;
+        for (const cl of info.clumps) {
+            if (cl.tone !== 2 || rimCount >= 6) continue;
+            if (cl.x + cl.y > 0) continue;
+            ctx.beginPath();
+            ctx.ellipse(cl.x + swayX, cl.y - lift + swayY, cl.r * 0.72, cl.r * 0.72 * TILT, cl.a, -2.5, 0.8);
+            ctx.stroke();
+            rimCount++;
+        }
+
+        ctx.fillStyle = hexAlpha(pal.dark, 0.4);
+        for (let i = 0; i < 8; i++) {
+            const cl = info.clumps[i * 5 % info.clumps.length];
+            const a = info.phase + i * 1.7;
+            ctx.beginPath();
+            ctx.ellipse(cl.x + Math.cos(a) * cl.r * 0.5 + swayX, cl.y - lift + Math.sin(a) * cl.r * 0.35 + swayY, 1.5, 0.9, a, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.fillStyle = hexAlpha(pal.light, 0.45);
+        for (let i = 0; i < 7; i++) {
+            const cl = info.clumps[(i * 7 + 9) % info.clumps.length];
+            const a = info.phase + i * 2.3;
+            ctx.beginPath();
+            ctx.ellipse(cl.x + Math.cos(a) * cl.r * 0.45 + swayX, cl.y - lift + Math.sin(a) * cl.r * 0.3 + swayY, 1.4, 0.9, a, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        if (kind === 'pine') {
+            ctx.strokeStyle = hexAlpha(pal.dark, 0.6);
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (let i = 0; i < 16; i++) {
+                const cl = info.clumps[i * 3 % info.clumps.length];
+                const a = cl.a + i * 0.7;
+                const px = cl.x + Math.cos(a) * cl.r * 0.9 + swayX;
+                const py = cl.y - lift + Math.sin(a) * cl.r * 0.6 + swayY;
+                ctx.moveTo(px, py);
+                ctx.lineTo(px + Math.cos(a) * 4.5, py + Math.sin(a) * 2.6);
+            }
+            ctx.stroke();
+        }
+
+        if (pal.accent) {
+            ctx.fillStyle = pal.accent;
+            for (let i = 0; i < 8; i++) {
+                const cl = info.clumps[(i * 9 + 4) % info.clumps.length];
+                ctx.beginPath();
+                ctx.arc(cl.x + swayX, cl.y - lift + swayY, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        if (worldBiome === 'wet') {
+            ctx.strokeStyle = 'rgba(76, 126, 82, 0.55)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (let i = 0; i < info.moss; i++) {
+                const cl = info.clumps[(i * 11 + 6) % info.clumps.length];
+                const bx = cl.x + swayX;
+                const by = cl.y - lift + cl.r * TILT + swayY;
+                ctx.moveTo(bx, by);
+                ctx.quadraticCurveTo(bx + 2, by + 5, bx - 1, by + 9 + i);
+            }
+            ctx.stroke();
+        }
+
         ctx.restore();
     }
+    ctx.globalAlpha = 1;
 }
 
 /* ============================================================
@@ -4463,6 +5604,12 @@ function dayClockText() {
     return `${day ? 'Día' : 'Noche'} ${mins}:${String(secs).padStart(2, '0')}`;
 }
 
+function isInView(x, y, pad) {
+    const halfW = viewW / camera.zoom / 2 + pad;
+    const halfH = viewH / camera.zoom / 2 + pad;
+    return Math.abs(x - camera.x) <= halfW && Math.abs(y - camera.y) <= halfH;
+}
+
 function drawCloudShadows(light) {
     if (light < 0.15) return;
     ctx.save();
@@ -4481,7 +5628,10 @@ function drawCloudShadows(light) {
 function drawNightGlow(light) {
     const night = 1 - light;
     if (night < 0.05) return;
+    const halfW = viewW / camera.zoom / 2 + 50;
+    const halfH = viewH / camera.zoom / 2 + 50;
     for (const f of fireflies) {
+        if (Math.abs(f.x - camera.x) > halfW || Math.abs(f.y - camera.y) > halfH) continue;
         const fx = f.x + Math.sin(gameTime * f.speed + f.phase) * f.amp;
         const fy = f.y + Math.cos(gameTime * f.speed * 0.8 + f.phase) * f.amp * TILT;
         const pulse = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(gameTime * (1.6 + f.speed) + f.phase));
@@ -6787,6 +7937,20 @@ function drawMinimap() {
     ctx.fill();
     ctx.stroke();
 
+    const mapPal = biome || BIOMES.forest;
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2, 7);
+    ctx.clip();
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = mapPal.top;
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = mapPal.bottom;
+    ctx.fillRect(r.x, r.y + r.h * 0.52, r.w, r.h * 0.48);
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
     const sx = r.w / WORLD_W;
     const sy = r.h / WORLD_H;
 
@@ -7191,59 +8355,10 @@ function drawGalleryTrap(t) {
 
 function drawDynamicObstacles() {
     for (const b of bushes) {
-        if (!b.dynamic) continue;
-        ctx.save();
-        ctx.translate(b.x, b.y);
-        ctx.fillStyle = 'rgba(0,0,0,0.38)';
-        for (const lob of b.lobes) {
-            ctx.beginPath();
-            ctx.ellipse(lob.x + 8, lob.y + 12, lob.r, lob.r * TILT, 0, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        ctx.fillStyle = '#1b4332';
-        for (const lob of b.lobes) {
-            ctx.beginPath();
-            ctx.ellipse(lob.x, lob.y, lob.r, lob.r * TILT, 0, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        ctx.fillStyle = '#2d6a4f';
-        for (const lob of b.lobes) {
-            ctx.beginPath();
-            ctx.ellipse(lob.x - 3, lob.y - 5, lob.r * 0.72, lob.r * 0.72 * TILT, 0, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        ctx.restore();
+        if (b.dynamic && isInView(b.x, b.y, b.radius * 2.2 + 30)) paintBushBody(ctx, b);
     }
-
     for (const r of rocks) {
-        if (!r.dynamic) continue;
-        ctx.save();
-        ctx.translate(r.x, r.y);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-        ctx.beginPath();
-        ctx.moveTo(r.points[0].x + 8, r.points[0].y + 12);
-        for (const pt of r.points) ctx.lineTo(pt.x + 8, pt.y + 12);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#3d4542';
-        ctx.beginPath();
-        ctx.moveTo(r.points[0].x, r.points[0].y + 6);
-        for (const pt of r.points) ctx.lineTo(pt.x, pt.y + 6);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#6c757d';
-        ctx.beginPath();
-        ctx.moveTo(r.points[0].x, r.points[0].y - 3);
-        for (const pt of r.points) ctx.lineTo(pt.x, pt.y - 3);
-        ctx.closePath();
-        ctx.fill();
-        if (r.hasMoss) {
-            ctx.fillStyle = '#386641';
-            ctx.beginPath();
-            ctx.ellipse(r.radius * 0.15, -r.radius * 0.25 * TILT - 3, r.radius * 0.42, r.radius * 0.28, 0, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        ctx.restore();
+        if (r.dynamic && isInView(r.x, r.y, r.radius * 2.2 + 30)) paintRockBody(ctx, r);
     }
 }
 
@@ -7291,6 +8406,184 @@ function drawPvpMarkers() {
     }
 }
 
+function drawSwayPlants() {
+    if (!swayPlants.length) return;
+    const halfW = viewW / camera.zoom / 2 + 60;
+    const halfH = viewH / camera.zoom / 2 + 60;
+    ctx.lineCap = 'round';
+    for (const p of swayPlants) {
+        if (Math.abs(p.x - camera.x) > halfW || Math.abs(p.y - camera.y) > halfH) continue;
+        const sway = Math.sin(gameTime * p.speed + p.phase) * p.bend;
+        ctx.strokeStyle = p.col;
+        ctx.globalAlpha = 0.75;
+        ctx.lineWidth = 1.3;
+        ctx.beginPath();
+        if (p.kind === 'reed') {
+            for (let k = -1; k <= 1; k++) {
+                const bx = p.x + k * 2.2;
+                ctx.moveTo(bx, p.y);
+                ctx.quadraticCurveTo(bx + sway * 0.35, p.y - p.h * 0.55, bx + sway + k * 2, p.y - p.h);
+            }
+        } else {
+            for (let k = -1; k <= 1; k++) {
+                const bx = p.x + k * 2.4;
+                ctx.moveTo(bx, p.y);
+                ctx.quadraticCurveTo(bx + sway * 0.4 - k, p.y - p.h * 0.5, bx + sway + k * 2.3, p.y - p.h * (1 - Math.abs(k) * 0.18));
+            }
+        }
+        ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+}
+
+function drawCritters() {
+    if (!critters.length) return;
+    const halfW = viewW / camera.zoom / 2 + 80;
+    const halfH = viewH / camera.zoom / 2 + 80;
+    for (const cr of critters) {
+        if (Math.abs(cr.x - camera.x) > halfW || Math.abs(cr.y - camera.y) > halfH) continue;
+        const t = gameTime * cr.speed + cr.phase;
+        const x = cr.x + Math.sin(t) * cr.amp;
+        const y = cr.y + Math.cos(t * 0.8) * cr.amp * 0.6 * TILT - 10;
+        ctx.save();
+        ctx.translate(x, y);
+        const flap = Math.abs(Math.sin(gameTime * 10 + cr.phase));
+        if (cr.type === 'dragonfly') {
+            ctx.fillStyle = 'rgba(160, 220, 225, 0.35)';
+            ctx.beginPath();
+            ctx.ellipse(-3, -2, 5, 2.2, -0.5, 0, Math.PI * 2);
+            ctx.ellipse(3, -2, 5, 2.2, 0.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(40, 90, 80, 0.8)';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 4.5, 1.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            ctx.fillStyle = 'rgba(210, 220, 190, 0.4)';
+            ctx.beginPath();
+            ctx.ellipse(-1.6, -1, 2.2 * flap + 0.8, 1.4, -0.6, 0, Math.PI * 2);
+            ctx.ellipse(1.6, -1, 2.2 * flap + 0.8, 1.4, 0.6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(30, 34, 22, 0.85)';
+            ctx.beginPath();
+            ctx.arc(0, 0, cr.type === 'fly' ? 1.4 : 1.1, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+}
+
+function drawGlowMushrooms(light) {
+    const night = 1 - light;
+    if (night < 0.15) return;
+    for (const m of mushrooms) {
+        if (!m.glow) continue;
+        const r = 14 + m.size * 1.6;
+        const g = ctx.createRadialGradient(m.x, m.y - 3, 1, m.x, m.y - 3, r);
+        g.addColorStop(0, `rgba(170, 255, 200, ${0.22 * night})`);
+        g.addColorStop(1, 'rgba(120, 220, 160, 0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(m.x, m.y - 3, r, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+function biomeRain(t) {
+    const b = biome;
+    if (!b || b.rain <= 0) return 0;
+    const wave = Math.sin(t * 0.016 + (worldSeed % 628) * 0.01);
+    const base = b.rain * 0.18;
+    const burst = Math.max(0, wave - 0.42) / 0.58;
+    return clamp(base + burst * b.rain, 0, 1);
+}
+
+function drawWeather(light) {
+    const b = biome;
+    if (!b) return;
+    const night = 1 - light;
+    const fog = clamp(b.fog + night * b.fog * 0.8, 0, 0.16);
+    if (fog > 0.004) {
+        ctx.save();
+        for (let i = 0; i < 2; i++) {
+            const drift = (Math.sin(gameTime * 0.05 + i * 2.1) * 0.5 + 0.5);
+            const cx = viewW * (0.2 + 0.55 * drift);
+            const cy = viewH * (0.58 + i * 0.2);
+            const g = ctx.createRadialGradient(cx, cy, 20, cx, cy, Math.max(viewW, viewH) * 0.55);
+            g.addColorStop(0, `rgba(206, 224, 214, ${fog})`);
+            g.addColorStop(1, 'rgba(206, 224, 214, 0)');
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, viewW, viewH);
+        }
+        ctx.restore();
+    }
+
+    const rain = biomeRain(gameTime);
+    if (rain > 0.02) {
+        const drops = Math.round(40 + rain * 150);
+        const t = gameTime * 620;
+        ctx.strokeStyle = `rgba(190, 214, 230, ${0.10 + rain * 0.22})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let i = 0; i < drops; i++) {
+            const x = ((i * 137.3 + t * 0.8) % (viewW + 90)) - 45;
+            const y = ((i * 83.7 + t) % (viewH + 90)) - 45;
+            ctx.moveTo(x, y);
+            ctx.lineTo(x - 5, y + 15);
+        }
+        ctx.stroke();
+        if (rain > 0.35) {
+            ctx.fillStyle = `rgba(170, 200, 220, ${rain * 0.05})`;
+            ctx.fillRect(0, 0, viewW, viewH);
+        }
+    }
+
+    if (b.dust > 0) {
+        const n = Math.round(26 * Math.min(1, b.dust * 14));
+        ctx.fillStyle = `rgba(226, 204, 152, ${0.16 + b.dust})`;
+        for (let i = 0; i < n; i++) {
+            const x = ((i * 191.7 + gameTime * (7 + (i % 4) * 3)) % (viewW + 40)) - 20;
+            const y = ((i * 71.3 + Math.sin(gameTime * 0.4 + i) * 26) % viewH + viewH) % viewH;
+            ctx.beginPath();
+            ctx.arc(x, y, 0.9 + (i % 3) * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    const art = artPalette();
+    if (light > 0.3 && art.pollen > 0) {
+        const n = Math.round(12 + art.pollen * 20);
+        ctx.fillStyle = `rgba(255, 248, 202, ${0.14 + art.pollen * 0.16})`;
+        for (let i = 0; i < n; i++) {
+            const x = ((i * 211.3 + gameTime * (11 + (i % 5) * 4) + Math.sin(gameTime * 0.7 + i) * 24) % (viewW + 60)) - 30;
+            const y = ((i * 97.7 + Math.sin(gameTime * 0.5 + i * 1.3) * 36) % (viewH + 60)) - 30;
+            ctx.beginPath();
+            ctx.arc(x, y, 1 + (i % 3) * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    const leafFall = b.leafFall != null ? b.leafFall : 1;
+    if (light > 0.35 && leafFall > 0) {
+        const leafCols = b.dryClusters > 10 ? ['#a08a4a', '#c2a55c', '#8a7438'] : ['#7f5539', '#a47148', '#5b6b2a'];
+        const leafN = Math.max(2, Math.round(10 * leafFall));
+        for (let i = 0; i < leafN; i++) {
+            const x = ((i * 233.1 + gameTime * (18 + (i % 3) * 6)) % (viewW + 80)) - 40;
+            const y = ((i * 127.7 + gameTime * (12 + (i % 4) * 4)) % (viewH + 80)) - 40;
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(Math.sin(gameTime * 1.4 + i) * 0.8);
+            ctx.fillStyle = leafCols[i % leafCols.length];
+            ctx.globalAlpha = 0.55;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 3.2, 1.5, 0.4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.restore();
+        }
+    }
+}
+
 function drawPvpLabels() {
     if (!pvp) return;
     let rivalNo = 0;
@@ -7320,6 +8613,28 @@ function drawPvpLabels() {
     }
 }
 
+function drawPuddleShimmer(light) {
+    if (!puddles.length) return;
+    const halfW = viewW / camera.zoom / 2 + 90;
+    const halfH = viewH / camera.zoom / 2 + 90;
+    ctx.save();
+    for (const pd of puddles) {
+        if (Math.abs(pd.x - camera.x) > halfW || Math.abs(pd.y - camera.y) > halfH) continue;
+        const t = gameTime * 0.55 + pd.x * 0.01;
+        for (let k = 0; k < 2; k++) {
+            const ph = (t + k * 0.5) % 1;
+            const rr = 0.22 + ph * 0.72;
+            ctx.globalAlpha = (1 - ph) * 0.15 * (0.35 + 0.65 * light);
+            ctx.strokeStyle = 'rgba(214, 242, 238, 1)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.ellipse(pd.x, pd.y, pd.rx * rr, pd.ry * rr, pd.angle, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    }
+    ctx.restore();
+}
+
 function render() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = '#0b1109';
@@ -7330,9 +8645,20 @@ function render() {
     ctx.scale(camera.zoom, camera.zoom);
     ctx.translate(-camera.x, -camera.y);
 
-    ctx.drawImage(bgCanvas, 0, 0);
+    const bgVW = viewW / camera.zoom;
+    const bgVH = viewH / camera.zoom;
+    const bgSX = clamp(camera.x - bgVW / 2 - 8, 0, WORLD_W);
+    const bgSY = clamp(camera.y - bgVH / 2 - 8, 0, WORLD_H);
+    const bgSW = Math.min(WORLD_W - bgSX, bgVW + 16);
+    const bgSH = Math.min(WORLD_H - bgSY, bgVH + 16);
+    ctx.drawImage(bgCanvas, bgSX, bgSY, bgSW, bgSH, bgSX, bgSY, bgSW, bgSH);
+    drawPuddleShimmer(dayLight(gameTime));
+    drawTreeShadows(dayLight(gameTime));
     drawDynamicObstacles();
     drawCloudShadows(dayLight(gameTime));
+    drawSwayPlants();
+    drawCritters();
+    drawGlowMushrooms(dayLight(gameTime));
     ctx.strokeStyle = 'rgba(27, 46, 17, 0.9)';
     ctx.lineWidth = 6;
     ctx.strokeRect(0, 0, WORLD_W, WORLD_H);
@@ -7345,6 +8671,7 @@ function render() {
         ctx.stroke();
     }
 
+    const foodTone = (biome || BIOMES.forest).food;
     for (const f of foods) {
         const r = 2.8 + f.amount * 0.55;
         ctx.fillStyle = 'rgba(0,0,0,0.35)';
@@ -7352,12 +8679,17 @@ function render() {
         ctx.ellipse(f.x + 1, f.y + 2, r, r * TILT, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.fillStyle = '#e63946';
+        ctx.fillStyle = 'rgba(74, 116, 52, 0.55)';
+        ctx.beginPath();
+        ctx.ellipse(f.x - r * 0.7, f.y + 1.5, r * 0.9, r * 0.5, 0.4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = foodTone;
         ctx.beginPath();
         ctx.arc(f.x, f.y - 1.5, r, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.fillStyle = '#ffccd5';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
         ctx.beginPath();
         ctx.arc(f.x - 1, f.y - 2.5, 1.3, 0, Math.PI * 2);
         ctx.fill();
@@ -7526,6 +8858,7 @@ function render() {
         ctx.restore();
     }
 
+    updateTreeOcclusion();
     drawCanopyLayer();
     drawPvpLabels();
 
@@ -7575,8 +8908,9 @@ function render() {
 
     ctx.restore();
 
-    // Luz ambiental (dia/noche) en espacio de pantalla
+    // Luz ambiental (dia/noche), clima y niebla en espacio de pantalla
     drawAmbientLight();
+    drawWeather(dayLight(gameTime));
 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     drawMinimap();
