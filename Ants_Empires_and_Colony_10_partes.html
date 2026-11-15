@@ -135,7 +135,7 @@
     .rooms-code strong { color: #ffd166; font-size: 1.3rem; letter-spacing: 5px; }
     #rooms-players { font-size: 0.9rem; font-weight: bold; color: #b5e48c; }
     #btn-rooms-back { align-self: center; }
-    #rooms-species, #pvp-wave-count {
+    #rooms-species, #pvp-wave-count, #inf-species {
         background: linear-gradient(180deg, #2d6a4f, #14240f);
         color: #e9f5db;
         border: 1px solid #74c69d;
@@ -589,6 +589,17 @@
                     <input id="inf-seed" type="text" maxlength="14" spellcheck="false" autocomplete="off" placeholder="Aleatoria">
                     <button id="btn-inf-random" class="menu-btn btn-mode-sandbox">Semilla aleatoria</button>
                 </div>
+                <label class="rooms-label" for="inf-species">Tu especie fundadora</label>
+                <select id="inf-species">
+                    <option value="camponotus">Camponotus satan</option>
+                    <option value="leptogenys">Leptogenys processionalis</option>
+                    <option value="odontomachus" selected>Odontomachus rixosus</option>
+                    <option value="cephalotes">Cephalotes atratus</option>
+                    <option value="atta">Atta cephalotes</option>
+                    <option value="allomerus">Allomerus decemarticulatus</option>
+                    <option value="myrmecia">Myrmecia gulosa</option>
+                    <option value="crematogaster">Crematogaster opuntiae</option>
+                </select>
                 <button id="btn-inf-create" class="menu-btn btn-mode-normal">Crear nuevo mundo</button>
             </div>
             <div class="inf-list-label">Mundos guardados</div>
@@ -695,6 +706,7 @@
         <canvas id="gameCanvas"></canvas>
         <div id="inf-panel">
             <div class="inf-line"><span>Mundo</span><strong id="inf-p-name">—</strong></div>
+            <div class="inf-line"><span>Especie</span><strong id="inf-p-species">—</strong></div>
             <div class="inf-line"><span>Bioma</span><strong id="inf-p-biome">—</strong></div>
             <div class="inf-line"><span>Coordenadas</span><strong id="inf-p-coords">0, 0</strong></div>
             <div class="inf-line"><span>Explorado</span><strong id="inf-p-explored">0</strong></div>
@@ -7464,8 +7476,10 @@ const infWorldsEl = document.getElementById('inf-worlds');
 const infNameInput = document.getElementById('inf-name');
 const infSeedInput = document.getElementById('inf-seed');
 const infStatusEl = document.getElementById('inf-status');
+const infSpeciesEl = document.getElementById('inf-species');
 const infPanelEl = document.getElementById('inf-panel');
 const infPNameEl = document.getElementById('inf-p-name');
+const infPSpeciesEl = document.getElementById('inf-p-species');
 const infPBiomeEl = document.getElementById('inf-p-biome');
 const infPCoordsEl = document.getElementById('inf-p-coords');
 const infPExploredEl = document.getElementById('inf-p-explored');
@@ -7747,13 +7761,16 @@ async function infCreateWorld(name, seedText) {
     const id = 'w' + Date.now().toString(36) + Math.floor(Math.random() * 46656).toString(36);
     const spawnX = ((seed >>> 5) % 2400) - 1200;
     const spawnY = ((seed >>> 13) % 1400) - 700;
+    const chosen = infSpeciesEl && SPECIES[infSpeciesEl.value] ? infSpeciesEl.value : 'odontomachus';
+    speciesKey = chosen;
+    try { localStorage.setItem('aec_inf_species', chosen); } catch (e) {}
     const meta = {
         id, name: (name || '').trim() || ('Mundo ' + (seed % 100000)),
         seed, version: INF_VERSION, created: Date.now(), savedAt: Date.now(),
         spawnX, spawnY,
         camera: { x: spawnX, y: spawnY, zoom: 1 },
         gameTime: 0, storedFood: 40, explored: 0, distance: 0,
-        landmarks: [], visited: [], species: 'odontomachus', colony: null
+        landmarks: [], visited: [], species: chosen, colony: null
     };
     infSetStatus('Creando mundo...');
     infFallbackSaveWorld(meta);
@@ -7847,7 +7864,18 @@ async function infStartWorld(id, opts) {
             }
         }
     } else {
-        const nest = placeNest(inf.spawnX + 12, inf.spawnY + 10, 'ant', 5, { species: speciesKey, style: 'classic' });
+        const scx = Math.floor(inf.spawnX / INF_CHUNK);
+        const scy = Math.floor(inf.spawnY / INF_CHUNK);
+        infActivateChunk(infEnsureChunk(scx, scy));
+        let nestOpts = { species: speciesKey, style: 'classic' };
+        const nestStyle = S().nestStyle;
+        if (nestStyle === 'tree') {
+            const t = trees.find(t => t.radius > 26 && Math.hypot(t.x - inf.spawnX, (t.y - inf.spawnY) / TILT) < 420);
+            if (t) nestOpts = { species: speciesKey, style: 'tree', tree: t };
+        } else if (nestStyle !== 'classic') {
+            nestOpts.style = nestStyle;
+        }
+        const nest = placeNest(inf.spawnX + 12, inf.spawnY + 10, 'ant', 5, nestOpts);
         nest.hp = nest.maxHp;
         queen = new QueenAnt(inf.spawnX + 40, inf.spawnY + 20, speciesKey);
         storedFood = Math.max(storedFood, 40);
@@ -7902,6 +7930,7 @@ function infUpdatePanel() {
     infPanelEl.classList.add('show');
     const b = BIOMES[worldBiome] || BIOMES.forest;
     if (infPNameEl) infPNameEl.textContent = inf.name || '—';
+    if (infPSpeciesEl) infPSpeciesEl.textContent = S().name;
     if (infPBiomeEl) infPBiomeEl.textContent = b.name;
     if (infPCoordsEl) infPCoordsEl.textContent = `${Math.round(camera.x)}, ${Math.round(camera.y)}`;
     if (infPExploredEl) infPExploredEl.textContent = `${inf.visited.size} zonas · ${Math.round(inf.distance / 4)} m`;
@@ -8940,7 +8969,7 @@ function nearestTermiteNest(x, y) {
 }
 
 function abilityReady() {
-    return gameMode === 'normal' && !!queen && !paused && !endState;
+    return (gameMode === 'normal' || gameMode === 'infinite') && !!queen && !paused && !endState;
 }
 
 function abilityLeap() {
@@ -9231,7 +9260,7 @@ function abilityCrushingMandibles() {
 
 function refreshAbilityUI() {
     const pvpMode = !!pvp;
-    const normalMode = gameMode === 'normal' && !pvpMode;
+    const normalMode = (gameMode === 'normal' || gameMode === 'infinite') && !pvpMode;
     if (abilityBarEl) abilityBarEl.classList.toggle('show', normalMode || pvpMode);
     if (!normalMode && !pvpMode) return;
 
@@ -11644,7 +11673,7 @@ window.addEventListener('keydown', e => {
                 if (k === 'q') pvpRequestAbility('q');
                 else if (k === 'e') pvpRequestAbility('e');
             }
-        } else if (gameMode === 'normal' && !paused && !endState) {
+        } else if ((gameMode === 'normal' || gameMode === 'infinite') && !paused && !endState) {
             if (k === 'q') {
                 if (speciesKey === 'cephalotes') abilityDefense();
                 else if (speciesKey === 'allomerus') abilityGallery();
@@ -12105,6 +12134,12 @@ document.getElementById('btn-sandbox').addEventListener('click', () => startGame
 document.getElementById('btn-infinite').addEventListener('click', () => {
     startScreen.classList.remove('show');
     if (speciesScreen) speciesScreen.classList.remove('show');
+    if (infSpeciesEl) {
+        try {
+            const saved = localStorage.getItem('aec_inf_species');
+            if (saved && SPECIES[saved]) infSpeciesEl.value = saved;
+        } catch (e) {}
+    }
     infiniteScreenEl.classList.add('show');
     infiniteScreenEl.scrollTop = 0;
     infSetStatus('Elige un mundo guardado o crea uno nuevo');
@@ -12936,7 +12971,7 @@ document.getElementById('btn-center').addEventListener('click', () => {
     const target = queen || antNests[0] || { x: WORLD_W / 2, y: WORLD_H / 2 };
     camera.x = target.x;
     camera.y = target.y;
-    camera.follow = gameMode === 'normal' && !!queen;
+    camera.follow = (gameMode === 'normal' || gameMode === 'infinite') && !!queen;
     clampCamera();
 });
 document.getElementById('btn-back-menu').addEventListener('click', showMainMenu);
