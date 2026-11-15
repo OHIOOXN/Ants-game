@@ -1,0 +1,13 @@
+{
+  "name": "aec-rooms",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Servidor de salas PvP para Ants Empires and Colony",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

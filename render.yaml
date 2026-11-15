@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: aec-rooms
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    healthCheckPath: /
