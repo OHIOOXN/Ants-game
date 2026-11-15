@@ -578,7 +578,7 @@
     <div class="toolbar" id="toolbar-pvp" style="display:none;">
         <label class="pvp-label" for="pvp-wave-count">Obreras a enviar</label>
         <input id="pvp-wave-count" type="number" min="1" max="30" value="8">
-        <button id="btn-pvp-wave" class="tool-btn btn-predator">Enviar oleada</button>
+        <button id="btn-pvp-wave" class="tool-btn btn-predator">Enviar obreras</button>
         <span id="pvp-hint">Fundad vuestra colonia para empezar</span>
     </div>
 
@@ -846,6 +846,7 @@ let endState = null;
 let normal = null;
 let pvp = null;
 let pvpSpeciesChoice = 'camponotus';
+let pvpGuestMove = { dx: 0, dy: 0 };
 
 let queen = null;
 let queenTarget = null;
@@ -2109,16 +2110,26 @@ class Ant extends Entity {
     pvpUpdate(currentSpeed) {
         if (!pvp || !this.nest || !this.nest.owner) return false;
         const side = this.nest.owner;
+        const col = pvp.colonies[side];
         const foe = pvp.colonies[side === 'A' ? 'B' : 'A'];
-        if (!foe) return false;
+        if (!col || !foe) return false;
+        const bmode = col.behavior || 'gather';
+        const raiding = (col.raidBoost || 0) > 0;
+        const spd = currentSpeed * (raiding ? 1.4 : 1);
 
         // Hormigas rivales: se pelean entre ellas
         let target = null;
-        let td = this.wave ? 170 : 110;
+        let td = this.wave ? 170 : bmode === 'attack' ? 650 : bmode === 'defend' ? 300 : 110;
         for (const a of ants) {
             if (a === this || a.hp <= 0 || !a.nest || a.nest.owner === side) continue;
             const d = Math.hypot(a.x - this.x, (a.y - this.y) / TILT);
-            if (d < td) { td = d; target = a; }
+            if (d >= td) continue;
+            if (bmode === 'defend' && !this.wave) {
+                const dn = Math.hypot(a.x - this.nest.x, (a.y - this.nest.y) / TILT);
+                if (dn > 300) continue;
+            }
+            td = d;
+            target = a;
         }
         if (target) {
             const ang = Math.atan2((target.y - this.y) / TILT, target.x - this.x);
@@ -2126,16 +2137,17 @@ class Ant extends Entity {
             if (td < 15 && this.biteCD <= 0) {
                 this.biteCD = 45;
                 this.biteFlash = 14;
-                target.hp -= this.damage * PVP_ANT_DMG * (this.wave ? 1.15 : 1);
+                const dmg = this.damage * PVP_ANT_DMG * (this.wave ? 1.15 : 1) * (raiding ? 1.25 : 1) * galleryBonusFor(target);
+                target.hp -= dmg;
                 spawnHitParticles(target.x, target.y, '#ffccd5', 2);
             }
-            moveEntitySmooth(this, currentSpeed * 1.08, 4);
+            moveEntitySmooth(this, spd * (bmode === 'attack' ? 1.15 : 1.08), 4);
             return true;
         }
 
         if (!this.wave) return false;
 
-        // Oleada: reina o nido rival
+        // Ataque enviado: reina o nido rival
         let goal = null;
         let isQueen = false;
         if (foe.queen && foe.queen.hp > 0) { goal = foe.queen; isQueen = true; }
@@ -2155,10 +2167,10 @@ class Ant extends Entity {
         if (gd < (goal.radius || 18) + 10 && this.nestAtkCD <= 0) {
             this.nestAtkCD = 14;
             this.biteFlash = 14;
-            goal.hp -= this.damage * (isQueen ? PVP_QUEEN_DMG : PVP_NEST_DMG);
+            goal.hp -= this.damage * (isQueen ? PVP_QUEEN_DMG : PVP_NEST_DMG) * (raiding ? 2 : 1);
             spawnHitParticles(goal.x, goal.y, isQueen ? '#ffd166' : '#dda15e', 3);
         }
-        moveEntitySmooth(this, currentSpeed, 4);
+        moveEntitySmooth(this, spd, 4);
         return true;
     }
 
@@ -2201,11 +2213,14 @@ class Ant extends Entity {
         if (this.leafCD > 0) this.leafCD--;
         this.walkCycle += currentSpeed * 0.28;
 
-        if (behaviorMode !== 'attack' && this.attackClaim) {
+        const bmode = (pvp && this.nest && this.nest.owner && pvp.colonies[this.nest.owner])
+            ? pvp.colonies[this.nest.owner].behavior
+            : behaviorMode;
+        if (bmode !== 'attack' && this.attackClaim) {
             releaseEnemyClaim(this, this.attackClaim);
             this.attackClaim = null;
         }
-        if (behaviorMode !== 'gather' && this.targetFood) {
+        if (bmode !== 'gather' && this.targetFood) {
             if (this.targetFood.claimedBy === this) this.targetFood.claimedBy = null;
             this.targetFood = null;
         }
@@ -2308,6 +2323,10 @@ class Ant extends Entity {
                     col.food += 1;
                     growNest(this.nest, 2);
                     this.hp = Math.min(this.maxHp, this.hp + 4);
+                    if (this.nest.style === 'fungus' && this.nest.hunger != null) {
+                        this.nest.hunger = Math.min(100, this.nest.hunger + 9);
+                        this.nest.hp = Math.min(this.nest.maxHp, this.nest.hp + 3);
+                    }
                     if (col.side === pvp.side) {
                         if (col.food >= EGG_COST && pvpOwnEggs(this.nest) < PVP_EGG_MAX && layEgg(this.nest)) {
                             spawnHitParticles(this.nest.x, this.nest.y, '#ffd166', 10);
@@ -2352,15 +2371,15 @@ class Ant extends Entity {
         let target = null;
         let targetDist = Infinity;
         let bestScore = Infinity;
-        const maxSight = behaviorMode === 'attack' ? (sp.hunterVision ? 1600 : 1300) : (sp.hunterVision ? 420 : 105);
+        const maxSight = bmode === 'attack' ? (sp.hunterVision ? 1600 : 1300) : (sp.hunterVision ? 420 : 105);
         const considerTarget = (e) => {
-            if (behaviorMode === 'attack') {
+            if (bmode === 'attack') {
                 const list = pruneEnemyClaimants(e);
                 if (!list.includes(this) && list.length >= MAX_ATTACKERS_PER_MOB) return;
             }
             const d = Math.hypot(e.x - this.x, (e.y - this.y) / TILT);
             if (d > maxSight) return;
-            if (behaviorMode === 'defend' && Math.hypot(e.x - hx, (e.y - hy) / TILT) > 300) return;
+            if (bmode === 'defend' && Math.hypot(e.x - hx, (e.y - hy) / TILT) > 300) return;
             const score = (sp.hunterVision && enemies.includes(e)) ? d * 0.6 + Math.max(0, e.hp) * 1.1 : d;
             if (score < bestScore) { bestScore = score; target = e; targetDist = d; }
         };
@@ -2368,7 +2387,7 @@ class Ant extends Entity {
         for (const en of enemies) considerTarget(en);
         for (const b of beetles) considerTarget(b);
 
-        if (target && behaviorMode === 'attack') {
+        if (target && bmode === 'attack') {
             if (this.attackClaim !== target) {
                 if (this.attackClaim) releaseEnemyClaim(this, this.attackClaim);
                 if (claimEnemy(this, target)) this.attackClaim = target;
@@ -2406,13 +2425,13 @@ class Ant extends Entity {
                 if (Math.random() < 0.2) spawnHitParticles(target.x, target.y, '#ffccd5', 2);
             }
             const chaseBoost = (sp.hunterVision && enemies.includes(target)) ? 1.15 : 1;
-            moveEntitySmooth(this, currentSpeed * (behaviorMode === 'attack' ? 1.12 : 1) * chaseBoost, 4);
+            moveEntitySmooth(this, currentSpeed * (bmode === 'attack' ? 1.12 : 1) * chaseBoost, 4);
             return;
         }
 
         if (this.jawCharge > 0) this.jawCharge = Math.max(0, this.jawCharge - 0.8);
 
-        if (behaviorMode === 'defend') {
+        if (bmode === 'defend') {
             if (home && distHome > home.radius + 95) {
                 this.angle = this.lerpAngle(this.angle, Math.atan2((hy - this.y) / TILT, hx - this.x), 0.14);
                 moveEntitySmooth(this, currentSpeed, 4);
@@ -2427,7 +2446,7 @@ class Ant extends Entity {
             return;
         }
 
-        if (behaviorMode === 'attack') {
+        if (bmode === 'attack') {
             if (home && distHome > 220) {
                 this.angle = this.lerpAngle(this.angle, Math.atan2((hy - this.y) / TILT, hx - this.x), 0.12);
                 moveEntitySmooth(this, currentSpeed, 4);
@@ -2633,10 +2652,12 @@ class Termite extends Entity {
                 if (d < minDist) { minDist = d; target = b; }
             }
         }
-        if (gameMode === 'normal') {
-            if (queen && queen.hp > 0) {
-                const d = Math.hypot(queen.x - this.x, (queen.y - this.y) / TILT);
-                if (d < minDist) { minDist = d; target = queen; }
+        if (gameMode === 'normal' || gameMode === 'pvp') {
+            const queens = pvp ? [pvp.colonies.A.queen, pvp.colonies.B.queen] : (queen ? [queen] : []);
+            for (const q of queens) {
+                if (!q || q.hp <= 0) continue;
+                const d = Math.hypot(q.x - this.x, (q.y - this.y) / TILT);
+                if (d < minDist) { minDist = d; target = q; }
             }
             for (const n of antNests) {
                 if (n.hp <= 0) continue;
@@ -3079,10 +3100,12 @@ class Enemy extends Entity {
                 if (d < minDist) { minDist = d; target = b; }
             }
         }
-        if (gameMode === 'normal') {
-            if (queen && queen.hp > 0) {
-                const d = Math.hypot(queen.x - this.x, (queen.y - this.y) / TILT);
-                if (d < minDist) { minDist = d; target = queen; }
+        if (gameMode === 'normal' || gameMode === 'pvp') {
+            const queens = pvp ? [pvp.colonies.A.queen, pvp.colonies.B.queen] : (queen ? [queen] : []);
+            for (const q of queens) {
+                if (!q || q.hp <= 0) continue;
+                const d = Math.hypot(q.x - this.x, (q.y - this.y) / TILT);
+                if (d < minDist) { minDist = d; target = q; }
             }
             for (const n of antNests) {
                 if (n.hp <= 0) continue;
@@ -4342,12 +4365,12 @@ function configureModeUI() {
         ? `[PvP · ${pvp.side === 'A' ? 'Anfitrion' : 'Invitado'}]`
         : (gameMode === 'normal' ? `[${S().name}]` : '[Modo Sandbox]');
     if (speciesLabelEl) speciesLabelEl.textContent = speciesKey === 'generic' ? '—' : S().name;
-    if (abilityBarEl) abilityBarEl.classList.toggle('show', gameMode === 'normal' && !isPvp);
+    if (abilityBarEl) abilityBarEl.classList.toggle('show', gameMode === 'normal' || isPvp);
 
     document.getElementById('toolbar-sandbox').style.display = (gameMode === 'normal' || isPvp) ? 'none' : 'flex';
     document.getElementById('toolbar-normal').style.display = gameMode === 'normal' && !isPvp ? 'flex' : 'none';
     document.getElementById('toolbar-pvp').style.display = isPvp ? 'flex' : 'none';
-    if (btnBehavior) btnBehavior.style.display = isPvp ? 'none' : '';
+    if (btnBehavior) btnBehavior.style.display = '';
     const btnClear = document.getElementById('btn-clear');
     if (btnClear) btnClear.style.display = isPvp ? 'none' : 'inline-block';
     const btnRestart = document.getElementById('btn-end-restart');
@@ -4374,6 +4397,16 @@ const PVP_PLACE_MARGIN = 130;
 const PVP_ANT_DMG = 3.5;
 const PVP_QUEEN_DMG = 7;
 const PVP_NEST_DMG = 9;
+const PVP_WAVE_FIRST = 40;
+const PVP_WAVE_GAP = 30;
+
+function pvpNewColony(side) {
+    return {
+        side, species: 'camponotus', behavior: 'gather', nest: null, queen: null,
+        food: 0, eggTimer: 8, wavesSent: 0,
+        raidBoost: 0, formation: 0, formationCD: 0
+    };
+}
 
 function createPvpState(side) {
     return {
@@ -4381,11 +4414,11 @@ function createPvpState(side) {
         side,
         phase: 'place',
         over: null,
-        colonies: {
-            A: { side: 'A', species: 'camponotus', nest: null, queen: null, food: 0, eggTimer: 8, wavesSent: 0 },
-            B: { side: 'B', species: 'camponotus', nest: null, queen: null, food: 0, eggTimer: 8, wavesSent: 0 }
-        },
-        foodTimer: 14
+        colonies: { A: pvpNewColony('A'), B: pvpNewColony('B') },
+        foodTimer: 14,
+        wave: 0,
+        waveTimer: PVP_WAVE_FIRST,
+        inWave: false
     };
 }
 
@@ -4393,7 +4426,7 @@ function pvpLocal() { return pvp ? pvp.colonies[pvp.side] : null; }
 function pvpEnemy() { return pvp ? pvp.colonies[pvp.side === 'A' ? 'B' : 'A'] : null; }
 function pvpOwnEggs(nest) { return nest ? eggs.filter(e => e.nest === nest).length : 0; }
 
-function pvpCanPlace(side, x, y) {
+function pvpCanPlace(side, x, y, ignoreObstacle) {
     if (!pvp || pvp.phase !== 'place') return false;
     if (x < PVP_PLACE_MARGIN || x > WORLD_W - PVP_PLACE_MARGIN) return false;
     if (y < PVP_PLACE_MARGIN || y > WORLD_H - PVP_PLACE_MARGIN) return false;
@@ -4401,7 +4434,7 @@ function pvpCanPlace(side, x, y) {
     for (const n of antNests) {
         if (Math.hypot(n.x - x, (n.y - y) / TILT) < n.radius + 90) return false;
     }
-    return !checkObstacleCollision(x, y, 26);
+    return ignoreObstacle ? true : !checkObstacleCollision(x, y, 26);
 }
 
 function pvpFeedback(side, text, bad) {
@@ -4415,16 +4448,48 @@ function pvpTryPlace(side, x, y, chosenSpecies) {
     const col = pvp.colonies[side];
     if (!col || col.nest) return;
     const key = SPECIES[chosenSpecies] ? chosenSpecies : col.species;
-    if (!pvpCanPlace(side, x, y)) {
+    const sp = SP(key);
+    let nx = x;
+    let ny = y;
+    let tree = null;
+    if (sp.nestStyle === 'tree') {
+        const t = nearestTree(x, y, 380);
+        const inHalf = t && (side === 'A' ? t.x <= WORLD_W * 0.5 - 40 : t.x >= WORLD_W * 0.5 + 40);
+        if (!t || !inHalf || Math.hypot(t.x - x, (t.y - y) / TILT) > t.radius + 60) {
+            pvpFeedback(side, 'Esta especie anida en árboles: haz clic en la copa de un árbol de tu mitad', true);
+            return;
+        }
+        tree = t;
+        nx = t.x;
+        ny = t.y + 18;
+    }
+    if (!pvpCanPlace(side, nx, ny, !!tree)) {
         pvpFeedback(side, 'Zona no valida: elige un claro de tu mitad del mapa', true);
         return;
     }
-    const sp = SP(key);
     col.species = key;
-    const nest = placeNest(x, y, 'ant', 4, { style: 'classic', species: key, owner: side });
+    col.behavior = 'gather';
+    const nest = placeNest(nx, ny, 'ant', 4, { style: sp.nestStyle, tree, species: key, owner: side });
     nest.maxHp = 900;
     nest.hp = 900;
-    const q = new QueenAnt(x, y - 34 * TILT, key);
+    let qx = nx;
+    let qy = ny - 34 * TILT;
+    if (checkObstacleCollision(qx, qy, 8)) {
+        search: for (let ring = 1; ring <= 4; ring++) {
+            const rr = ring * 22;
+            for (let i = 0; i < 12; i++) {
+                const ang = (i / 12) * Math.PI * 2;
+                const tx = clamp(nx + Math.cos(ang) * rr, 25, WORLD_W - 25);
+                const ty = clamp(ny - 34 * TILT + Math.sin(ang) * rr * TILT, 25, WORLD_H - 25);
+                if (!checkObstacleCollision(tx, ty, 8)) {
+                    qx = tx;
+                    qy = ty;
+                    break search;
+                }
+            }
+        }
+    }
+    const q = new QueenAnt(qx, qy, key);
     q.maxHp = Math.round(sp.queenHp * 1.5);
     q.hp = q.maxHp;
     col.nest = nest;
@@ -4432,14 +4497,17 @@ function pvpTryPlace(side, x, y, chosenSpecies) {
     col.food = PVP_START_FOOD;
     col.eggTimer = 8;
     col.wavesSent = 0;
+    col.raidBoost = 0;
+    col.formation = 0;
+    col.formationCD = 0;
     if (side === pvp.side) {
         queen = q;
-        camera.x = x;
-        camera.y = y;
+        camera.x = nx;
+        camera.y = ny;
         camera.follow = false;
         clampCamera();
     }
-    spawnHitParticles(x, y, PVP_TEAM_COLORS[side], 18);
+    spawnHitParticles(nx, ny, PVP_TEAM_COLORS[side], 18);
     if (pvp.colonies.A.nest && pvp.colonies.B.nest) {
         pvpBeginBattle();
     } else {
@@ -4452,13 +4520,19 @@ function pvpBeginBattle() {
     if (!pvp || pvp.phase !== 'place') return;
     pvp.phase = 'battle';
     pvp.foodTimer = 14;
+    pvp.wave = 0;
+    pvp.waveTimer = PVP_WAVE_FIRST;
+    pvp.inWave = false;
     for (let i = 0; i < 12; i++) {
         const x = 260 + Math.random() * (WORLD_W - 520);
         const y = 260 + Math.random() * (WORLD_H - 520);
         if (!checkObstacleCollision(x, y, 20)) spawnFoodCluster(x, y, 6);
     }
-    setStatus('Batalla iniciada: recolecta comida, cría obreras y envía oleadas al nido rival');
-    if (netRole === 'host') netSendSnapshot();
+    setStatus(`Batalla iniciada: recolecta comida, cría obreras y ataca el nido rival. La primera oleada de bichos llega en ${PVP_WAVE_FIRST}s`);
+    if (netRole === 'host') {
+        netSendNotice(`¡Batalla iniciada! La primera oleada de bichos llega en ${PVP_WAVE_FIRST}s`, false);
+        netSendSnapshot();
+    }
     updateUI();
 }
 
@@ -4485,7 +4559,7 @@ function pvpSendWave(side, count) {
     }
     col.wavesSent++;
     spawnHitParticles(col.nest.x, col.nest.y, PVP_TEAM_COLORS[side], 14);
-    pvpFeedback(side, `Oleada ${col.wavesSent}: ${n} obreras marchan contra la colonia rival`, false);
+    pvpFeedback(side, `Ataque ${col.wavesSent}: ${n} obreras marchan contra la colonia rival`, false);
     if (side === pvp.side) updateUI();
     if (netRole === 'host') netSendSnapshot();
 }
@@ -4493,18 +4567,33 @@ function pvpSendWave(side, count) {
 function pvpQueenStep(col) {
     const q = col.queen;
     if (!q || q.hp <= 0) return;
-    if (q.atkCD > 0) q.atkCD = Math.max(0, q.atkCD - STEP);
+    for (const k of ['leapCD', 'chargeCD', 'raidCD', 'abilityCD', 'atkCD']) {
+        if (q[k] > 0) q[k] = Math.max(0, q[k] - STEP);
+    }
+    if (q.attackFlash > 0) q.attackFlash = Math.max(0, q.attackFlash - STEP);
+
     let target = null;
-    let td = 46;
+    let td = 52;
     for (const a of ants) {
         if (!a.nest || a.nest.owner === col.side || a.hp <= 0) continue;
         const d = Math.hypot(a.x - q.x, (a.y - q.y) / TILT);
         if (d < td) { td = d; target = a; }
     }
+    for (const en of enemies) {
+        if (en.hp <= 0) continue;
+        const d = Math.hypot(en.x - q.x, (en.y - q.y) / TILT);
+        if (d < td) { td = d; target = en; }
+    }
+    for (const t of termites) {
+        if (t.hp <= 0) continue;
+        const d = Math.hypot(t.x - q.x, (t.y - q.y) / TILT);
+        if (d < td) { td = d; target = t; }
+    }
     if (target) {
         q.angle = q.lerpAngle(q.angle, Math.atan2((target.y - q.y) / TILT, target.x - q.x), 0.3);
         if (td < 32 && q.atkCD <= 0) {
             q.atkCD = 1.1;
+            q.attackFlash = 0.25;
             target.hp -= q.damage;
             spawnHitParticles(target.x, target.y, '#ffd166', 5);
         }
@@ -4514,7 +4603,137 @@ function pvpQueenStep(col) {
             if (!a.nest || a.nest.owner === col.side) continue;
             if (Math.hypot(a.x - q.x, (a.y - q.y) / TILT) < 260) { threatened = true; break; }
         }
+        if (!threatened) {
+            for (const en of enemies) {
+                if (Math.hypot(en.x - q.x, (en.y - q.y) / TILT) < 260) { threatened = true; break; }
+            }
+        }
         if (!threatened) q.hp = Math.min(q.maxHp, q.hp + STEP * 1.2);
+    }
+}
+
+function pvpMoveQueen(col, mx, my) {
+    const q = col && col.queen;
+    if (!q || q.hp <= 0) return;
+    if (!mx && !my) { q.isMoving = false; return; }
+    const a = Math.atan2(my, mx);
+    q.angle = q.lerpAngle(q.angle, a, 0.25);
+    q.isMoving = true;
+    q.walkCycle += q.speed * 0.28;
+    const nx = q.x + Math.cos(a) * q.speed;
+    const ny = q.y + Math.sin(a) * q.speed * TILT;
+    if (!checkObstacleCollision(nx, ny, 8)) {
+        q.x = nx;
+        q.y = ny;
+    } else if (!checkObstacleCollision(nx, q.y, 8)) {
+        q.x = nx;
+    } else if (!checkObstacleCollision(q.x, ny, 8)) {
+        q.y = ny;
+    }
+    q.x = clamp(q.x, 25, WORLD_W - 25);
+    q.y = clamp(q.y, 25, WORLD_H - 25);
+}
+
+function pvpQueenInput(side) {
+    if (pvp && side === pvp.side) {
+        let dx = 0;
+        let dy = 0;
+        if (keysPressed['w'] || keysPressed['arrowup']) dy -= 1;
+        if (keysPressed['s'] || keysPressed['arrowdown']) dy += 1;
+        if (keysPressed['a'] || keysPressed['arrowleft']) dx -= 1;
+        if (keysPressed['d'] || keysPressed['arrowright']) dx += 1;
+        return { dx, dy };
+    }
+    if (pvp && pvp.remoteMove && pvp.remoteMove[side]) return pvp.remoteMove[side];
+    return { dx: 0, dy: 0 };
+}
+
+function pvpEndFormation(col) {
+    col.formation = 0;
+    for (const a of ants) {
+        if (!col.nest || a.nest !== col.nest || !a.defending) continue;
+        a.defending = false;
+        a.defTarget = null;
+        if (a.defenseHpBase) {
+            a.maxHp = a.defenseHpBase;
+            a.hp = Math.min(a.hp, a.maxHp);
+            a.defenseHpBase = 0;
+        }
+    }
+    if (pvp && col.side === pvp.side) updateUI();
+}
+
+function pvpWaveAlive() {
+    if (!pvp || !pvp.wave) return 0;
+    let n = 0;
+    for (const t of termites) if (t.wave === pvp.wave && t.hp > 0) n++;
+    for (const e of enemies) if (e.wave === pvp.wave && e.hp > 0) n++;
+    return n;
+}
+
+function pvpStartWave() {
+    if (!pvp || pvp.phase !== 'battle' || pvp.over) return;
+    pvp.wave++;
+    pvp.inWave = true;
+    pvp.waveTimer = 0;
+    const diff = 1 + Math.max(0, pvp.wave - 1) * 0.14;
+    const count = Math.min(28, 4 + Math.floor(pvp.wave * 1.6));
+    const nests = [pvp.colonies.A.nest, pvp.colonies.B.nest].filter(n => n && n.hp > 0);
+    const beaconFor = i => (nests.length ? nests[i % nests.length] : (pvp.colonies.A.nest || pvp.colonies.B.nest));
+    const tb = termiteStats();
+    const termiteChance = clamp(0.55 - pvp.wave * 0.025, 0.25, 0.55);
+    for (let i = 0; i < count; i++) {
+        const beacon = beaconFor(i);
+        const p = waveSpawnPoint(beacon);
+        if (Math.random() < termiteChance) {
+            const t = new Termite(p.x, p.y, null);
+            t.soldier = Math.random() < 0.65;
+            t.maxHp = tb.hp * diff;
+            t.hp = t.maxHp;
+            t.damage = tb.damage;
+            t.wave = pvp.wave;
+            t.beacon = beacon;
+            termites.push(t);
+        } else {
+            const e = new Enemy(p.x, p.y, pickWaveEnemyType(pvp.wave));
+            e.hp = Math.round(e.maxHp * diff);
+            e.maxHp = e.hp;
+            e.damage = e.damage * (0.9 + diff * 0.15);
+            e.wave = pvp.wave;
+            e.beacon = beacon;
+            enemies.push(e);
+        }
+    }
+    if (pvp.wave >= 3 && Math.random() < 0.4 + pvp.wave * 0.05) {
+        const bp = waveSpawnPoint(beaconFor(0));
+        const bt = new Beetle(bp.x, bp.y);
+        bt.wave = pvp.wave;
+        beetles.push(bt);
+    }
+    setStatus(`¡Oleada ${pvp.wave}! ${count} bichos atacan ambas colonias — defiende con tus obreras`, true);
+    if (netRole === 'host') {
+        netSendNotice(`¡Oleada ${pvp.wave}! ${count} bichos atacan ambas colonias`, true);
+        netSendSnapshot();
+    }
+    updateUI();
+}
+
+function pvpWaveStep() {
+    if (!pvp || pvp.phase !== 'battle' || pvp.over) return;
+    if (pvp.inWave) {
+        if (pvpWaveAlive() === 0) {
+            pvp.inWave = false;
+            pvp.waveTimer = PVP_WAVE_GAP;
+            for (const col of [pvp.colonies.A, pvp.colonies.B]) {
+                if (col.nest && col.nest.hp > 0) col.food = Math.min(200, (col.food || 0) + 10);
+            }
+            setStatus(`Oleada ${pvp.wave} superada: +10 de comida para cada colonia. Próxima oleada en ${PVP_WAVE_GAP}s`);
+            if (netRole === 'host') netSendNotice(`Oleada ${pvp.wave} superada: +10 de comida para cada colonia`, false);
+            updateUI();
+        }
+    } else {
+        pvp.waveTimer -= STEP;
+        if (pvp.waveTimer <= 0) pvpStartWave();
     }
 }
 
@@ -4522,8 +4741,17 @@ function pvpStep() {
     if (!pvp || pvp.over) return;
     for (const col of [pvp.colonies.A, pvp.colonies.B]) {
         if (!col.nest || col.nest.hp <= 0) continue;
-        if (pvp.phase === 'battle' && !pvp.over) {
+        if (pvp.phase === 'battle') {
             col.food = Math.min(200, (col.food || 0) + STEP * 0.35);
+            if (col.raidBoost > 0) col.raidBoost = Math.max(0, col.raidBoost - STEP);
+            if (col.formationCD > 0) col.formationCD = Math.max(0, col.formationCD - STEP);
+            if (col.formation > 0) {
+                col.formation -= STEP;
+                if (col.formation <= 0) pvpEndFormation(col);
+            }
+            if (col.nest.style === 'fungus' && col.nest.hunger != null) {
+                col.nest.hunger = Math.min(100, col.nest.hunger + STEP * 1.2);
+            }
         }
         col.eggTimer -= STEP;
         if (col.eggTimer <= 0) {
@@ -4539,7 +4767,19 @@ function pvpStep() {
         }
         pvpQueenStep(col);
     }
+
+    if (pvp.phase !== 'over') {
+        for (const side of ['A', 'B']) {
+            const col = pvp.colonies[side];
+            if (!col.nest || col.nest.hp <= 0) continue;
+            const mv = pvpQueenInput(side);
+            if (mv.dx || mv.dy) pvpMoveQueen(col, mv.dx, mv.dy);
+            else if (col.queen) col.queen.isMoving = false;
+        }
+    }
+
     if (pvp.phase === 'battle') {
+        pvpWaveStep();
         pvp.foodTimer -= STEP;
         if (pvp.foodTimer <= 0) {
             pvp.foodTimer = 14;
@@ -4548,6 +4788,189 @@ function pvpStep() {
             if (!checkObstacleCollision(x, y, 18)) spawnFoodCluster(x, y, 6);
         }
     }
+}
+
+function pvpSetBehavior(side, mode) {
+    if (!pvp || !BEHAVIOR_LABELS[mode]) return;
+    const col = pvp.colonies[side];
+    if (!col) return;
+    col.behavior = mode;
+    if (side === pvp.side) {
+        updateBehaviorUI();
+        updateUI();
+    }
+    pvpFeedback(side, `${BEHAVIOR_LABELS[mode]} — ${BEHAVIOR_NOTES[mode].split(': ')[1] || BEHAVIOR_NOTES[mode]}`, false);
+    if (netRole === 'host') netSendSnapshot();
+}
+
+function pvpRequestAbility(which) {
+    if (!pvp || pvp.phase !== 'battle' || pvp.over) return;
+    const col = pvpLocal();
+    if (!col || !col.queen || col.queen.hp <= 0) {
+        setStatus('Tu reina no está disponible', true);
+        return;
+    }
+    if (netRole === 'guest') {
+        netSendCmd({ k: 'ability', a: which });
+        setStatus('Habilidad enviada al anfitrion');
+        return;
+    }
+    pvpUseAbility(pvp.side, which);
+}
+
+function pvpUseAbility(side, which) {
+    if (!pvp || pvp.phase !== 'battle' || pvp.over) return;
+    const col = pvp.colonies[side];
+    if (!col || !col.nest || !col.queen || col.queen.hp <= 0 || col.nest.hp <= 0) return;
+    const q = col.queen;
+    const key = col.species;
+    const fb = (t, bad) => pvpFeedback(side, t, bad);
+    const foeSide = side === 'A' ? 'B' : 'A';
+    const own = ants.filter(a => a.nest === col.nest && a.hp > 0);
+    const fs = v => v.toFixed(1);
+
+    if (key === 'odontomachus') {
+        if (which === 'e') {
+            if (q.chargeCD > 0) return fb(`Mandíbula disponible en ${fs(q.chargeCD)}s`, true);
+            q.chargeCD = 4.5;
+            q.abilityCD = 4.5;
+            q.attackFlash = 0.25;
+            const aim = q.angle;
+            const dmg = 26 + q.damage * 6;
+            let hits = 0;
+            const strike = t => {
+                const dx = t.x - q.x;
+                const dy = (t.y - q.y) / TILT;
+                if (Math.hypot(dx, dy) > 140) return;
+                if (Math.abs(q.normalizeAngle(Math.atan2(dy, dx) - aim)) > 1.05) return;
+                t.hp -= dmg;
+                if (!t.isStatic) {
+                    t.x += Math.cos(aim) * 12;
+                    t.y += Math.sin(aim) * 12 * TILT;
+                }
+                spawnHitParticles(t.x, t.y, '#ffd166', 5);
+                hits++;
+            };
+            for (const a of ants) if (a.nest && a.nest.owner === foeSide && a.hp > 0) strike(a);
+            for (const en of enemies) if (en.hp > 0) strike(en);
+            for (const t of termites) if (t.hp > 0) strike(t);
+            spawnHitParticles(q.x, q.y, '#ffb703', 14);
+            fb(`Mandíbula trampa: ${hits} impacto(s) · ${Math.round(dmg)} daño`, false);
+            return;
+        }
+        if (q.leapCD > 0) return fb(`Salto disponible en ${fs(q.leapCD)}s`, true);
+        if (q.hp <= 20) return fb('La reina está demasiado débil para saltar', true);
+        const aim = q.angle;
+        let moved = 0;
+        for (let i = 0; i < 34; i++) {
+            const nx = q.x + Math.cos(aim) * 8;
+            const ny = q.y + Math.sin(aim) * 8 * TILT;
+            if (nx < 26 || nx > WORLD_W - 26 || ny < 26 || ny > WORLD_H - 26) break;
+            if (checkObstacleCollision(nx, ny, 10)) break;
+            q.x = nx;
+            q.y = ny;
+            moved += 8;
+        }
+        if (moved < 24) return fb('No hay espacio libre para el salto', true);
+        q.hp -= 12;
+        q.leapCD = 7;
+        q.abilityCD = 7;
+        spawnHitParticles(q.x, q.y, '#ffd166', 14);
+        fb(`Salto de ${Math.round(moved)} u · la reina sufre 12 de daño`, false);
+        return;
+    }
+
+    if (key === 'leptogenys') {
+        if (q.abilityCD > 0) return fb(`Incursión disponible en ${fs(q.abilityCD)}s`, true);
+        q.abilityCD = 26;
+        q.raidCD = 26;
+        col.raidBoost = 20;
+        spawnHitParticles(q.x, q.y, '#ffb703', 16);
+        fb('Incursión: tus obreras corren +40% y duplican daño contra la colonia rival durante 20s', false);
+        return;
+    }
+
+    if (key === 'cephalotes') {
+        if (col.formation > 0) {
+            pvpEndFormation(col);
+            q.abilityCD = 8;
+            fb('Formación tortuga disuelta', false);
+            return;
+        }
+        if (col.formationCD > 0) return fb(`Formación disponible en ${fs(col.formationCD)}s`, true);
+        if (!own.length) return fb('No tienes obreras para la formación', true);
+        col.formation = 20;
+        col.formationCD = 55;
+        q.abilityCD = 20;
+        own.forEach((a, i) => {
+            const ang = (i / Math.max(1, own.length)) * Math.PI * 2 - Math.PI / 2;
+            const rr = col.nest.radius + 26;
+            a.defending = true;
+            a.defenseHpBase = a.maxHp;
+            a.maxHp = Math.round(a.maxHp * 3.5);
+            a.hp = a.maxHp;
+            a.hasFood = false;
+            a.carriesLeaf = false;
+            a.defTarget = {
+                x: clamp(col.nest.x + Math.cos(ang) * rr, 20, WORLD_W - 20),
+                y: clamp(col.nest.y + Math.sin(ang) * rr * TILT, 20, WORLD_H - 20)
+            };
+            spawnHitParticles(a.x, a.y, '#b5e48c', 3);
+        });
+        spawnHitParticles(col.nest.x, col.nest.y, '#95d5b2', 24);
+        fb('¡Formación tortuga! Tus obreras rodean el nido con 3.5x vida durante 20s', true);
+        return;
+    }
+
+    if (key === 'allomerus') {
+        if (q.abilityCD > 0) return fb(`Trampa disponible en ${fs(q.abilityCD)}s`, true);
+        if (galTraps.length >= 3) return fb('Ya hay 3 trampas de galería activas', true);
+        for (let i = 0; i < 14; i++) {
+            const ang = (i / 14) * Math.PI * 2 + Math.random() * 0.3;
+            const rr = 90 + Math.random() * 50;
+            const x = clamp(q.x + Math.cos(ang) * rr, 34, WORLD_W - 34);
+            const y = clamp(q.y + Math.sin(ang) * rr * TILT, 34, WORLD_H - 34);
+            if (checkObstacleCollision(x, y, 18)) continue;
+            if (galTraps.some(t => Math.hypot(t.x - x, (t.y - y) / TILT) < 80)) continue;
+            galTraps.push({ x, y, r: 46, life: Math.round(25 / STEP), stuck: null, rearm: 0, owner: side });
+            q.abilityCD = 32;
+            spawnHitParticles(x, y, '#f4d35e', 18);
+            fb(`Trampa de galería desplegada (${galTraps.length}/3) — inmoviliza hormigas rivales`, false);
+            return;
+        }
+        return fb('No hay espacio libre para la trampa de galería', true);
+    }
+
+    if (key === 'myrmecia') {
+        if (q.abilityCD > 0) return fb(`Mandíbulas disponibles en ${fs(q.abilityCD)}s`, true);
+        let target = null;
+        let bd = 420;
+        for (const a of ants) {
+            if (!a.nest || a.nest.owner !== foeSide || a.hp <= 0) continue;
+            const d = Math.hypot(a.x - q.x, (a.y - q.y) / TILT);
+            if (d < bd) { bd = d; target = a; }
+        }
+        if (!target) return fb('No hay hormigas rivales al alcance de las mandíbulas', true);
+        let biters = 0;
+        for (const a of own) {
+            if (biters >= 10) break;
+            const d = Math.hypot(a.x - target.x, (a.y - target.y) / TILT);
+            if (d > 380) continue;
+            const lunge = Math.max(0, d - 8) / Math.max(1, d);
+            a.x += (target.x - a.x) * lunge * 0.85;
+            a.y += (target.y - a.y) * lunge * 0.85;
+            target.hp -= a.damage * 2.5;
+            if (Math.random() < 0.35) target.trapped = Math.max(target.trapped || 0, 60);
+            spawnHitParticles(target.x, target.y, '#ff8fab', 5);
+            biters++;
+        }
+        if (!biters) return fb('Ninguna obrera está lo bastante cerca del objetivo', true);
+        q.abilityCD = 28;
+        fb(`Mándíbulas aplastantes: ${biters} obrera(s) mordieron al 250%`, false);
+        return;
+    }
+
+    fb('Esta especie no tiene habilidades activas', true);
 }
 
 function pvpRebindColonies() {
@@ -4565,7 +4988,11 @@ function pvpStateSnapshot() {
         ov: pvp.over,
         sp: [pvp.colonies.A.species, pvp.colonies.B.species],
         fd: [Math.floor(pvp.colonies.A.food || 0), Math.floor(pvp.colonies.B.food || 0)],
-        wl: [pvp.colonies.A.wavesSent || 0, pvp.colonies.B.wavesSent || 0]
+        wl: [pvp.colonies.A.wavesSent || 0, pvp.colonies.B.wavesSent || 0],
+        bh: [pvp.colonies.A.behavior, pvp.colonies.B.behavior],
+        wv: [pvp.wave || 0, Math.max(0, Math.ceil(pvp.waveTimer || 0)), pvp.inWave ? 1 : 0],
+        rb: [Math.round(pvp.colonies.A.raidBoost || 0), Math.round(pvp.colonies.B.raidBoost || 0)],
+        fm: [Math.round(pvp.colonies.A.formation || 0), Math.round(pvp.colonies.B.formation || 0)]
     };
 }
 
@@ -4584,6 +5011,23 @@ function pvpApplyState(pv) {
     if (Array.isArray(pv.wl)) {
         pvp.colonies.A.wavesSent = pv.wl[0] || 0;
         pvp.colonies.B.wavesSent = pv.wl[1] || 0;
+    }
+    if (Array.isArray(pv.bh)) {
+        if (BEHAVIOR_LABELS[pv.bh[0]]) pvp.colonies.A.behavior = pv.bh[0];
+        if (BEHAVIOR_LABELS[pv.bh[1]]) pvp.colonies.B.behavior = pv.bh[1];
+    }
+    if (Array.isArray(pv.wv)) {
+        pvp.wave = pv.wv[0] || 0;
+        pvp.waveTimer = pv.wv[1] || 0;
+        pvp.inWave = !!pv.wv[2];
+    }
+    if (Array.isArray(pv.rb)) {
+        pvp.colonies.A.raidBoost = pv.rb[0] || 0;
+        pvp.colonies.B.raidBoost = pv.rb[1] || 0;
+    }
+    if (Array.isArray(pv.fm)) {
+        pvp.colonies.A.formation = pv.fm[0] || 0;
+        pvp.colonies.B.formation = pv.fm[1] || 0;
     }
 }
 
@@ -4634,9 +5078,10 @@ function updatePvpUI() {
         waveEl.textContent = 'Fin';
     } else if (pvp.phase === 'place') {
         waveEl.textContent = mine.nest ? 'Esperando rival' : 'Coloca tu colonia';
+    } else if (pvp.inWave) {
+        waveEl.textContent = `Oleada ${pvp.wave} · ${pvpWaveAlive()} bichos`;
     } else {
-        const marching = mine.nest ? ants.filter(a => a.nest === mine.nest && a.wave).length : 0;
-        waveEl.textContent = `Oleadas: ${mine.wavesSent} · En camino: ${marching}`;
+        waveEl.textContent = `Oleada ${pvp.wave + 1} en ${Math.max(0, Math.ceil(pvp.waveTimer))}s`;
     }
     if (speciesLabelEl) speciesLabelEl.textContent = SPECIES[mine.species] ? SP(mine.species).name : '—';
     if (pvpFoeEl) {
@@ -4648,9 +5093,11 @@ function updatePvpUI() {
     if (pvpHintEl) {
         pvpHintEl.textContent = pvp.phase === 'place'
             ? (mine.nest ? 'Esperando a que el rival funde su colonia' : 'Haz clic en tu mitad del mapa para fundar colonia y reina')
-            : (pvp.over ? 'Partida terminada' : `Obreras listas: ${ready} · la oleada ataca reina y nido rival`);
+            : (pvp.over ? 'Partida terminada' : `Obreras listas: ${ready} · ataque al nido rival`);
     }
     if (btnPvpWave) btnPvpWave.disabled = !(pvp.phase === 'battle' && !pvp.over && ready > 0);
+    updateBehaviorUI();
+    refreshAbilityUI();
 }
 /* ---------------- Fin PvP ---------------- */
 
@@ -5051,19 +5498,23 @@ function abilityCrushingMandibles() {
 }
 
 function refreshAbilityUI() {
-    const normalMode = gameMode === 'normal';
-    if (abilityBarEl) abilityBarEl.classList.toggle('show', normalMode);
-    if (!normalMode) return;
+    const pvpMode = !!pvp;
+    const normalMode = gameMode === 'normal' && !pvpMode;
+    if (abilityBarEl) abilityBarEl.classList.toggle('show', normalMode || pvpMode);
+    if (!normalMode && !pvpMode) return;
 
-    const hasQueen = !!queen && !endState;
-    const isCarpenter = speciesKey === 'camponotus';
-    const isLepto = speciesKey === 'leptogenys';
-    const isOdonto = speciesKey === 'odontomachus';
-    const isCephalotes = speciesKey === 'cephalotes';
-    const isAtta = speciesKey === 'atta';
-    const isAllomerus = speciesKey === 'allomerus';
-    const isMyrmecia = speciesKey === 'myrmecia';
-    const isCremato = speciesKey === 'crematogaster';
+    const colony = pvpMode ? pvpLocal() : null;
+    const actQueen = pvpMode ? (colony ? colony.queen : null) : queen;
+    const key = pvpMode ? (colony ? colony.species : 'camponotus') : speciesKey;
+    const hasQueen = !!actQueen && actQueen.hp > 0 && !(pvpMode && pvp.over);
+    const isCarpenter = key === 'camponotus';
+    const isLepto = key === 'leptogenys';
+    const isOdonto = key === 'odontomachus';
+    const isCephalotes = key === 'cephalotes';
+    const isAtta = key === 'atta';
+    const isAllomerus = key === 'allomerus';
+    const isMyrmecia = key === 'myrmecia';
+    const isCremato = key === 'crematogaster';
 
     const showA = hasQueen && (isOdonto || isLepto || isCephalotes || isAllomerus || isMyrmecia);
     const showB = hasQueen && isOdonto;
@@ -5086,7 +5537,7 @@ function refreshAbilityUI() {
         return;
     }
     if (isAtta) {
-        const nest = antNests[0];
+        const nest = pvpMode ? (colony ? colony.nest : null) : antNests[0];
         const hunger = nest && nest.hunger != null ? Math.round(nest.hunger) : 100;
         abilityNoteEl.textContent = `Hongo simbiótico: +35% daño y +30% vida · ${nest ? `alimento del hongo ${hunger}%` : 'funda el hongo'}`;
         return;
@@ -5100,38 +5551,60 @@ function refreshAbilityUI() {
     }
 
     if (isOdonto) {
-        abilityAEl.innerHTML = `Salto de reina<small>Q · ${queen.leapCD > 0 ? queen.leapCD.toFixed(1) + 's' : 'lista'} · -12 HP</small>`;
-        abilityBEl.classList.toggle('charging', queen.isCharging);
-        abilityBEl.innerHTML = queen.isCharging
-            ? `Cargando ${Math.round(queen.chargeT * 100)}%<small>suelta E para golpear</small>`
-            : `Mandíbula trampa<small>E mantener · ${queen.chargeCD > 0 ? queen.chargeCD.toFixed(1) + 's' : 'lista'}</small>`;
-        abilityAEl.disabled = queen.leapCD > 0 || queen.hp <= 20;
-        abilityBEl.disabled = queen.chargeCD > 0;
+        abilityAEl.innerHTML = `Salto de reina<small>Q · ${actQueen.leapCD > 0 ? actQueen.leapCD.toFixed(1) + 's' : 'lista'} · -12 HP</small>`;
+        if (pvpMode) {
+            abilityBEl.classList.remove('charging');
+            abilityBEl.innerHTML = `Mandíbula trampa<small>E · ${actQueen.chargeCD > 0 ? actQueen.chargeCD.toFixed(1) + 's' : 'lista'} · golpe en cono</small>`;
+        } else {
+            abilityBEl.classList.toggle('charging', actQueen.isCharging);
+            abilityBEl.innerHTML = actQueen.isCharging
+                ? `Cargando ${Math.round(actQueen.chargeT * 100)}%<small>suelta E para golpear</small>`
+                : `Mandíbula trampa<small>E mantener · ${actQueen.chargeCD > 0 ? actQueen.chargeCD.toFixed(1) + 's' : 'lista'}</small>`;
+        }
+        abilityAEl.disabled = actQueen.leapCD > 0 || actQueen.hp <= 20;
+        abilityBEl.disabled = actQueen.chargeCD > 0;
     } else if (isLepto) {
-        const raid = getRaidTarget();
-        const cd = queen.raidCD || 0;
-        abilityAEl.innerHTML = raidBoost > 0
-            ? `Incursión activa<small>F · ${Math.ceil(raidBoost)}s · +40% vel · x2 daño · +50% botín</small>`
-            : `Incursión automática<small>F · ${cd > 0 ? cd.toFixed(1) + 's' : 'lista'} · saquea el termitero más cercano${raid ? ` (${Math.ceil(raid.hp)} HP)` : ''}</small>`;
-        abilityAEl.disabled = cd > 0;
+        const cd = actQueen.raidCD || 0;
+        if (pvpMode) {
+            const boost = colony ? colony.raidBoost || 0 : 0;
+            abilityAEl.innerHTML = boost > 0
+                ? `Incursión activa<small>Q · ${Math.ceil(boost)}s · +40% vel · x2 daño a la colonia rival</small>`
+                : `Incursión<small>Q · ${cd > 0 ? cd.toFixed(1) + 's' : 'lista'} · +40% vel · x2 daño 20s</small>`;
+            abilityAEl.disabled = cd > 0;
+        } else {
+            const raid = getRaidTarget();
+            abilityAEl.innerHTML = raidBoost > 0
+                ? `Incursión activa<small>F · ${Math.ceil(raidBoost)}s · +40% vel · x2 daño · +50% botín</small>`
+                : `Incursión automática<small>F · ${cd > 0 ? cd.toFixed(1) + 's' : 'lista'} · saquea el termitero más cercano${raid ? ` (${Math.ceil(raid.hp)} HP)` : ''}</small>`;
+            abilityAEl.disabled = cd > 0;
+        }
     } else if (isCephalotes) {
-        abilityAEl.innerHTML = defenseActive
-            ? `Formación activa<small>Q · ${Math.ceil(defenseTimer)}s · clic para disolver</small>`
-            : `Formación tortuga<small>Q · ${defenseCD > 0 ? defenseCD.toFixed(1) + 's' : 'lista'}</small>`;
-        abilityAEl.disabled = defenseCD > 0 && !defenseActive;
-        abilityAEl.classList.toggle('charging', defenseActive);
+        if (pvpMode) {
+            const active = colony && colony.formation > 0;
+            abilityAEl.innerHTML = active
+                ? `Formación activa<small>Q · ${Math.ceil(colony.formation)}s · clic para disolver</small>`
+                : `Formación tortuga<small>Q · ${colony && colony.formationCD > 0 ? colony.formationCD.toFixed(1) + 's' : 'lista'}</small>`;
+            abilityAEl.disabled = !!(colony && colony.formationCD > 0 && !active);
+            abilityAEl.classList.toggle('charging', !!active);
+        } else {
+            abilityAEl.innerHTML = defenseActive
+                ? `Formación activa<small>Q · ${Math.ceil(defenseTimer)}s · clic para disolver</small>`
+                : `Formación tortuga<small>Q · ${defenseCD > 0 ? defenseCD.toFixed(1) + 's' : 'lista'}</small>`;
+            abilityAEl.disabled = defenseCD > 0 && !defenseActive;
+            abilityAEl.classList.toggle('charging', defenseActive);
+        }
     } else if (isAllomerus) {
-        const cd = queen.abilityCD || 0;
+        const cd = actQueen.abilityCD || 0;
         abilityAEl.innerHTML = `Trampa de galería<small>Q · ${cd > 0 ? cd.toFixed(1) + 's' : 'lista'} · ${galTraps.length}/3 activas</small>`;
         abilityAEl.disabled = cd > 0 || galTraps.length >= 3;
     } else if (isMyrmecia) {
-        const cd = queen.abilityCD || 0;
+        const cd = actQueen.abilityCD || 0;
         abilityAEl.innerHTML = `Mándíbulas aplastantes<small>Q · ${cd > 0 ? cd.toFixed(1) + 's' : 'lista'} · 250% daño · aturde 1s</small>`;
         abilityAEl.disabled = cd > 0;
     }
 
-    chargeTrackEl.classList.toggle('show', isOdonto && queen.isCharging);
-    chargeFillEl.style.width = queen.isCharging ? `${Math.round(queen.chargeT * 100)}%` : '0%';
+    chargeTrackEl.classList.toggle('show', !pvpMode && isOdonto && actQueen.isCharging);
+    chargeFillEl.style.width = (!pvpMode && actQueen.isCharging) ? `${Math.round(actQueen.chargeT * 100)}%` : '0%';
 }
 
 function placeNest(x, y, type, initialAnts = 0, opts = {}) {
@@ -5900,10 +6373,24 @@ function updateUI() {
 
 function updateBehaviorUI() {
     if (!btnBehavior) return;
-    btnBehavior.textContent = BEHAVIOR_LABELS[behaviorMode] || BEHAVIOR_LABELS.gather;
+    const mode = pvp ? (pvpLocal() ? pvpLocal().behavior : 'gather') : behaviorMode;
+    btnBehavior.textContent = BEHAVIOR_LABELS[mode] || BEHAVIOR_LABELS.gather;
 }
 
 function cycleBehaviorMode() {
+    if (pvp) {
+        const col = pvpLocal();
+        if (!col || pvp.phase !== 'battle' || pvp.over) return;
+        const next = col.behavior === 'gather' ? 'defend' : col.behavior === 'defend' ? 'attack' : 'gather';
+        if (netRole === 'guest') {
+            col.behavior = next;
+            updateBehaviorUI();
+            netSendCmd({ k: 'behavior', mode: next });
+        } else {
+            pvpSetBehavior(pvp.side, next);
+        }
+        return;
+    }
     if (netRole === 'guest') {
         if (roomStarted) netSendCmd({ k: 'behavior' });
         return;
@@ -7048,22 +7535,29 @@ window.addEventListener('keydown', e => {
         e.preventDefault();
     }
     if (k === 'escape') showMainMenu();
-    if (!e.repeat && gameMode === 'normal' && !paused && !endState) {
-        if (k === 'q') {
-            if (speciesKey === 'cephalotes') abilityDefense();
-            else if (speciesKey === 'allomerus') abilityGallery();
-            else if (speciesKey === 'myrmecia') abilityCrushingMandibles();
-            else abilityLeap();
+    if (!e.repeat) {
+        if (pvp) {
+            if (pvp.phase === 'battle' && !pvp.over && !paused) {
+                if (k === 'q') pvpRequestAbility('q');
+                else if (k === 'e') pvpRequestAbility('e');
+            }
+        } else if (gameMode === 'normal' && !paused && !endState) {
+            if (k === 'q') {
+                if (speciesKey === 'cephalotes') abilityDefense();
+                else if (speciesKey === 'allomerus') abilityGallery();
+                else if (speciesKey === 'myrmecia') abilityCrushingMandibles();
+                else abilityLeap();
+            }
+            else if (k === 'e') abilityStartCharge();
+            else if (k === 'f') abilityRaid();
         }
-        else if (k === 'e') abilityStartCharge();
-        else if (k === 'f') abilityRaid();
     }
 });
 
 window.addEventListener('keyup', e => {
     const k = e.key.toLowerCase();
     keysPressed[k] = false;
-    if (k === 'e') abilityReleaseCharge();
+    if (k === 'e' && !pvp) abilityReleaseCharge();
 });
 
 /* ============================================================
@@ -7136,7 +7630,7 @@ function step() {
             galTraps.splice(i, 1);
             continue;
         }
-        if (t.stuck && (t.stuck.hp <= 0 || !enemies.includes(t.stuck))) t.stuck = null;
+        if (t.stuck && (t.stuck.hp <= 0 || (!enemies.includes(t.stuck) && !ants.includes(t.stuck)))) t.stuck = null;
         if (t.stuck) {
             const d = Math.hypot(t.stuck.x - t.x, (t.stuck.y - t.y) / TILT);
             if (d > t.r * 1.6) t.stuck = null;
@@ -7151,6 +7645,18 @@ function step() {
                     spawnHitParticles(e.x, e.y, '#f4d35e', 12);
                     setStatus('¡Trampa de galería! Enemigo inmovilizado 2.5s — obreras cercanas +30% daño', true);
                     break;
+                }
+            }
+            if (!t.stuck && pvp) {
+                for (const a of ants) {
+                    if (a.hp <= 0 || a.trapped > 0 || !a.nest || !a.nest.owner) continue;
+                    if (t.owner && a.nest.owner === t.owner) continue;
+                    if (Math.hypot(a.x - t.x, (a.y - t.y) / TILT) < t.r * 0.85) {
+                        t.stuck = a;
+                        a.trapped = 150;
+                        spawnHitParticles(a.x, a.y, '#f4d35e', 12);
+                        break;
+                    }
                 }
             }
         }
@@ -7379,6 +7885,19 @@ function loop(ts) {
                     netInitWait = 0;
                     netSendCmd({ k: 'init', species: pvpSpeciesChoice });
                 }
+            } else if (pvp && !paused && pvp.phase !== 'over' && pvpLocal() && pvpLocal().nest) {
+                let dx = 0;
+                let dy = 0;
+                if (keysPressed['w'] || keysPressed['arrowup']) dy -= 1;
+                if (keysPressed['s'] || keysPressed['arrowdown']) dy += 1;
+                if (keysPressed['a'] || keysPressed['arrowleft']) dx -= 1;
+                if (keysPressed['d'] || keysPressed['arrowright']) dx += 1;
+                if (dx !== pvpGuestMove.dx || dy !== pvpGuestMove.dy) {
+                    pvpGuestMove = { dx, dy };
+                    netSendCmd({ k: 'move', dx, dy });
+                }
+                if (dx || dy) pvpMoveQueen(pvpLocal(), dx, dy);
+                else if (pvpLocal().queen) pvpLocal().queen.isMoving = false;
             }
         }
     } else {
@@ -7717,7 +8236,10 @@ function netSendNotice(text, bad) {
 
 function netQueenTuple(q) {
     if (!q) return null;
-    return [netRound(q.x), netRound(q.y), +q.angle.toFixed(2), netRound(q.hp), Math.round(q.maxHp), q.species || 'generic'];
+    return [
+        netRound(q.x), netRound(q.y), +q.angle.toFixed(2), netRound(q.hp), Math.round(q.maxHp), q.species || 'generic',
+        [netRound(q.leapCD || 0), netRound(q.chargeCD || 0), netRound(q.raidCD || 0), netRound(q.abilityCD || 0)]
+    ];
 }
 
 function netRound(v) {
@@ -7800,6 +8322,16 @@ function netApplyCommand(d) {
             pvpTryPlace('B', clamp(d.x, 0, WORLD_W), clamp(d.y, 0, WORLD_H), d.species);
         } else if (d.k === 'wave') {
             pvpSendWave('B', d.n);
+        } else if (d.k === 'move') {
+            if (!pvp.remoteMove) pvp.remoteMove = {};
+            pvp.remoteMove.B = {
+                dx: clamp(Math.round(Number(d.dx) || 0), -1, 1),
+                dy: clamp(Math.round(Number(d.dy) || 0), -1, 1)
+            };
+        } else if (d.k === 'behavior') {
+            if (BEHAVIOR_LABELS[d.mode]) pvpSetBehavior('B', d.mode);
+        } else if (d.k === 'ability') {
+            if (d.a === 'q' || d.a === 'e') pvpUseAbility('B', d.a);
         }
         return;
     }
@@ -7888,6 +8420,17 @@ function netApplyInit(d) {
     if (pvp) {
         pvp.phase = 'place';
         pvp.over = null;
+        pvp.wave = 0;
+        pvp.waveTimer = PVP_WAVE_FIRST;
+        pvp.inWave = false;
+        pvp.remoteMove = {};
+        pvp.colonies.A.behavior = 'gather';
+        pvp.colonies.B.behavior = 'gather';
+        pvp.colonies.A.raidBoost = 0;
+        pvp.colonies.B.raidBoost = 0;
+        pvp.colonies.A.formation = 0;
+        pvp.colonies.B.formation = 0;
+        pvpGuestMove = { dx: 0, dy: 0 };
     }
     storedFood = 0;
     gameSpeed = 1;
@@ -8134,6 +8677,12 @@ function netSyncPvpQueens(qs) {
         q.angle = v[2];
         q.hp = v[3];
         q.maxHp = v[4];
+        if (Array.isArray(v[6])) {
+            q.leapCD = v[6][0] || 0;
+            q.chargeCD = v[6][1] || 0;
+            q.raidCD = v[6][2] || 0;
+            q.abilityCD = v[6][3] || 0;
+        }
         q.walkCycle += 0.15;
     }
     queen = pvp.colonies[pvp.side] ? pvp.colonies[pvp.side].queen : null;
@@ -8173,6 +8722,7 @@ function netApplySnapshot(s) {
 
 
 abilityAEl.addEventListener('click', () => {
+    if (pvp) { pvpRequestAbility('q'); return; }
     if (speciesKey === 'odontomachus') abilityLeap();
     else if (speciesKey === 'leptogenys') abilityRaid();
     else if (speciesKey === 'cephalotes') abilityDefense();
@@ -8181,9 +8731,11 @@ abilityAEl.addEventListener('click', () => {
 });
 abilityBEl.addEventListener('pointerdown', (e) => {
     e.preventDefault();
+    if (pvp) { pvpRequestAbility('e'); return; }
     if (speciesKey === 'odontomachus') abilityStartCharge();
 });
 window.addEventListener('pointerup', () => {
+    if (pvp) return;
     if (speciesKey === 'odontomachus') abilityReleaseCharge();
 });
 const sandboxSpeciesEl = document.getElementById('sandbox-species');
