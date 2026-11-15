@@ -37,7 +37,7 @@ const server = http.createServer((req, res) => {
     });
 });
 
-const wss = new WebSocketServer({ server, maxPayload: 64 * 1024 });
+const wss = new WebSocketServer({ server, maxPayload: 512 * 1024 });
 const rooms = new Map();
 let nextId = 1;
 

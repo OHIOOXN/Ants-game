@@ -4247,6 +4247,8 @@ function init() {
 
     refreshNormalTools();
     endScreen.classList.remove('show');
+    if (netRole === 'host') modeBadge.textContent = '[Salas · Anfitrion]';
+    else if (netRole === 'guest') modeBadge.textContent = '[Salas · Invitado]';
     updateUI();
 }
 
@@ -5154,6 +5156,8 @@ function showMainMenu() {
         if (roomsScreen.classList.contains('show')) closeRoomsScreen();
         roomsScreen.classList.remove('show');
     }
+    if (netRole !== 'offline') netAbortMatch();
+    if (roomSocket) leaveRoom(false);
     startScreen.classList.add('show');
     btnContinue.style.display = hasSave() ? 'inline-block' : 'none';
 }
@@ -5184,6 +5188,7 @@ function loadSave() {
 }
 
 function saveGame() {
+    if (netRole !== 'offline') return;
     if (!hasActiveGame || endState) return;
     try {
         const data = {
@@ -5424,6 +5429,10 @@ function updateBehaviorUI() {
 }
 
 function cycleBehaviorMode() {
+    if (netRole === 'guest') {
+        if (roomStarted) netSendCmd({ k: 'behavior' });
+        return;
+    }
     behaviorMode = behaviorMode === 'gather' ? 'defend' : behaviorMode === 'defend' ? 'attack' : 'gather';
     updateBehaviorUI();
     setStatus(BEHAVIOR_NOTES[behaviorMode]);
@@ -6231,6 +6240,10 @@ function tryQueenAttack(wx, wy) {
 }
 
 function handleLeftClick(wx, wy) {
+    if (netRole === 'guest') {
+        if (roomStarted) netSendCmd({ k: 'tool', tool: currentTool, x: wx, y: wy, species: sandboxSpecies });
+        return;
+    }
     if (gameMode === 'normal') {
         if (currentTool === 'queen' && !queen) {
             if (!canPlaceAt(wx, wy, 'queen')) {
@@ -6797,26 +6810,45 @@ function loop(ts) {
 
         updateCamera(dt);
 
-        natureTimer -= dt;
-        if (natureTimer <= 0) {
-            natureTimer = 300;
-            triggerNatureHarvest();
-        }
+        if (netRole !== 'guest') {
+            natureTimer -= dt;
+            if (natureTimer <= 0) {
+                natureTimer = 300;
+                triggerNatureHarvest();
+            }
 
-        accumulator += dt * (gameMode === 'normal' ? 1 : gameSpeed);
-        let guard = 0;
-        while (accumulator >= STEP && guard < 10) {
-            step();
-            accumulator -= STEP;
-            guard++;
-            if (paused) break;
-        }
-        if (guard >= 10) accumulator = 0;
+            accumulator += dt * (gameMode === 'normal' ? 1 : gameSpeed);
+            let guard = 0;
+            while (accumulator >= STEP && guard < 10) {
+                step();
+                accumulator -= STEP;
+                guard++;
+                if (paused) break;
+            }
+            if (guard >= 10) accumulator = 0;
 
-        saveAcc += dt;
-        if (saveAcc > 5) {
-            saveAcc = 0;
-            saveGame();
+            saveAcc += dt;
+            if (saveAcc > 5) {
+                saveAcc = 0;
+                saveGame();
+            }
+
+            if (netRole === 'host' && roomStarted && roomPlayers > 1) {
+                netSnapTimer += dt;
+                if (netSnapTimer >= 0.1) {
+                    netSnapTimer = 0;
+                    netSendSnapshot();
+                }
+            }
+        } else {
+            accumulator = 0;
+            if (!netWorldReady) {
+                netInitWait += dt;
+                if (netInitWait > 2) {
+                    netInitWait = 0;
+                    netSendCmd({ k: 'init' });
+                }
+            }
         }
     } else {
         accumulator = 0;
@@ -6958,7 +6990,19 @@ function handleRoomMessage(msg) {
     if (msg.type === 'started') {
         roomStarted = true;
         btnStartRoom.disabled = true;
-        setRoomsStatus(`Partida iniciada con ${msg.players || roomPlayers} jugadores. La sincronizacion del tablero llega en la siguiente fase.`);
+        setRoomsStatus(`Partida iniciada con ${msg.players || roomPlayers} jugadores.`);
+        beginNetworkMatch();
+        return;
+    }
+    if (msg.type === 'state') {
+        if (netRole !== 'guest' || !msg.data) return;
+        if (msg.data.k === 'init') netApplyInit(msg.data);
+        else if (msg.data.k === 'snap' && netWorldReady) netApplySnapshot(msg.data);
+        return;
+    }
+    if (msg.type === 'cmd') {
+        if (netRole !== 'host' || !msg.data) return;
+        netApplyCommand(msg.data);
         return;
     }
     if (msg.type === 'error') {
@@ -6968,6 +7012,7 @@ function handleRoomMessage(msg) {
     if (msg.type === 'closed') {
         setRoomsStatus(msg.message || 'La sala se cerro.', true);
         resetRoomUI();
+        if (netRole !== 'offline') netAbortMatch(msg.message || 'El anfitrion abandono la partida');
     }
 }
 
@@ -7101,6 +7146,417 @@ roomsUrlInput.addEventListener('change', () => {
 });
 /* ---------------- Fin Salas PvP ---------------- */
 
+/* ---------------- Partida en red: anfitrion autoritativo ---------------- */
+let netRole = 'offline';
+let netWorldReady = false;
+let netSnapTimer = 0;
+let netInitWait = 0;
+
+const NET_TOOLS = new Set([
+    'nest', 'termite_nest', 'beetle', 'food', 'sandbox_queen', 'sandbox_nest',
+    'rock', 'tree', 'bush', 'remove_obstacle', 'remove_food',
+    'spider', 'mantis', 'antlion', 'scorpion', 'centipede', 'wasp', 'assassin', 'anteater'
+]);
+
+function netSendCmd(data) {
+    if (!roomSocket || roomSocket.readyState !== 1) return;
+    roomSocket.send(JSON.stringify({ type: 'cmd', data }));
+}
+
+function netSendInit() {
+    if (!roomSocket || roomSocket.readyState !== 1) return;
+    roomSocket.send(JSON.stringify({ type: 'state', data: { k: 'init', seed: worldSeed, gameSpeed } }));
+}
+
+function netRound(v) {
+    return Math.round(v * 10) / 10;
+}
+
+function netBuildSnapshot() {
+    return {
+        k: 'snap',
+        t: +gameTime.toFixed(1),
+        f: Math.floor(storedFood),
+        fp: Math.round(foodSpawnCounter || 0),
+        gs: gameSpeed,
+        b: behaviorMode,
+        q: queen ? [
+            netRound(queen.x), netRound(queen.y), +queen.angle.toFixed(2),
+            netRound(queen.hp), Math.round(queen.maxHp), Math.round(queen.load || 0),
+            queen.species || 'generic',
+            queenTarget ? [netRound(queenTarget.x), netRound(queenTarget.y)] : null
+        ] : null,
+        n: antNests.map(n => [
+            netRound(n.x), netRound(n.y), netRound(n.radius), Math.round(n.hp), Math.round(n.maxHp),
+            Math.round(n.foodIn || 0), n.style || 'classic', n.species || '',
+            n.hunger == null ? -1 : Math.round(n.hunger)
+        ]),
+        tn: termiteNests.map(n => [
+            netRound(n.x), netRound(n.y), netRound(n.radius), Math.round(n.hp), Math.round(n.maxHp),
+            n.style || 'termite', n.wave == null ? -1 : n.wave,
+            n.isWaveNest ? 1 : 0, n.isRaidNest ? 1 : 0, n.isCathedra ? 1 : 0
+        ]),
+        a: ants.map(a => [
+            netRound(a.x), netRound(a.y), +a.angle.toFixed(2), netRound(a.hp), Math.round(a.maxHp),
+            a.hasFood ? 1 : 0, antNests.indexOf(a.nest), a.isRaider ? 1 : 0,
+            a.tempLife == null ? -1 : Math.round(a.tempLife), a.carriesLeaf ? 1 : 0,
+            a.trapped > 0 ? 1 : 0
+        ]),
+        te: termites.map(t => [
+            netRound(t.x), netRound(t.y), +t.angle.toFixed(2), netRound(t.hp), Math.round(t.maxHp),
+            t.hasFood ? 1 : 0, t.soldier ? 1 : 0, termiteNests.indexOf(t.nest),
+            t.wave == null ? -1 : t.wave
+        ]),
+        be: beetles.map(b => [
+            netRound(b.x), netRound(b.y), +b.angle.toFixed(2), netRound(b.hp), Math.round(b.maxHp),
+            b.hasBall ? 1 : 0
+        ]),
+        en: enemies.map(e => [
+            netRound(e.x), netRound(e.y), +e.angle.toFixed(2), netRound(e.hp), Math.round(e.maxHp),
+            e.type, netRound(e.radius || 12), e.wave == null ? -1 : e.wave,
+            e.trapped > 0 ? 1 : 0, e.trapState === 'inside' ? 1 : 0
+        ]),
+        eg: eggs.map(e => [netRound(e.x), netRound(e.y), Math.round(e.timer), antNests.indexOf(e.nest)]),
+        fo: foods.map(f => [netRound(f.x), netRound(f.y), netRound(f.amount), netRound(f.age || 0)]),
+        wb: webs.map(w => [netRound(w.x), netRound(w.y)]),
+        tr: traps.map(t => [netRound(t.x), netRound(t.y), netRound(t.r), Math.round(t.life), t.triggered ? 1 : 0]),
+        gt: galTraps.map(t => [netRound(t.x), netRound(t.y), t.r, Math.round(t.life), t.rearm || 0])
+    };
+}
+
+function netSendSnapshot() {
+    if (!roomSocket || roomSocket.readyState !== 1) return;
+    roomSocket.send(JSON.stringify({ type: 'state', data: netBuildSnapshot() }));
+}
+
+function netApplyCommand(d) {
+    if (netRole !== 'host' || !roomStarted) return;
+    if (d.k === 'init') {
+        netSendInit();
+        netSendSnapshot();
+        return;
+    }
+    if (d.k === 'behavior') {
+        cycleBehaviorMode();
+        return;
+    }
+    if (d.k === 'speed') {
+        gameSpeed = gameSpeed === 1 ? 2 : gameSpeed === 4 ? 1 : 4;
+        btnSpeed.textContent = `Velocidad: ${gameSpeed}x`;
+        return;
+    }
+    if (d.k === 'reset') {
+        init();
+        netSendInit();
+        netSendSnapshot();
+        return;
+    }
+    if (d.k === 'tool') {
+        if (!NET_TOOLS.has(d.tool)) return;
+        if (typeof d.x !== 'number' || typeof d.y !== 'number' || !isFinite(d.x) || !isFinite(d.y)) return;
+        const prevTool = currentTool;
+        const prevSpecies = sandboxSpecies;
+        currentTool = d.tool;
+        if (typeof d.species === 'string' && SPECIES[d.species]) sandboxSpecies = d.species;
+        try {
+            handleLeftClick(clamp(d.x, 0, WORLD_W), clamp(d.y, 0, WORLD_H));
+        } finally {
+            currentTool = prevTool;
+            sandboxSpecies = prevSpecies;
+        }
+        netSendSnapshot();
+    }
+}
+
+function beginNetworkMatch() {
+    roomsScreen.classList.remove('show');
+    startScreen.classList.remove('show');
+    endScreen.classList.remove('show');
+    roomStarted = true;
+    netSnapTimer = 0;
+    netInitWait = 0;
+
+    if (roomIsHost) {
+        netRole = 'host';
+        netWorldReady = true;
+        startGame('sandbox');
+        modeBadge.textContent = '[Salas · Anfitrion]';
+        setStatus('Partida en red iniciada. Eres el anfitrion.');
+        netSendInit();
+        netSendSnapshot();
+        return;
+    }
+
+    netRole = 'guest';
+    netWorldReady = false;
+    gameMode = 'sandbox';
+    speciesKey = 'generic';
+    resetWorld();
+    worldSeed = 0;
+    paused = true;
+    hasActiveGame = true;
+    camera.x = WORLD_W / 2;
+    camera.y = WORLD_H / 2;
+    camera.zoom = 1;
+    camera.follow = false;
+    configureModeUI();
+    modeBadge.textContent = '[Salas · Invitado]';
+    updateUI();
+    setStatus('Esperando el mundo del anfitrion...');
+}
+
+function netApplyInit(d) {
+    if (netRole !== 'guest' || typeof d.seed !== 'number') return;
+    worldSeed = d.seed >>> 0;
+    resetWorld();
+    generateEnvironment(worldSeed);
+    storedFood = 100;
+    gameSpeed = d.gameSpeed || 1;
+    behaviorMode = 'gather';
+    paused = false;
+    hasActiveGame = true;
+    netWorldReady = true;
+    netInitWait = 0;
+    camera.x = WORLD_W / 2;
+    camera.y = WORLD_H / 2;
+    camera.zoom = 1;
+    camera.follow = false;
+    clampCamera();
+    configureModeUI();
+    modeBadge.textContent = '[Salas · Invitado]';
+    updateBehaviorUI();
+    updateUI();
+    setStatus('Mundo sincronizado con el anfitrion');
+}
+
+function netAbortMatch(text) {
+    netRole = 'offline';
+    netWorldReady = false;
+    netSnapTimer = 0;
+    netInitWait = 0;
+    roomStarted = false;
+    paused = true;
+    modeBadge.textContent = '';
+    roomsScreen.classList.remove('show');
+    startScreen.classList.add('show');
+    if (text) setStatus(text, true);
+}
+
+function netSyncQueen(q) {
+    if (!q) {
+        queen = null;
+        queenTarget = null;
+        return;
+    }
+    if (queen && queen.species !== q[6]) queen = null;
+    if (!queen) queen = new QueenAnt(q[0], q[1], q[6]);
+    queen.x = q[0];
+    queen.y = q[1];
+    queen.angle = q[2];
+    queen.hp = q[3];
+    queen.maxHp = q[4];
+    queen.load = q[5];
+    queen.walkCycle += 0.18;
+    queenTarget = q[7] ? { x: q[7][0], y: q[7][1] } : null;
+}
+
+function netSyncNests(list) {
+    while (antNests.length > list.length) antNests.pop();
+    for (let i = 0; i < list.length; i++) {
+        const v = list[i];
+        let n = antNests[i];
+        if (!n) {
+            n = {
+                x: v[0], y: v[1], radius: v[2], hp: v[3], maxHp: v[4], foodIn: v[5],
+                isStatic: true, style: v[6], tree: null, species: v[7],
+                hunger: v[8] < 0 ? null : v[8]
+            };
+            if (n.style === 'tree') n.tree = nearestTree(n.x, n.y);
+            antNests.push(n);
+        } else {
+            n.x = v[0];
+            n.y = v[1];
+            n.radius = v[2];
+            n.hp = v[3];
+            n.maxHp = v[4];
+            n.foodIn = v[5];
+            n.style = v[6];
+            n.species = v[7];
+            n.hunger = v[8] < 0 ? null : v[8];
+            if (n.style === 'tree' && !n.tree) n.tree = nearestTree(n.x, n.y);
+        }
+    }
+}
+
+function netSyncTermiteNests(list) {
+    while (termiteNests.length > list.length) termiteNests.pop();
+    for (let i = 0; i < list.length; i++) {
+        const v = list[i];
+        let n = termiteNests[i];
+        if (!n) {
+            n = { foodIn: 0, isStatic: true };
+            termiteNests.push(n);
+        }
+        n.x = v[0];
+        n.y = v[1];
+        n.radius = v[2];
+        n.hp = v[3];
+        n.maxHp = v[4];
+        n.style = v[5];
+        n.wave = v[6] < 0 ? null : v[6];
+        n.isWaveNest = !!v[7];
+        n.isRaidNest = !!v[8];
+        n.isCathedra = !!v[9];
+    }
+}
+
+function netSyncAnts(list) {
+    while (ants.length > list.length) ants.pop();
+    for (let i = 0; i < list.length; i++) {
+        const v = list[i];
+        const nest = antNests[v[6]] || antNests[0] || null;
+        let a = ants[i];
+        if (!a || (nest && a.species !== (nest.species || 'generic'))) {
+            a = new Ant(v[0], v[1], nest);
+            ants[i] = a;
+        }
+        a.nest = nest;
+        a.x = v[0];
+        a.y = v[1];
+        a.angle = v[2];
+        a.hp = v[3];
+        a.maxHp = v[4];
+        a.hasFood = !!v[5];
+        a.isRaider = !!v[7];
+        a.tempLife = v[8] < 0 ? null : v[8];
+        a.carriesLeaf = !!v[9];
+        a.trapped = v[10] ? 30 : 0;
+        a.walkCycle += 0.25;
+    }
+}
+
+function netSyncTermites(list) {
+    while (termites.length > list.length) termites.pop();
+    for (let i = 0; i < list.length; i++) {
+        const v = list[i];
+        const nest = termiteNests[v[7]] || termiteNests[0] || null;
+        let t = termites[i];
+        if (!t) {
+            t = new Termite(v[0], v[1], nest);
+            termites[i] = t;
+        }
+        t.nest = nest;
+        t.x = v[0];
+        t.y = v[1];
+        t.angle = v[2];
+        t.hp = v[3];
+        t.maxHp = v[4];
+        t.hasFood = !!v[5];
+        t.soldier = !!v[6];
+        t.wave = v[8] < 0 ? null : v[8];
+        t.walkCycle += 0.2;
+    }
+}
+
+function netSyncBeetles(list) {
+    while (beetles.length > list.length) beetles.pop();
+    for (let i = 0; i < list.length; i++) {
+        const v = list[i];
+        let b = beetles[i];
+        if (!b) {
+            b = new Beetle(v[0], v[1]);
+            beetles[i] = b;
+        }
+        b.x = v[0];
+        b.y = v[1];
+        b.angle = v[2];
+        b.hp = v[3];
+        b.maxHp = v[4];
+        b.hasBall = !!v[5];
+        b.walkCycle += 0.2;
+    }
+}
+
+function netSyncEnemies(list) {
+    while (enemies.length > list.length) enemies.pop();
+    for (let i = 0; i < list.length; i++) {
+        const v = list[i];
+        let e = enemies[i];
+        if (!e || e.type !== v[5]) {
+            e = new Enemy(v[0], v[1], v[5]);
+            enemies[i] = e;
+        }
+        e.x = v[0];
+        e.y = v[1];
+        e.angle = v[2];
+        e.hp = v[3];
+        e.maxHp = v[4];
+        e.radius = v[6];
+        e.wave = v[7] < 0 ? null : v[7];
+        e.trapped = v[8] ? 30 : 0;
+        e.trapState = v[9] ? 'inside' : 'roaming';
+        e.walkCycle += 0.2;
+    }
+}
+
+function netSyncEggs(list) {
+    while (eggs.length > list.length) eggs.pop();
+    for (let i = 0; i < list.length; i++) {
+        const v = list[i];
+        let e = eggs[i];
+        if (!e) {
+            e = { x: 0, y: 0, timer: 0, nest: null };
+            eggs[i] = e;
+        }
+        e.x = v[0];
+        e.y = v[1];
+        e.timer = v[2];
+        e.nest = antNests[v[3]] || null;
+    }
+}
+
+function netSyncFoods(list) {
+    while (foods.length > list.length) foods.pop();
+    for (let i = 0; i < list.length; i++) {
+        const v = list[i];
+        let f = foods[i];
+        if (!f) {
+            f = { x: 0, y: 0, amount: 0, age: 0, claimedBy: null };
+            foods[i] = f;
+        }
+        f.x = v[0];
+        f.y = v[1];
+        f.amount = v[2];
+        f.age = v[3];
+        f.claimedBy = null;
+    }
+}
+
+function netApplySnapshot(s) {
+    if (netRole !== 'guest' || !netWorldReady) return;
+    if (typeof s.t === 'number') gameTime = s.t;
+    storedFood = s.f;
+    foodSpawnCounter = s.fp || 0;
+    gameSpeed = s.gs || gameSpeed;
+    if (s.b) behaviorMode = s.b;
+    netSyncQueen(s.q);
+    netSyncNests(s.n || []);
+    netSyncTermiteNests(s.tn || []);
+    netSyncAnts(s.a || []);
+    netSyncTermites(s.te || []);
+    netSyncBeetles(s.be || []);
+    netSyncEnemies(s.en || []);
+    netSyncEggs(s.eg || []);
+    netSyncFoods(s.fo || []);
+    traps = (s.tr || []).map(v => ({ x: v[0], y: v[1], r: v[2], life: v[3], triggered: !!v[4], owner: null, target: null }));
+    galTraps = (s.gt || []).map(v => ({ x: v[0], y: v[1], r: v[2], life: v[3], rearm: v[4], stuck: null }));
+    webs = (s.wb || []).map(v => ({ x: v[0], y: v[1] }));
+    btnSpeed.textContent = `Velocidad: ${gameSpeed}x`;
+    updateBehaviorUI();
+    updateUI();
+}
+
+
 abilityAEl.addEventListener('click', () => {
     if (speciesKey === 'odontomachus') abilityLeap();
     else if (speciesKey === 'leptogenys') abilityRaid();
@@ -7133,6 +7589,10 @@ document.getElementById('btn-center').addEventListener('click', () => {
 });
 document.getElementById('btn-back-menu').addEventListener('click', showMainMenu);
 document.getElementById('btn-clear').addEventListener('click', () => {
+    if (netRole === 'guest') {
+        if (roomStarted) netSendCmd({ k: 'reset' });
+        return;
+    }
     endScreen.classList.remove('show');
     startScreen.classList.remove('show');
     configureModeUI();
@@ -7140,6 +7600,10 @@ document.getElementById('btn-clear').addEventListener('click', () => {
 });
 btnSpeed.addEventListener('click', () => {
     if (gameMode === 'normal') return;
+    if (netRole === 'guest') {
+        if (roomStarted) netSendCmd({ k: 'speed' });
+        return;
+    }
     gameSpeed = gameSpeed === 1 ? 2 : gameSpeed === 4 ? 1 : 4;
     btnSpeed.textContent = `Velocidad: ${gameSpeed}x`;
 });
