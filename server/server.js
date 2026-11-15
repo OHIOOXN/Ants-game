@@ -84,7 +84,8 @@ wss.on('connection', ws => {
             rooms.set(code, room);
             ws.room = room;
             ws.isHost = true;
-            send(ws, { type: 'room', code, host: true, players: 1, id: ws.id });
+            ws.slot = 0;
+            send(ws, { type: 'room', code, host: true, players: 1, slot: 0, id: ws.id });
             return;
         }
 
@@ -96,17 +97,18 @@ wss.on('connection', ws => {
                 send(ws, { type: 'error', message: 'Sala no encontrada' });
                 return;
             }
-            if (room.players.length >= 4) {
-                send(ws, { type: 'error', message: 'Sala llena (maximo 4)' });
+            if (room.players.length >= 3) {
+                send(ws, { type: 'error', message: 'Sala llena (maximo 3 jugadores)' });
                 return;
             }
             if (room.started) {
                 send(ws, { type: 'error', message: 'La partida ya comenzo' });
                 return;
             }
+            ws.slot = room.players.length;
             room.players.push(ws);
             ws.room = room;
-            send(ws, { type: 'room', code, host: false, players: room.players.length, id: ws.id });
+            send(ws, { type: 'room', code, host: false, players: room.players.length, slot: ws.slot, id: ws.id });
             broadcast(room, { type: 'peer', players: room.players.length }, ws);
             send(ws, { type: 'peer', players: room.players.length });
             return;
@@ -128,7 +130,7 @@ wss.on('connection', ws => {
         }
 
         if (msg.type === 'cmd') {
-            send(ws.room.host, { type: 'cmd', from: ws.id, data: msg.data });
+            send(ws.room.host, { type: 'cmd', from: ws.id, slot: ws.slot || 0, data: msg.data });
         }
     });
 
