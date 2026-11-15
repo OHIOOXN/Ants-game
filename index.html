@@ -135,6 +135,21 @@
     .rooms-code strong { color: #ffd166; font-size: 1.3rem; letter-spacing: 5px; }
     #rooms-players { font-size: 0.9rem; font-weight: bold; color: #b5e48c; }
     #btn-rooms-back { align-self: center; }
+    #rooms-species, #pvp-wave-count {
+        background: linear-gradient(180deg, #2d6a4f, #14240f);
+        color: #e9f5db;
+        border: 1px solid #74c69d;
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 0.95rem;
+        font-weight: bold;
+        font-family: inherit;
+        cursor: pointer;
+    }
+    #pvp-wave-count { width: 78px; padding: 6px 8px; font-size: 0.8rem; text-align: center; }
+    #pvp-hint { font-size: 0.78rem; color: #d8f3dc; font-weight: bold; align-self: center; }
+    .pvp-label { font-size: 0.76rem; color: #b5e48c; font-weight: bold; align-self: center; }
+    .pvp-only { display: none; }
 
     header {
         text-align: center;
@@ -460,6 +475,17 @@
                 <input id="rooms-code" type="text" maxlength="4" spellcheck="false" autocomplete="off" placeholder="CODIGO">
                 <button id="btn-join-room" class="menu-btn btn-mode-normal">Unirse</button>
             </div>
+            <label class="rooms-label" for="rooms-species">Tu especie en la partida</label>
+            <select id="rooms-species">
+                <option value="camponotus">Camponotus satan</option>
+                <option value="leptogenys">Leptogenys processionalis</option>
+                <option value="odontomachus">Odontomachus rixosus</option>
+                <option value="cephalotes">Cephalotes atratus</option>
+                <option value="atta">Atta cephalotes</option>
+                <option value="allomerus">Allomerus decemarticulatus</option>
+                <option value="myrmecia">Myrmecia gulosa</option>
+                <option value="crematogaster">Crematogaster opuntiae</option>
+            </select>
             <div id="rooms-status">Desconectado</div>
             <div id="rooms-panel">
                 <div class="rooms-code">Sala <strong id="rooms-code-label">----</strong></div>
@@ -500,6 +526,8 @@
         <div class="stat stat-egg normal-only">Huevos: <span id="egg-count">0</span></div>
         <div class="stat">Nidos: <span id="nest-count">0</span></div>
         <div class="stat normal-only"><span id="species-label">—</span></div>
+        <div class="stat pvp-only">Rival: <span id="pvp-foe">—</span></div>
+        <div class="stat pvp-only">Listas: <span id="pvp-ready">0</span></div>
         <button id="btn-speed" class="sandbox-only">Velocidad: 1x</button>
         <button id="btn-behavior" class="btn-behavior">Modo: Recolección</button>
         <button id="btn-center" class="btn-center">Centrar</button>
@@ -544,6 +572,14 @@
     <div class="toolbar" id="toolbar-normal" style="display:none;">
         <button id="tool-queen" class="tool-btn btn-queen active" onclick="setTool('queen')">Colocar Reina</button>
         <button id="tool-normal_nest" class="tool-btn" onclick="setTool('normal_nest')" disabled>Colocar Colonia (0/1)</button>
+    </div>
+
+    <!-- Barra de herramientas PvP (oleadas) -->
+    <div class="toolbar" id="toolbar-pvp" style="display:none;">
+        <label class="pvp-label" for="pvp-wave-count">Obreras a enviar</label>
+        <input id="pvp-wave-count" type="number" min="1" max="30" value="8">
+        <button id="btn-pvp-wave" class="tool-btn btn-predator">Enviar oleada</button>
+        <span id="pvp-hint">Fundad vuestra colonia para empezar</span>
     </div>
 
     <!-- Habilidades de la especie (Modo Normal) -->
@@ -785,6 +821,12 @@ const btnJoinRoom = document.getElementById('btn-join-room');
 const btnStartRoom = document.getElementById('btn-start-room');
 const btnLeaveRoom = document.getElementById('btn-leave-room');
 const btnRoomsBack = document.getElementById('btn-rooms-back');
+const roomsSpeciesEl = document.getElementById('rooms-species');
+const pvpWaveCountEl = document.getElementById('pvp-wave-count');
+const btnPvpWave = document.getElementById('btn-pvp-wave');
+const pvpHintEl = document.getElementById('pvp-hint');
+const pvpFoeEl = document.getElementById('pvp-foe');
+const pvpReadyEl = document.getElementById('pvp-ready');
 
 let viewW = 800;
 let viewH = 600;
@@ -802,6 +844,8 @@ let worldSeed = 1;
 let gameTime = 0;
 let endState = null;
 let normal = null;
+let pvp = null;
+let pvpSpeciesChoice = 'camponotus';
 
 let queen = null;
 let queenTarget = null;
@@ -2013,6 +2057,7 @@ class Ant extends Entity {
         this.vetRounds = 0;
         this.poison = 0;
         this.poisonDmg = 0.05;
+        this.wave = false;
     }
 
     tryEscapeJump() {
@@ -2059,6 +2104,62 @@ class Ant extends Entity {
         }
         this.escapeCD = 60;
         return false;
+    }
+
+    pvpUpdate(currentSpeed) {
+        if (!pvp || !this.nest || !this.nest.owner) return false;
+        const side = this.nest.owner;
+        const foe = pvp.colonies[side === 'A' ? 'B' : 'A'];
+        if (!foe) return false;
+
+        // Hormigas rivales: se pelean entre ellas
+        let target = null;
+        let td = this.wave ? 170 : 110;
+        for (const a of ants) {
+            if (a === this || a.hp <= 0 || !a.nest || a.nest.owner === side) continue;
+            const d = Math.hypot(a.x - this.x, (a.y - this.y) / TILT);
+            if (d < td) { td = d; target = a; }
+        }
+        if (target) {
+            const ang = Math.atan2((target.y - this.y) / TILT, target.x - this.x);
+            this.angle = this.lerpAngle(this.angle, ang, 0.25);
+            if (td < 15 && this.biteCD <= 0) {
+                this.biteCD = 45;
+                this.biteFlash = 14;
+                target.hp -= this.damage * PVP_ANT_DMG * (this.wave ? 1.15 : 1);
+                spawnHitParticles(target.x, target.y, '#ffccd5', 2);
+            }
+            moveEntitySmooth(this, currentSpeed * 1.08, 4);
+            return true;
+        }
+
+        if (!this.wave) return false;
+
+        // Oleada: reina o nido rival
+        let goal = null;
+        let isQueen = false;
+        if (foe.queen && foe.queen.hp > 0) { goal = foe.queen; isQueen = true; }
+        if (foe.nest && foe.nest.hp > 0) {
+            if (!goal) goal = foe.nest;
+            else {
+                const dq = Math.hypot(foe.queen.x - this.x, (foe.queen.y - this.y) / TILT);
+                const dn = Math.hypot(foe.nest.x - this.x, (foe.nest.y - this.y) / TILT);
+                if (dn < dq) { goal = foe.nest; isQueen = false; }
+            }
+        }
+        if (!goal) return true;
+
+        const gd = Math.hypot(goal.x - this.x, (goal.y - this.y) / TILT);
+        const ang = Math.atan2((goal.y - this.y) / TILT, goal.x - this.x);
+        this.angle = this.lerpAngle(this.angle, ang, 0.2);
+        if (gd < (goal.radius || 18) + 10 && this.nestAtkCD <= 0) {
+            this.nestAtkCD = 14;
+            this.biteFlash = 14;
+            goal.hp -= this.damage * (isQueen ? PVP_QUEEN_DMG : PVP_NEST_DMG);
+            spawnHitParticles(goal.x, goal.y, isQueen ? '#ffd166' : '#dda15e', 3);
+        }
+        moveEntitySmooth(this, currentSpeed, 4);
+        return true;
     }
 
     update() {
@@ -2110,6 +2211,8 @@ class Ant extends Entity {
         }
 
         const sp = SP(this.species);
+
+        if (pvp && this.nest && this.nest.owner && this.pvpUpdate(currentSpeed)) return;
 
         if (!this.hasFood) {
             let bite = null;
@@ -2200,6 +2303,21 @@ class Ant extends Entity {
                 this.carriesLeaf = false;
                 if (this.targetFood && this.targetFood.claimedBy === this) this.targetFood.claimedBy = null;
                 this.targetFood = null;
+                if (pvp && this.nest.owner && pvp.colonies[this.nest.owner]) {
+                    const col = pvp.colonies[this.nest.owner];
+                    col.food += 1;
+                    growNest(this.nest, 2);
+                    this.hp = Math.min(this.maxHp, this.hp + 4);
+                    if (col.side === pvp.side) {
+                        if (col.food >= EGG_COST && pvpOwnEggs(this.nest) < PVP_EGG_MAX && layEgg(this.nest)) {
+                            spawnHitParticles(this.nest.x, this.nest.y, '#ffd166', 10);
+                        }
+                        updateUI();
+                    }
+                    this.angle += Math.PI;
+                    moveEntitySmooth(this, currentSpeed, 4);
+                    return;
+                }
                 if (this.nest.style === 'fungus') {
                     this.nest.hunger = Math.min(100, (this.nest.hunger ?? 100) + 9);
                     this.nest.hp = Math.min(this.nest.maxHp, this.nest.hp + 3);
@@ -2452,7 +2570,7 @@ class Ant extends Entity {
             ctx.stroke();
         }
 
-        if (this.isRaider) {
+        if (this.isRaider || this.wave) {
             ctx.strokeStyle = 'rgba(255, 183, 3, 0.75)';
             ctx.lineWidth = 1;
             ctx.beginPath();
@@ -3496,8 +3614,15 @@ function growNest(nest, amount) {
 }
 
 function layEgg(nest) {
-    if (!nest || storedFood < EGG_COST || eggs.length >= 6) return false;
-    storedFood -= EGG_COST;
+    if (!nest) return false;
+    const col = pvp && nest.owner ? pvp.colonies[nest.owner] : null;
+    if (col) {
+        if (col.food < EGG_COST || pvpOwnEggs(nest) >= PVP_EGG_MAX) return false;
+        col.food -= EGG_COST;
+    } else {
+        if (storedFood < EGG_COST || eggs.length >= 6) return false;
+        storedFood -= EGG_COST;
+    }
     const a = Math.random() * Math.PI * 2;
     const r = Math.random() * 12;
     eggs.push({
@@ -4212,20 +4337,322 @@ function resetWorld() {
 }
 
 function configureModeUI() {
-    modeBadge.textContent = gameMode === 'normal' ? `[${S().name}]` : '[Modo Sandbox]';
+    const isPvp = !!pvp;
+    modeBadge.textContent = isPvp
+        ? `[PvP · ${pvp.side === 'A' ? 'Anfitrion' : 'Invitado'}]`
+        : (gameMode === 'normal' ? `[${S().name}]` : '[Modo Sandbox]');
     if (speciesLabelEl) speciesLabelEl.textContent = speciesKey === 'generic' ? '—' : S().name;
-    if (abilityBarEl) abilityBarEl.classList.toggle('show', gameMode === 'normal');
+    if (abilityBarEl) abilityBarEl.classList.toggle('show', gameMode === 'normal' && !isPvp);
 
-    document.getElementById('toolbar-sandbox').style.display = gameMode === 'normal' ? 'none' : 'flex';
-    document.getElementById('toolbar-normal').style.display = gameMode === 'normal' ? 'flex' : 'none';
+    document.getElementById('toolbar-sandbox').style.display = (gameMode === 'normal' || isPvp) ? 'none' : 'flex';
+    document.getElementById('toolbar-normal').style.display = gameMode === 'normal' && !isPvp ? 'flex' : 'none';
+    document.getElementById('toolbar-pvp').style.display = isPvp ? 'flex' : 'none';
+    if (btnBehavior) btnBehavior.style.display = isPvp ? 'none' : '';
+    const btnClear = document.getElementById('btn-clear');
+    if (btnClear) btnClear.style.display = isPvp ? 'none' : 'inline-block';
+    const btnRestart = document.getElementById('btn-end-restart');
+    if (btnRestart) btnRestart.style.display = isPvp ? 'none' : 'inline-block';
 
     document.querySelectorAll('.sandbox-only').forEach(el => {
-        el.style.display = gameMode === 'normal' ? 'none' : (el.tagName === 'BUTTON' ? 'inline-block' : 'block');
+        el.style.display = (gameMode === 'normal' || isPvp) ? 'none' : (el.tagName === 'BUTTON' ? 'inline-block' : 'block');
     });
     document.querySelectorAll('.normal-only').forEach(el => {
-        el.style.display = gameMode === 'normal' ? (el.tagName === 'BUTTON' ? 'inline-block' : 'block') : 'none';
+        el.style.display = (gameMode === 'normal' || isPvp) ? (el.tagName === 'BUTTON' ? 'inline-block' : 'block') : 'none';
+    });
+    document.querySelectorAll('.pvp-only').forEach(el => {
+        el.style.display = isPvp ? (el.tagName === 'BUTTON' ? 'inline-block' : 'block') : 'none';
     });
 }
+
+/* ============================================================
+   PvP por oleadas: dos colonias, reinas y nidos rivales
+   ============================================================ */
+const PVP_TEAM_COLORS = { A: '#4cc9f0', B: '#ff758f' };
+const PVP_EGG_MAX = 4;
+const PVP_START_FOOD = 30;
+const PVP_PLACE_MARGIN = 130;
+const PVP_ANT_DMG = 3.5;
+const PVP_QUEEN_DMG = 7;
+const PVP_NEST_DMG = 9;
+
+function createPvpState(side) {
+    return {
+        active: true,
+        side,
+        phase: 'place',
+        over: null,
+        colonies: {
+            A: { side: 'A', species: 'camponotus', nest: null, queen: null, food: 0, eggTimer: 8, wavesSent: 0 },
+            B: { side: 'B', species: 'camponotus', nest: null, queen: null, food: 0, eggTimer: 8, wavesSent: 0 }
+        },
+        foodTimer: 14
+    };
+}
+
+function pvpLocal() { return pvp ? pvp.colonies[pvp.side] : null; }
+function pvpEnemy() { return pvp ? pvp.colonies[pvp.side === 'A' ? 'B' : 'A'] : null; }
+function pvpOwnEggs(nest) { return nest ? eggs.filter(e => e.nest === nest).length : 0; }
+
+function pvpCanPlace(side, x, y) {
+    if (!pvp || pvp.phase !== 'place') return false;
+    if (x < PVP_PLACE_MARGIN || x > WORLD_W - PVP_PLACE_MARGIN) return false;
+    if (y < PVP_PLACE_MARGIN || y > WORLD_H - PVP_PLACE_MARGIN) return false;
+    if (side === 'A' ? x > WORLD_W * 0.5 - 40 : x < WORLD_W * 0.5 + 40) return false;
+    for (const n of antNests) {
+        if (Math.hypot(n.x - x, (n.y - y) / TILT) < n.radius + 90) return false;
+    }
+    return !checkObstacleCollision(x, y, 26);
+}
+
+function pvpFeedback(side, text, bad) {
+    if (!pvp) return;
+    if (side === pvp.side) setStatus(text, bad);
+    else netSendNotice(text, bad);
+}
+
+function pvpTryPlace(side, x, y, chosenSpecies) {
+    if (!pvp || pvp.phase !== 'place' || pvp.over) return;
+    const col = pvp.colonies[side];
+    if (!col || col.nest) return;
+    const key = SPECIES[chosenSpecies] ? chosenSpecies : col.species;
+    if (!pvpCanPlace(side, x, y)) {
+        pvpFeedback(side, 'Zona no valida: elige un claro de tu mitad del mapa', true);
+        return;
+    }
+    const sp = SP(key);
+    col.species = key;
+    const nest = placeNest(x, y, 'ant', 4, { style: 'classic', species: key, owner: side });
+    nest.maxHp = 900;
+    nest.hp = 900;
+    const q = new QueenAnt(x, y - 34 * TILT, key);
+    q.maxHp = Math.round(sp.queenHp * 1.5);
+    q.hp = q.maxHp;
+    col.nest = nest;
+    col.queen = q;
+    col.food = PVP_START_FOOD;
+    col.eggTimer = 8;
+    col.wavesSent = 0;
+    if (side === pvp.side) {
+        queen = q;
+        camera.x = x;
+        camera.y = y;
+        camera.follow = false;
+        clampCamera();
+    }
+    spawnHitParticles(x, y, PVP_TEAM_COLORS[side], 18);
+    if (pvp.colonies.A.nest && pvp.colonies.B.nest) {
+        pvpBeginBattle();
+    } else {
+        pvpFeedback(side, 'Colonia y reina fundadas. Esperando a la colonia rival...', false);
+    }
+    updateUI();
+}
+
+function pvpBeginBattle() {
+    if (!pvp || pvp.phase !== 'place') return;
+    pvp.phase = 'battle';
+    pvp.foodTimer = 14;
+    for (let i = 0; i < 12; i++) {
+        const x = 260 + Math.random() * (WORLD_W - 520);
+        const y = 260 + Math.random() * (WORLD_H - 520);
+        if (!checkObstacleCollision(x, y, 20)) spawnFoodCluster(x, y, 6);
+    }
+    setStatus('Batalla iniciada: recolecta comida, cría obreras y envía oleadas al nido rival');
+    if (netRole === 'host') netSendSnapshot();
+    updateUI();
+}
+
+function pvpSendWave(side, count) {
+    if (!pvp || pvp.phase !== 'battle' || pvp.over) return;
+    const col = pvp.colonies[side];
+    const foe = pvp.colonies[side === 'A' ? 'B' : 'A'];
+    if (!col || !col.nest || !foe || !foe.nest) return;
+    const ready = ants.filter(a => a.nest === col.nest && !a.wave && a.hp > 0);
+    if (!ready.length) {
+        pvpFeedback(side, 'No tienes obreras disponibles: espera a que nazcan o reúne comida', true);
+        return;
+    }
+    const n = Math.max(1, Math.min(Math.floor(count) || 1, ready.length, 30));
+    ready.sort((a, b) => Math.hypot(a.x - foe.nest.x, (a.y - foe.nest.y) / TILT) - Math.hypot(b.x - foe.nest.x, (b.y - foe.nest.y) / TILT));
+    for (let i = 0; i < n; i++) {
+        const a = ready[i];
+        if (a.hasFood) foods.push({ x: a.x, y: a.y, amount: 1, age: 0 });
+        a.wave = true;
+        a.hasFood = false;
+        a.carriesLeaf = false;
+        if (a.targetFood && a.targetFood.claimedBy === a) a.targetFood.claimedBy = null;
+        a.targetFood = null;
+    }
+    col.wavesSent++;
+    spawnHitParticles(col.nest.x, col.nest.y, PVP_TEAM_COLORS[side], 14);
+    pvpFeedback(side, `Oleada ${col.wavesSent}: ${n} obreras marchan contra la colonia rival`, false);
+    if (side === pvp.side) updateUI();
+    if (netRole === 'host') netSendSnapshot();
+}
+
+function pvpQueenStep(col) {
+    const q = col.queen;
+    if (!q || q.hp <= 0) return;
+    if (q.atkCD > 0) q.atkCD = Math.max(0, q.atkCD - STEP);
+    let target = null;
+    let td = 46;
+    for (const a of ants) {
+        if (!a.nest || a.nest.owner === col.side || a.hp <= 0) continue;
+        const d = Math.hypot(a.x - q.x, (a.y - q.y) / TILT);
+        if (d < td) { td = d; target = a; }
+    }
+    if (target) {
+        q.angle = q.lerpAngle(q.angle, Math.atan2((target.y - q.y) / TILT, target.x - q.x), 0.3);
+        if (td < 32 && q.atkCD <= 0) {
+            q.atkCD = 1.1;
+            target.hp -= q.damage;
+            spawnHitParticles(target.x, target.y, '#ffd166', 5);
+        }
+    } else {
+        let threatened = false;
+        for (const a of ants) {
+            if (!a.nest || a.nest.owner === col.side) continue;
+            if (Math.hypot(a.x - q.x, (a.y - q.y) / TILT) < 260) { threatened = true; break; }
+        }
+        if (!threatened) q.hp = Math.min(q.maxHp, q.hp + STEP * 1.2);
+    }
+}
+
+function pvpStep() {
+    if (!pvp || pvp.over) return;
+    for (const col of [pvp.colonies.A, pvp.colonies.B]) {
+        if (!col.nest || col.nest.hp <= 0) continue;
+        if (pvp.phase === 'battle' && !pvp.over) {
+            col.food = Math.min(200, (col.food || 0) + STEP * 0.35);
+        }
+        col.eggTimer -= STEP;
+        if (col.eggTimer <= 0) {
+            if (col.food >= EGG_COST && pvpOwnEggs(col.nest) < PVP_EGG_MAX && layEgg(col.nest)) {
+                col.eggTimer = 16;
+                if (col.side === pvp.side) {
+                    spawnHitParticles(col.nest.x, col.nest.y, '#ffd166', 10);
+                    setStatus('La reina puso un huevo de obrera');
+                }
+            } else {
+                col.eggTimer = 2;
+            }
+        }
+        pvpQueenStep(col);
+    }
+    if (pvp.phase === 'battle') {
+        pvp.foodTimer -= STEP;
+        if (pvp.foodTimer <= 0) {
+            pvp.foodTimer = 14;
+            const x = 240 + Math.random() * (WORLD_W - 480);
+            const y = 240 + Math.random() * (WORLD_H - 480);
+            if (!checkObstacleCollision(x, y, 18)) spawnFoodCluster(x, y, 6);
+        }
+    }
+}
+
+function pvpRebindColonies() {
+    if (!pvp) return;
+    for (const side of ['A', 'B']) {
+        pvp.colonies[side].nest = antNests.find(n => n.owner === side) || null;
+    }
+    queen = pvp.colonies[pvp.side] ? pvp.colonies[pvp.side].queen : null;
+}
+
+function pvpStateSnapshot() {
+    if (!pvp) return null;
+    return {
+        ph: pvp.phase,
+        ov: pvp.over,
+        sp: [pvp.colonies.A.species, pvp.colonies.B.species],
+        fd: [Math.floor(pvp.colonies.A.food || 0), Math.floor(pvp.colonies.B.food || 0)],
+        wl: [pvp.colonies.A.wavesSent || 0, pvp.colonies.B.wavesSent || 0]
+    };
+}
+
+function pvpApplyState(pv) {
+    if (!pvp || !pv) return;
+    pvp.phase = pv.ph || pvp.phase;
+    pvp.over = pv.ov || null;
+    if (Array.isArray(pv.sp)) {
+        if (SPECIES[pv.sp[0]]) pvp.colonies.A.species = pv.sp[0];
+        if (SPECIES[pv.sp[1]]) pvp.colonies.B.species = pv.sp[1];
+    }
+    if (Array.isArray(pv.fd)) {
+        pvp.colonies.A.food = pv.fd[0] || 0;
+        pvp.colonies.B.food = pv.fd[1] || 0;
+    }
+    if (Array.isArray(pv.wl)) {
+        pvp.colonies.A.wavesSent = pv.wl[0] || 0;
+        pvp.colonies.B.wavesSent = pv.wl[1] || 0;
+    }
+}
+
+function showPvpResult() {
+    if (!pvp || !pvp.over) return;
+    if (endScreen.classList.contains('show')) return;
+    paused = true;
+    const won = pvp.over === pvp.side;
+    const draw = pvp.over === 'draw';
+    const mine = pvpLocal();
+    const foe = pvpEnemy();
+    document.getElementById('end-title').textContent = draw ? 'Empate' : won ? '¡Victoria!' : 'Derrota';
+    document.getElementById('end-text').innerHTML =
+        `${draw ? 'Ambas colonias cayeron a la vez.' : won ? 'Has destruido la colonia rival.' : 'Tu reina y tu nido han caído.'}<br><br>` +
+        `Tu especie: <strong>${SP(mine.species).name}</strong> · Oleadas enviadas: <strong>${mine.wavesSent}</strong><br>` +
+        `Rival: <strong>${SP(foe.species).name}</strong> · Oleadas enviadas: <strong>${foe.wavesSent}</strong>` +
+        `<br>Tiempo: <strong>${Math.floor(gameTime)}s</strong>`;
+    endScreen.classList.add('show');
+}
+
+function updatePvpUI() {
+    const mine = pvpLocal();
+    const foe = pvpEnemy();
+    if (!mine || !foe) return;
+    foodEl.textContent = Math.floor(mine.food || 0);
+    const ownAnts = mine.nest ? ants.filter(a => a.nest === mine.nest).length : 0;
+    const ready = mine.nest ? ants.filter(a => a.nest === mine.nest && !a.wave).length : 0;
+    antEl.textContent = ownAnts + (mine.queen && mine.queen.hp > 0 ? 1 : 0);
+    termiteEl.textContent = 0;
+    enemyEl.textContent = 0;
+    eggEl.textContent = pvpOwnEggs(mine.nest);
+    nestEl.textContent = (mine.nest ? 1 : 0) + (foe.nest ? 1 : 0);
+    progressEl.textContent = `${Math.min(EGG_COST, Math.floor(mine.food || 0))}/${EGG_COST}`;
+    btnSpeed.textContent = 'Velocidad: 1x';
+    if (mine.queen) {
+        queenHpEl.textContent = `${Math.max(0, Math.ceil(mine.queen.hp))}/${mine.queen.maxHp}`;
+        queenHpEl.style.color = mine.queen.hp < mine.queen.maxHp * 0.35 ? '#ff758f' : '#ffd166';
+    } else {
+        queenHpEl.textContent = '—';
+    }
+    if (mine.nest) {
+        nestHpEl.textContent = `${Math.max(0, Math.ceil(mine.nest.hp))}/${mine.nest.maxHp}`;
+        nestHpEl.style.color = mine.nest.hp < mine.nest.maxHp * 0.35 ? '#ff758f' : '#b5e48c';
+    } else {
+        nestHpEl.textContent = '—';
+    }
+    if (pvp.over) {
+        waveEl.textContent = 'Fin';
+    } else if (pvp.phase === 'place') {
+        waveEl.textContent = mine.nest ? 'Esperando rival' : 'Coloca tu colonia';
+    } else {
+        const marching = mine.nest ? ants.filter(a => a.nest === mine.nest && a.wave).length : 0;
+        waveEl.textContent = `Oleadas: ${mine.wavesSent} · En camino: ${marching}`;
+    }
+    if (speciesLabelEl) speciesLabelEl.textContent = SPECIES[mine.species] ? SP(mine.species).name : '—';
+    if (pvpFoeEl) {
+        const qh = foe.queen ? `${Math.max(0, Math.ceil(foe.queen.hp))}/${foe.queen.maxHp}` : '—';
+        const nh = foe.nest ? `${Math.max(0, Math.ceil(foe.nest.hp))}/${foe.nest.maxHp}` : '—';
+        pvpFoeEl.textContent = `reina ${qh} · nido ${nh}`;
+    }
+    if (pvpReadyEl) pvpReadyEl.textContent = String(ready);
+    if (pvpHintEl) {
+        pvpHintEl.textContent = pvp.phase === 'place'
+            ? (mine.nest ? 'Esperando a que el rival funde su colonia' : 'Haz clic en tu mitad del mapa para fundar colonia y reina')
+            : (pvp.over ? 'Partida terminada' : `Obreras listas: ${ready} · la oleada ataca reina y nido rival`);
+    }
+    if (btnPvpWave) btnPvpWave.disabled = !(pvp.phase === 'battle' && !pvp.over && ready > 0);
+}
+/* ---------------- Fin PvP ---------------- */
 
 function init() {
     resetWorld();
@@ -4241,7 +4668,16 @@ function init() {
     paused = false;
     hasActiveGame = true;
 
-    if (gameMode === 'normal') {
+    if (gameMode === 'pvp' && pvp) {
+        storedFood = 0;
+        setTool('pvp_place');
+        camera.x = pvp.side === 'A' ? WORLD_W * 0.28 : WORLD_W * 0.72;
+        camera.y = WORLD_H / 2;
+        camera.zoom = 1;
+        camera.follow = false;
+        clampCamera();
+        setStatus('PvP por oleadas: haz clic en tu mitad del mapa para fundar colonia y reina');
+    } else if (gameMode === 'normal') {
         storedFood = 0;
         normal = { founded: false, wave: 0, phase: 'prepare', timer: 55, spawned: 0, layTimer: 45, spawnTimer: 10, endless: false, cathedra: false, bestWave: 0 };
         setTool('queen');
@@ -4254,13 +4690,27 @@ function init() {
 
     refreshNormalTools();
     endScreen.classList.remove('show');
-    if (netRole === 'host') modeBadge.textContent = '[Salas · Anfitrion]';
+    if (pvp) modeBadge.textContent = `[PvP · ${pvp.side === 'A' ? 'Anfitrion' : 'Invitado'}]`;
+    else if (netRole === 'host') modeBadge.textContent = '[Salas · Anfitrion]';
     else if (netRole === 'guest') modeBadge.textContent = '[Salas · Invitado]';
     updateUI();
 }
 
 function startGame(mode) {
     gameMode = mode;
+    if (mode === 'pvp') {
+        speciesKey = pvp ? pvp.colonies[pvp.side].species : speciesKey;
+        configureModeUI();
+        startScreen.classList.remove('show');
+        if (speciesScreen) speciesScreen.classList.remove('show');
+        if (roomsScreen) {
+            if (roomsScreen.classList.contains('show')) closeRoomsScreen();
+            roomsScreen.classList.remove('show');
+        }
+        init();
+        return;
+    }
+    pvp = null;
     if (mode === 'sandbox') speciesKey = 'generic';
     else if (!SPECIES[speciesKey] || speciesKey === 'generic') speciesKey = 'odontomachus';
     configureModeUI();
@@ -4694,6 +5144,7 @@ function placeNest(x, y, type, initialAnts = 0, opts = {}) {
             foodIn: 0, isStatic: true,
             style, tree: opts.tree || null,
             species: opts.species || speciesKey,
+            owner: opts.owner || '',
             hunger: style === 'fungus' ? 100 : null
         };
         antNests.push(nest);
@@ -5126,6 +5577,21 @@ function updateNormalStep() {
 }
 
 function checkEndConditions() {
+    if (pvp) {
+        if (pvp.over || pvp.phase !== 'battle') return;
+        const A = pvp.colonies.A;
+        const B = pvp.colonies.B;
+        if (!A.nest || !B.nest) return;
+        const deadA = A.nest.hp <= 0 || !A.queen || A.queen.hp <= 0;
+        const deadB = B.nest.hp <= 0 || !B.queen || B.queen.hp <= 0;
+        if (!deadA && !deadB) return;
+        pvp.over = deadA && deadB ? 'draw' : deadA ? 'B' : 'A';
+        pvp.phase = 'over';
+        showPvpResult();
+        updateUI();
+        if (netRole === 'host') netSendSnapshot();
+        return;
+    }
     if (gameMode !== 'normal' || endState) return;
     if (queen && queen.hp <= 0) {
         endGame('defeat', 'Tu reina cayó en batalla.');
@@ -5387,6 +5853,7 @@ function applySave(d) {
    UI
    ============================================================ */
 function updateUI() {
+    if (pvp) { updatePvpUI(); return; }
     foodEl.textContent = Math.floor(storedFood);
     antEl.textContent = ants.length + (queen ? 1 : 0);
     termiteEl.textContent = termites.length;
@@ -5970,6 +6437,38 @@ function drawNest(n) {
     drawNestHpBar(n);
 }
 
+function drawPvpMarkers() {
+    if (!pvp) return;
+    for (const side of ['A', 'B']) {
+        const col = pvp.colonies[side];
+        if (!col || !col.nest) continue;
+        const color = PVP_TEAM_COLORS[side];
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.4;
+        ctx.setLineDash([8, 6]);
+        ctx.beginPath();
+        ctx.ellipse(col.nest.x, col.nest.y, col.nest.radius + 24, (col.nest.radius + 24) * TILT, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.font = 'bold 12px Segoe UI';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = color;
+        const tag = side === pvp.side ? 'TÚ' : 'RIVAL';
+        ctx.fillText(`${tag} · ${SP(col.species).name.split(' ')[0]}`, col.nest.x, col.nest.y - col.nest.radius - 34);
+        if (col.queen && col.queen.hp > 0) {
+            const q = col.queen;
+            const w = 46;
+            const hp = Math.max(0, Math.min(1, q.hp / q.maxHp));
+            ctx.fillStyle = 'rgba(0,0,0,0.65)';
+            ctx.fillRect(q.x - w / 2, q.y - 32, w, 4);
+            ctx.fillStyle = hp < 0.35 ? '#ff758f' : color;
+            ctx.fillRect(q.x - w / 2, q.y - 32, w * hp, 4);
+        }
+        ctx.restore();
+    }
+}
+
 function render() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = '#0b1109';
@@ -6024,6 +6523,7 @@ function render() {
     for (const t of galTraps) drawGalleryTrap(t);
 
     for (const n of antNests) drawNest(n);
+    drawPvpMarkers();
 
     for (const egg of eggs) {
         ctx.fillStyle = '#fefae0';
@@ -6136,7 +6636,10 @@ function render() {
     }
 
     const allEntities = [...ants, ...termites, ...beetles, ...enemies];
-    if (queen) allEntities.push(queen);
+    if (pvp) {
+        if (pvp.colonies.A.queen) allEntities.push(pvp.colonies.A.queen);
+        if (pvp.colonies.B.queen) allEntities.push(pvp.colonies.B.queen);
+    } else if (queen) allEntities.push(queen);
     allEntities.sort((a, b) => a.y - b.y);
     for (const ent of allEntities) ent.draw();
 
@@ -6183,10 +6686,13 @@ function render() {
 
     const showCursorPreview = gameMode === 'sandbox'
         || (currentTool === 'queen' && !queen)
-        || (currentTool === 'normal_nest' && antNests.length === 0);
+        || (currentTool === 'normal_nest' && antNests.length === 0)
+        || (pvp && pvp.phase === 'place' && pvpLocal() && !pvpLocal().nest);
     if (showCursorPreview && !mouse.overMinimap) {
-        const valid = canPlaceAt(mouse.x, mouse.y, currentTool);
-        const previewRadius = (currentTool === 'nest' || currentTool === 'termite_nest' || currentTool === 'normal_nest' || currentTool === 'sandbox_nest') ? 28
+        const placingPvp = !!(pvp && pvp.phase === 'place' && pvpLocal() && !pvpLocal().nest);
+        const valid = placingPvp ? pvpCanPlace(pvp.side, mouse.x, mouse.y) : canPlaceAt(mouse.x, mouse.y, currentTool);
+        const previewRadius = placingPvp ? 30
+            : (currentTool === 'nest' || currentTool === 'termite_nest' || currentTool === 'normal_nest' || currentTool === 'sandbox_nest') ? 28
             : (currentTool === 'mantis') ? 22
             : (currentTool === 'antlion') ? 24
             : (currentTool === 'scorpion') ? 20
@@ -6249,6 +6755,20 @@ function tryQueenAttack(wx, wy) {
 }
 
 function handleLeftClick(wx, wy) {
+    if (pvp) {
+        if (pvp.phase === 'place' && !pvp.over) {
+            if (netRole === 'guest') {
+                if (!pvpCanPlace('B', wx, wy)) {
+                    setStatus('Zona no valida: elige un claro de tu mitad del mapa', true);
+                    return;
+                }
+                netSendCmd({ k: 'place', x: wx, y: wy, species: pvpSpeciesChoice });
+            } else {
+                pvpTryPlace(pvp.side, wx, wy, pvpSpeciesChoice);
+            }
+        }
+        return;
+    }
     if (netRole === 'guest') {
         if (roomStarted) netSendCmd({ k: 'tool', tool: currentTool, x: wx, y: wy, species: sandboxSpecies });
         return;
@@ -6552,7 +7072,8 @@ window.addEventListener('keyup', e => {
 function step() {
     gameTime += STEP;
 
-    if (queen) queen.update();
+    if (pvp) pvpStep();
+    else if (queen) queen.update();
 
     if (raidBoost > 0) raidBoost = Math.max(0, raidBoost - STEP);
     if (defenseCD > 0) defenseCD = Math.max(0, defenseCD - STEP);
@@ -6856,7 +7377,7 @@ function loop(ts) {
                 netInitWait += dt;
                 if (netInitWait > 2) {
                     netInitWait = 0;
-                    netSendCmd({ k: 'init' });
+                    netSendCmd({ k: 'init', species: pvpSpeciesChoice });
                 }
             }
         }
@@ -7008,6 +7529,7 @@ function handleRoomMessage(msg) {
         if (netRole !== 'guest' || !msg.data) return;
         if (msg.data.k === 'init') netApplyInit(msg.data);
         else if (msg.data.k === 'snap' && netWorldReady) netApplySnapshot(msg.data);
+        else if (msg.data.k === 'notice') setStatus(msg.data.text || '', !!msg.data.bad);
         return;
     }
     if (msg.type === 'cmd') {
@@ -7124,6 +7646,7 @@ btnStartRoom.addEventListener('click', () => {
         setRoomsStatus('Falta un segundo jugador en la sala.', true);
         return;
     }
+    if (roomsSpeciesEl && SPECIES[roomsSpeciesEl.value]) pvpSpeciesChoice = roomsSpeciesEl.value;
     roomsSend({ type: 'start' });
 });
 
@@ -7175,7 +7698,26 @@ function netSendCmd(data) {
 
 function netSendInit() {
     if (!roomSocket || roomSocket.readyState !== 1) return;
-    roomSocket.send(JSON.stringify({ type: 'state', data: { k: 'init', seed: worldSeed, gameSpeed } }));
+    roomSocket.send(JSON.stringify({
+        type: 'state',
+        data: {
+            k: 'init',
+            seed: worldSeed,
+            gameSpeed,
+            pvp: !!pvp,
+            species: pvp ? pvp.colonies.A.species : speciesKey
+        }
+    }));
+}
+
+function netSendNotice(text, bad) {
+    if (netRole !== 'host' || !roomSocket || roomSocket.readyState !== 1) return;
+    roomSocket.send(JSON.stringify({ type: 'state', data: { k: 'notice', text, bad: !!bad } }));
+}
+
+function netQueenTuple(q) {
+    if (!q) return null;
+    return [netRound(q.x), netRound(q.y), +q.angle.toFixed(2), netRound(q.hp), Math.round(q.maxHp), q.species || 'generic'];
 }
 
 function netRound(v) {
@@ -7199,7 +7741,7 @@ function netBuildSnapshot() {
         n: antNests.map(n => [
             netRound(n.x), netRound(n.y), netRound(n.radius), Math.round(n.hp), Math.round(n.maxHp),
             Math.round(n.foodIn || 0), n.style || 'classic', n.species || '',
-            n.hunger == null ? -1 : Math.round(n.hunger)
+            n.hunger == null ? -1 : Math.round(n.hunger), n.owner || ''
         ]),
         tn: termiteNests.map(n => [
             netRound(n.x), netRound(n.y), netRound(n.radius), Math.round(n.hp), Math.round(n.maxHp),
@@ -7210,7 +7752,7 @@ function netBuildSnapshot() {
             netRound(a.x), netRound(a.y), +a.angle.toFixed(2), netRound(a.hp), Math.round(a.maxHp),
             a.hasFood ? 1 : 0, antNests.indexOf(a.nest), a.isRaider ? 1 : 0,
             a.tempLife == null ? -1 : Math.round(a.tempLife), a.carriesLeaf ? 1 : 0,
-            a.trapped > 0 ? 1 : 0
+            a.trapped > 0 ? 1 : 0, a.wave ? 1 : 0
         ]),
         te: termites.map(t => [
             netRound(t.x), netRound(t.y), +t.angle.toFixed(2), netRound(t.hp), Math.round(t.maxHp),
@@ -7230,7 +7772,12 @@ function netBuildSnapshot() {
         fo: foods.map(f => [netRound(f.x), netRound(f.y), netRound(f.amount), netRound(f.age || 0)]),
         wb: webs.map(w => [netRound(w.x), netRound(w.y)]),
         tr: traps.map(t => [netRound(t.x), netRound(t.y), netRound(t.r), Math.round(t.life), t.triggered ? 1 : 0]),
-        gt: galTraps.map(t => [netRound(t.x), netRound(t.y), t.r, Math.round(t.life), t.rearm || 0])
+        gt: galTraps.map(t => [netRound(t.x), netRound(t.y), t.r, Math.round(t.life), t.rearm || 0]),
+        qs: pvp ? {
+            A: netQueenTuple(pvp.colonies.A.queen),
+            B: netQueenTuple(pvp.colonies.B.queen)
+        } : null,
+        pv: pvpStateSnapshot()
     };
 }
 
@@ -7242,8 +7789,18 @@ function netSendSnapshot() {
 function netApplyCommand(d) {
     if (netRole !== 'host' || !roomStarted) return;
     if (d.k === 'init') {
+        if (pvp && typeof d.species === 'string' && SPECIES[d.species]) pvp.colonies.B.species = d.species;
         netSendInit();
         netSendSnapshot();
+        return;
+    }
+    if (pvp) {
+        if (d.k === 'place') {
+            if (typeof d.x !== 'number' || typeof d.y !== 'number' || !isFinite(d.x) || !isFinite(d.y)) return;
+            pvpTryPlace('B', clamp(d.x, 0, WORLD_W), clamp(d.y, 0, WORLD_H), d.species);
+        } else if (d.k === 'wave') {
+            pvpSendWave('B', d.n);
+        }
         return;
     }
     if (d.k === 'behavior') {
@@ -7285,13 +7842,17 @@ function beginNetworkMatch() {
     roomStarted = true;
     netSnapTimer = 0;
     netInitWait = 0;
+    if (roomsSpeciesEl && SPECIES[roomsSpeciesEl.value]) pvpSpeciesChoice = roomsSpeciesEl.value;
+    accumulator = 0;
 
     if (roomIsHost) {
         netRole = 'host';
         netWorldReady = true;
-        startGame('sandbox');
-        modeBadge.textContent = '[Salas · Anfitrion]';
-        setStatus('Partida en red iniciada. Eres el anfitrion.');
+        pvp = createPvpState('A');
+        pvp.colonies.A.species = pvpSpeciesChoice;
+        startGame('pvp');
+        modeBadge.textContent = '[PvP · Anfitrion]';
+        setStatus('Partida PvP iniciada. Funda tu colonia en tu mitad del mapa.');
         netSendInit();
         netSendSnapshot();
         return;
@@ -7299,18 +7860,21 @@ function beginNetworkMatch() {
 
     netRole = 'guest';
     netWorldReady = false;
-    gameMode = 'sandbox';
-    speciesKey = 'generic';
+    gameMode = 'pvp';
+    pvp = createPvpState('B');
+    pvp.colonies.B.species = pvpSpeciesChoice;
+    speciesKey = pvpSpeciesChoice;
     resetWorld();
     worldSeed = 0;
     paused = true;
     hasActiveGame = true;
-    camera.x = WORLD_W / 2;
+    camera.x = WORLD_W * 0.72;
     camera.y = WORLD_H / 2;
     camera.zoom = 1;
     camera.follow = false;
     configureModeUI();
-    modeBadge.textContent = '[Salas · Invitado]';
+    setTool('pvp_place');
+    modeBadge.textContent = '[PvP · Invitado]';
     updateUI();
     setStatus('Esperando el mundo del anfitrion...');
 }
@@ -7318,25 +7882,31 @@ function beginNetworkMatch() {
 function netApplyInit(d) {
     if (netRole !== 'guest' || typeof d.seed !== 'number') return;
     worldSeed = d.seed >>> 0;
+    if (pvp && typeof d.species === 'string' && SPECIES[d.species]) pvp.colonies.A.species = d.species;
     resetWorld();
     generateEnvironment(worldSeed);
-    storedFood = 100;
-    gameSpeed = d.gameSpeed || 1;
+    if (pvp) {
+        pvp.phase = 'place';
+        pvp.over = null;
+    }
+    storedFood = 0;
+    gameSpeed = 1;
     behaviorMode = 'gather';
     paused = false;
     hasActiveGame = true;
     netWorldReady = true;
     netInitWait = 0;
-    camera.x = WORLD_W / 2;
+    camera.x = pvp ? WORLD_W * 0.72 : WORLD_W / 2;
     camera.y = WORLD_H / 2;
     camera.zoom = 1;
     camera.follow = false;
     clampCamera();
     configureModeUI();
-    modeBadge.textContent = '[Salas · Invitado]';
+    setTool('pvp_place');
+    modeBadge.textContent = '[PvP · Invitado]';
     updateBehaviorUI();
     updateUI();
-    setStatus('Mundo sincronizado con el anfitrion');
+    setStatus('Mundo sincronizado. Funda tu colonia en tu mitad del mapa.');
 }
 
 function netAbortMatch(text) {
@@ -7346,7 +7916,11 @@ function netAbortMatch(text) {
     netInitWait = 0;
     roomStarted = false;
     paused = true;
+    pvp = null;
+    gameMode = 'sandbox';
     modeBadge.textContent = '';
+    endScreen.classList.remove('show');
+    configureModeUI();
     roomsScreen.classList.remove('show');
     startScreen.classList.add('show');
     if (text) setStatus(text, true);
@@ -7379,7 +7953,7 @@ function netSyncNests(list) {
             n = {
                 x: v[0], y: v[1], radius: v[2], hp: v[3], maxHp: v[4], foodIn: v[5],
                 isStatic: true, style: v[6], tree: null, species: v[7],
-                hunger: v[8] < 0 ? null : v[8]
+                hunger: v[8] < 0 ? null : v[8], owner: v[9] || ''
             };
             if (n.style === 'tree') n.tree = nearestTree(n.x, n.y);
             antNests.push(n);
@@ -7393,6 +7967,7 @@ function netSyncNests(list) {
             n.style = v[6];
             n.species = v[7];
             n.hunger = v[8] < 0 ? null : v[8];
+            n.owner = v[9] || '';
             if (n.style === 'tree' && !n.tree) n.tree = nearestTree(n.x, n.y);
         }
     }
@@ -7441,6 +8016,7 @@ function netSyncAnts(list) {
         a.tempLife = v[8] < 0 ? null : v[8];
         a.carriesLeaf = !!v[9];
         a.trapped = v[10] ? 30 : 0;
+        a.wave = !!v[11];
         a.walkCycle += 0.25;
     }
 }
@@ -7542,6 +8118,27 @@ function netSyncFoods(list) {
     }
 }
 
+function netSyncPvpQueens(qs) {
+    if (!pvp) return;
+    for (const side of ['A', 'B']) {
+        const v = qs ? qs[side] : null;
+        const col = pvp.colonies[side];
+        if (!v) {
+            col.queen = null;
+            continue;
+        }
+        if (!col.queen || col.queen.species !== v[5]) col.queen = new QueenAnt(v[0], v[1], v[5]);
+        const q = col.queen;
+        q.x = v[0];
+        q.y = v[1];
+        q.angle = v[2];
+        q.hp = v[3];
+        q.maxHp = v[4];
+        q.walkCycle += 0.15;
+    }
+    queen = pvp.colonies[pvp.side] ? pvp.colonies[pvp.side].queen : null;
+}
+
 function netApplySnapshot(s) {
     if (netRole !== 'guest' || !netWorldReady) return;
     if (typeof s.t === 'number') gameTime = s.t;
@@ -7549,8 +8146,11 @@ function netApplySnapshot(s) {
     foodSpawnCounter = s.fp || 0;
     gameSpeed = s.gs || gameSpeed;
     if (s.b) behaviorMode = s.b;
-    netSyncQueen(s.q);
+    if (pvp) pvpApplyState(s.pv);
     netSyncNests(s.n || []);
+    if (pvp) pvpRebindColonies();
+    if (s.qs) netSyncPvpQueens(s.qs);
+    else netSyncQueen(s.q);
     netSyncTermiteNests(s.tn || []);
     netSyncAnts(s.a || []);
     netSyncTermites(s.te || []);
@@ -7562,8 +8162,13 @@ function netApplySnapshot(s) {
     galTraps = (s.gt || []).map(v => ({ x: v[0], y: v[1], r: v[2], life: v[3], rearm: v[4], stuck: null }));
     webs = (s.wb || []).map(v => ({ x: v[0], y: v[1] }));
     btnSpeed.textContent = `Velocidad: ${gameSpeed}x`;
+    if (pvp && pvp.phase === 'battle' && !pvp.battleAnnounced) {
+        pvp.battleAnnounced = true;
+        setStatus('¡Batalla iniciada! Recolecta comida y envía oleadas al nido rival');
+    }
     updateBehaviorUI();
     updateUI();
+    if (pvp && pvp.over) showPvpResult();
 }
 
 
@@ -7587,6 +8192,24 @@ if (sandboxSpeciesEl) {
     sandboxSpeciesEl.addEventListener('change', () => {
         sandboxSpecies = sandboxSpeciesEl.value;
         setStatus(`Especie seleccionada: ${SP(sandboxSpecies).name}`);
+    });
+}
+
+if (roomsSpeciesEl) {
+    pvpSpeciesChoice = roomsSpeciesEl.value;
+    roomsSpeciesEl.addEventListener('change', () => {
+        pvpSpeciesChoice = roomsSpeciesEl.value;
+        setStatus(`Especie para PvP: ${SP(pvpSpeciesChoice).name}`);
+    });
+}
+
+if (btnPvpWave) {
+    btnPvpWave.addEventListener('click', () => {
+        if (!pvp || pvp.phase !== 'battle' || pvp.over) return;
+        const n = Math.max(1, Math.min(30, parseInt(pvpWaveCountEl.value, 10) || 8));
+        pvpWaveCountEl.value = String(n);
+        if (netRole === 'guest') netSendCmd({ k: 'wave', n });
+        else pvpSendWave(pvp.side, n);
     });
 }
 btnContinue.addEventListener('click', resumeGame);
@@ -7621,6 +8244,7 @@ btnBehavior.addEventListener('click', cycleBehaviorMode);
 updateBehaviorUI();
 document.getElementById('btn-end-restart').addEventListener('click', () => {
     endScreen.classList.remove('show');
+    if (pvp) { showMainMenu(); return; }
     startGame(gameMode);
 });
 document.getElementById('btn-end-menu').addEventListener('click', () => {
