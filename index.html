@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+<!-- ===== PARTE 1 de 10: HTML + CSS + estructura ===== -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -559,6 +560,7 @@
     </div>
 
 <script>
+// ================= PARTE 2 de 10: constantes, especies, cámara, colisiones, cuerpo de obrera =================
 'use strict';
 
 /* ============================================================
@@ -1352,6 +1354,7 @@ function drawWorkerBody(c, key, walk, dark = 0) {
     drawAntennae(c, pal);
 }
 
+// ================= PARTE 3 de 10: dibujo de reina, retratos de especie, clase QueenAnt =================
 function drawQueenBody(c, key, charge = 0, walk = null) {
     const pal = antPalette(key, 0);
     const k = key === 'generic' ? 'generic' : key;
@@ -1966,6 +1969,7 @@ function galleryBonusFor(target) {
     return 1;
 }
 
+// ================= PARTE 4 de 10: clase Ant y clase Termite =================
 class Ant extends Entity {
     constructor(x, y, nestRef) {
         super(x, y);
@@ -2670,6 +2674,7 @@ class Termite extends Entity {
     }
 }
 
+// ================= PARTE 5 de 10: clase Beetle, ENEMY_STATS, clase Enemy =================
 class Beetle extends Entity {
     constructor(x, y) {
         super(x, y);
@@ -3505,6 +3510,7 @@ function layEgg(nest) {
     return true;
 }
 
+// ================= PARTE 6 de 10: comida/nidos, generateEnvironment, pintado del mundo, dosel =================
 function spawnFoodCluster(x, y, count = 12) {
     for (let i = 0; i < count; i++) {
         const offsetX = (Math.random() - 0.5) * 60;
@@ -4175,6 +4181,7 @@ function drawCanopyLayer() {
 /* ============================================================
    Flujo del juego
    ============================================================ */
+// ================= PARTE 7 de 10: flujo de partida, habilidades, nidos, oleadas =================
 function resetWorld() {
     antNests = [];
     termiteNests = [];
@@ -5049,6 +5056,7 @@ function finishWave() {
     updateUI();
 }
 
+// ================= PARTE 8 de 10: updateNormalStep, guardado/carga, UI, herramientas =================
 function updateNormalStep() {
     if (gameMode !== 'normal' || !normal || endState || !normal.founded) return;
 
@@ -5474,6 +5482,7 @@ function setTool(tool) {
 /* ============================================================
    Render
    ============================================================ */
+// ================= PARTE 9 de 10: minimapa, dibujos, render, ataque de reina, handleLeftClick =================
 function getMinimapRect() {
     const w = Math.min(200, Math.max(110, viewW * 0.16));
     const h = w * WORLD_H / WORLD_W;
@@ -6430,6 +6439,7 @@ function handleLeftClick(wx, wy) {
     updateUI();
 }
 
+// ================= PARTE 10 de 10: eventos, step(), cámara, loop, tarjetas de especie, arranque =================
 let dragging = null;
 
 canvas.addEventListener('contextmenu', e => e.preventDefault());
