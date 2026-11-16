@@ -712,6 +712,7 @@
             <div class="inf-line"><span>Explorado</span><strong id="inf-p-explored">0</strong></div>
             <div class="inf-line"><span>Chunks</span><strong id="inf-p-chunks">0 / 0</strong></div>
             <div class="inf-line"><span>Lugares</span><strong id="inf-p-landmarks">0</strong></div>
+            <div class="inf-line"><span>Fundación</span><strong id="inf-p-stage">—</strong></div>
             <div class="inf-seed" id="inf-p-seed">Semilla —</div>
         </div>
         <div id="hint">Clic: acción/morder · Botón derecho: cámara · Rueda: zoom · WASD: reina/cámara · Q/E/F: habilidades · Esc: pausa</div>
@@ -2086,7 +2087,7 @@ class QueenAnt extends Entity {
 
         if (this.attackTarget) {
             const t = this.attackTarget;
-            const stillThere = t && t.hp > 0 && (enemies.includes(t) || termites.includes(t) || beetles.includes(t) || termiteNests.includes(t));
+            const stillThere = t && t.hp > 0 && (enemies.includes(t) || termites.includes(t) || beetles.includes(t) || termiteNests.includes(t) || infResident.creatures.includes(t));
             if (!stillThere) {
                 this.attackTarget = null;
             } else if (!this.isCharging) {
@@ -2531,6 +2532,13 @@ class Ant extends Entity {
                 const d = Math.hypot(t.x - this.x, (t.y - this.y) / TILT);
                 if (d < (t.radius || 10) + 10 && d < bd) { bd = d; bite = t; }
             }
+            if (gameMode === 'infinite') {
+                for (const cr of infResident.creatures) {
+                    if (cr.hp <= 0 || cr.trapped > 0) continue;
+                    const d = Math.hypot(cr.x - this.x, (cr.y - this.y) / TILT);
+                    if (d < (cr.size || 3) + 11 && d < bd) { bd = d; bite = cr; }
+                }
+            }
             if (bite) {
                 this.angle = this.lerpAngle(this.angle, Math.atan2((bite.y - this.y) / TILT, bite.x - this.x), 0.3);
                 if (this.biteCD <= 0) {
@@ -2675,6 +2683,9 @@ class Ant extends Entity {
         for (const t of termites) considerTarget(t);
         for (const en of enemies) considerTarget(en);
         for (const b of beetles) considerTarget(b);
+        if (gameMode === 'infinite') {
+            for (const cr of infResident.creatures) considerTarget(cr);
+        }
 
         if (target && bmode === 'attack') {
             if (this.attackClaim !== target) {
@@ -5901,7 +5912,8 @@ const inf = {
     canvasPool: [],
     budget: 1,
     noisePattern: null,
-    flatCache: new Map()
+    flatCache: new Map(),
+    founding: null
 };
 
 const infResident = {
@@ -5910,7 +5922,8 @@ const infResident = {
     cloverPatches: [], flowerBeds: [], shrubs: [], reeds: [], succulents: [],
     clearings: [], mounds: [], sandPatches: [], dryPatches: [], mudPatches: [],
     mossPatches: [], dirtPatches: [], puddles: [], roots: [], ridgeLines: [],
-    trails: [], swayPlants: [], butterflies: [], fireflies: [], critters: [], creatures: []
+    trails: [], swayPlants: [], butterflies: [], fireflies: [], critters: [],
+    creatures: [], termiteNests: []
 };
 
 const INF_RESIDENT_KEYS = Object.keys(infResident);
@@ -6072,7 +6085,7 @@ function infMakeChunk(cx, cy) {
             clearings: [], mounds: [], sandPatches: [], dryPatches: [], mudPatches: [],
             mossPatches: [], dirtPatches: [], puddles: [], roots: [], ridgeLines: [],
             trails: [], swayPlants: [], butterflies: [], fireflies: [], critters: [],
-            creatures: [], foods: []
+            creatures: [], foods: [], termiteNests: []
         }
     };
     return ch;
@@ -6310,10 +6323,31 @@ function infGenerateChunk(ch) {
     }
     const creatureN = infCount(w, 'creatures', rnd);
     for (let i = 0; i < creatureN; i++) {
-        const kinds = ch.biome === 'wet' ? ['beetle', 'spider', 'termite', 'beetle']
+        const kinds = ch.biome === 'wet' ? ['beetle', 'spider', 'termite', 'wasp']
             : ch.biome === 'dry' || ch.biome === 'sandy' ? ['beetle', 'spider', 'termite']
-            : ['beetle', 'spider', 'termite', 'beetle'];
+            : ch.biome === 'meadow' ? ['beetle', 'spider', 'wasp', 'beetle']
+            : ['beetle', 'spider', 'termite', 'wasp'];
         d.creatures.push(infMakeCreature(kinds[Math.floor(rnd() * kinds.length)], rx(), ry(), rnd));
+    }
+
+    // Termiteros salvajes: refugio de termitas soldado que defiende el monticulo
+    if (rnd() < 0.3) {
+        const mx = x0 + INF_CHUNK * (0.2 + rnd() * 0.6);
+        const my = y0 + INF_CHUNK * (0.2 + rnd() * 0.6);
+        const hp = 420 + Math.round(rnd() * 280);
+        const mound = {
+            x: mx, y: my, radius: 28 + rnd() * 8,
+            hp, maxHp: hp, foodIn: 0, isStatic: true,
+            isInfMound: true, _inf: true,
+            _ck: ch.key, _id: ch.key + '~' + d.termiteNests.length
+        };
+        d.termiteNests.push(mound);
+        const guards = 3 + Math.floor(rnd() * 3);
+        for (let i = 0; i < guards; i++) {
+            const a = rnd() * INF_TAU;
+            const dist = 34 + rnd() * 60;
+            d.creatures.push(infMakeCreature('termite', mx + Math.cos(a) * dist, my + Math.sin(a) * dist * TILT, rnd));
+        }
     }
 
     // Recursos extra por bioma
@@ -6339,18 +6373,25 @@ function infAddChunkFood(ch, x, y, amount, rnd) {
 }
 
 function infMakeCreature(kind, x, y, rnd) {
-    const speed = kind === 'spider' ? 19 : kind === 'beetle' ? 14 : 11;
+    const speed = kind === 'wasp' ? 24 : kind === 'spider' ? 19 : kind === 'beetle' ? 14 : 11;
+    const size = kind === 'wasp' ? 2.7 : kind === 'beetle' ? 3.4 : kind === 'spider' ? 3.0 : 2.3;
+    const hp = kind === 'spider' ? 8 : kind === 'wasp' ? 5 : kind === 'beetle' ? 6 : 5;
+    const damage = kind === 'spider' ? 2.4 : kind === 'wasp' ? 2.0 : kind === 'termite' ? 1.3 : 0;
     return {
         kind, x, y,
         angle: rnd() * INF_TAU,
         speed,
-        size: kind === 'beetle' ? 3.4 : kind === 'spider' ? 3.0 : 2.3,
+        size,
         phase: rnd() * INF_TAU,
-        hp: kind === 'beetle' ? 6 : 4,
+        hp,
+        maxHp: hp,
+        damage,
+        hostile: damage > 0,
+        atkCD: 0,
         hunger: 4 + rnd() * 8,
         flee: 0,
         moving: 0,
-        repro: 18 + rnd() * 30,
+        repro: 24 + rnd() * 40,
         _ck: null
     };
 }
@@ -6918,6 +6959,14 @@ function infApplyDelta(ch) {
             _extra: true, _ck: ch.key, _id: ch.key + '@x' + (extraN++)
         });
     }
+    if (Array.isArray(delta.mounds)) {
+        const byId = new Map(delta.mounds.map(m => [m.id, m]));
+        ch.deco.termiteNests = ch.deco.termiteNests.filter(m => byId.has(m._id));
+        for (const m of ch.deco.termiteNests) {
+            const rec = byId.get(m._id);
+            if (rec && rec.hp != null) m.hp = Math.min(m.maxHp, rec.hp);
+        }
+    }
 }
 
 function infEnsureChunk(cx, cy) {
@@ -6979,7 +7028,10 @@ function infBuildDelta(ch) {
         })),
         extra: ch.deco.foods.filter(f => f._extra).map(f => ({
             x: Math.round(f.x), y: Math.round(f.y), amount: f.amount, age: Math.round(f.age || 0)
-        })).slice(0, 30).map(f => (n++, f))
+        })).slice(0, 30).map(f => (n++, f)),
+        mounds: ch.deco.termiteNests.filter(m => m.hp > 0).map(m => ({
+            id: m._id, hp: Math.round(m.hp)
+        }))
     };
 }
 
@@ -7055,6 +7107,7 @@ function infRebuildResident() {
     butterflies = infResident.butterflies;
     fireflies = infResident.fireflies;
     critters = infResident.critters;
+    termiteNests = infResident.termiteNests;
     infAdoptFoods();
 }
 
@@ -7238,6 +7291,7 @@ function infStepCreatures() {
             continue;
         }
         if (!isInView(cr.x, cr.y, reach)) continue;
+        if (cr.trapped > 0) { cr.trapped--; continue; }
         cr.phase += STEP * 2.1;
         if (cr.flee > 0) cr.flee -= STEP;
         cr.repro -= STEP;
@@ -7255,7 +7309,33 @@ function infStepCreatures() {
         }
 
         let speedMul = 1;
-        if (threat) {
+        if (cr.hostile) {
+            // Depredadores y termitas soldado: atacan a la colonia y se pelean entre especies
+            let target = null;
+            let td = 170;
+            if (threat) { target = threat; td = threatDist; }
+            for (const o of list) {
+                if (o === cr || o.hp <= 0 || o.kind === cr.kind) continue;
+                const d = Math.hypot(o.x - cr.x, (o.y - cr.y) / TILT);
+                if (d < td) { td = d; target = o; }
+            }
+            if (target) {
+                cr.angle = Math.atan2((target.y - cr.y) / TILT, target.x - cr.x);
+                speedMul = 1.5;
+                if (td < (target.radius || 12) + 10 && cr.atkCD <= 0) {
+                    cr.atkCD = 34;
+                    target.hp -= cr.damage;
+                    spawnHitParticles(target.x, target.y, '#ff8fab', 3);
+                    if (target.hp <= 0 && !target.isAnt && target !== queen) {
+                        spawnFoodCluster(target.x, target.y, 2);
+                        infRemoveCreature(target);
+                    }
+                }
+            } else {
+                speedMul = 0.85;
+                cr.angle += Math.sin(cr.phase * 0.8 + cr.x * 0.001) * STEP * 1.7;
+            }
+        } else if (threat) {
             cr.flee = 1.1;
             cr.angle = Math.atan2((cr.y - threat.y) / TILT, cr.x - threat.x);
             speedMul = 2.2;
@@ -7279,27 +7359,6 @@ function infStepCreatures() {
                 }
             } else {
                 cr.angle += Math.sin(cr.phase) * STEP * 1.5;
-            }
-        } else if (cr.kind === 'spider') {
-            let prey = null;
-            let pd = 120;
-            for (const o of list) {
-                if (o === cr || o.kind === 'spider' || o.hp <= 0) continue;
-                const d = Math.hypot(o.x - cr.x, (o.y - cr.y) / TILT);
-                if (d < pd) { pd = d; prey = o; }
-            }
-            if (prey) {
-                cr.angle = Math.atan2((prey.y - cr.y) / TILT, prey.x - cr.x);
-                speedMul = 1.6;
-                if (pd < 9) {
-                    prey.hp -= STEP * 5;
-                    if (prey.hp <= 0) {
-                        spawnFoodCluster(prey.x, prey.y, 2);
-                        infRemoveCreature(prey);
-                    }
-                }
-            } else {
-                cr.angle += Math.sin(cr.phase) * STEP * 1.2;
             }
         } else {
             cr.angle += Math.sin(cr.phase * 0.8 + cr.x * 0.001) * STEP * 1.7;
@@ -7395,6 +7454,38 @@ function infDrawCreatures() {
             ctx.arc(-c.size * 0.9, -c.size * 0.25, c.size * 0.22, 0, INF_TAU);
             ctx.arc(-c.size * 0.9, c.size * 0.35, c.size * 0.22, 0, INF_TAU);
             ctx.fill();
+        } else if (c.kind === 'wasp') {
+            const flap = 0.5 + 0.5 * Math.sin(gameTime * 26 + c.phase);
+            ctx.fillStyle = 'rgba(235, 245, 255, 0.55)';
+            ctx.beginPath();
+            ctx.ellipse(-c.size * 0.1, -c.size * 1.1, c.size * 1.5, c.size * (0.45 + flap * 0.55), -0.45, 0, INF_TAU);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(-c.size * 0.1, c.size * 1.1, c.size * 1.5, c.size * (0.45 + flap * 0.55), 0.45, 0, INF_TAU);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+            ctx.beginPath();
+            ctx.ellipse(1, 2.4, c.size * 1.4, c.size * 0.7, 0, 0, INF_TAU);
+            ctx.fill();
+            ctx.fillStyle = '#f2c230';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, c.size * 1.5, c.size * 0.72, 0, 0, INF_TAU);
+            ctx.fill();
+            ctx.fillStyle = '#241a10';
+            for (let s = -1; s <= 1; s++) {
+                ctx.beginPath();
+                ctx.ellipse(s * c.size * 0.62, 0, c.size * 0.2, c.size * 0.7, 0, 0, INF_TAU);
+                ctx.fill();
+            }
+            ctx.beginPath();
+            ctx.arc(-c.size * 1.35, 0, c.size * 0.55, 0, INF_TAU);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(30, 22, 12, 0.9)';
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(c.size * 1.5, 0);
+            ctx.lineTo(c.size * 2.1, 0);
+            ctx.stroke();
         } else {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
             ctx.beginPath();
@@ -7485,6 +7576,7 @@ const infPCoordsEl = document.getElementById('inf-p-coords');
 const infPExploredEl = document.getElementById('inf-p-explored');
 const infPChunksEl = document.getElementById('inf-p-chunks');
 const infPLandmarksEl = document.getElementById('inf-p-landmarks');
+const infPStageEl = document.getElementById('inf-p-stage');
 const infPSeedEl = document.getElementById('inf-p-seed');
 
 function infSetStatus(text, bad) {
@@ -7867,19 +7959,16 @@ async function infStartWorld(id, opts) {
         const scx = Math.floor(inf.spawnX / INF_CHUNK);
         const scy = Math.floor(inf.spawnY / INF_CHUNK);
         infActivateChunk(infEnsureChunk(scx, scy));
-        let nestOpts = { species: speciesKey, style: 'classic' };
-        const nestStyle = S().nestStyle;
-        if (nestStyle === 'tree') {
-            const t = trees.find(t => t.radius > 26 && Math.hypot(t.x - inf.spawnX, (t.y - inf.spawnY) / TILT) < 420);
-            if (t) nestOpts = { species: speciesKey, style: 'tree', tree: t };
-        } else if (nestStyle !== 'classic') {
-            nestOpts.style = nestStyle;
-        }
-        const nest = placeNest(inf.spawnX + 12, inf.spawnY + 10, 'ant', 5, nestOpts);
-        nest.hp = nest.maxHp;
-        queen = new QueenAnt(inf.spawnX + 40, inf.spawnY + 20, speciesKey);
         storedFood = Math.max(storedFood, 40);
     }
+    if (!queen && colony && colony.queen) {
+        queen = new QueenAnt(colony.queen.x, colony.queen.y, colony.queen.species || speciesKey);
+        queen.angle = colony.queen.angle || 0;
+        queen.hp = colony.queen.hp != null ? colony.queen.hp : queen.maxHp;
+        queen.load = colony.queen.load || 0;
+    }
+    if (antNests.length) inf.founding = null;
+    else inf.founding = queen ? 'nest' : 'queen';
     camera.follow = !!queen;
 
     configureModeUI();
@@ -7896,7 +7985,9 @@ async function infStartWorld(id, opts) {
     infRebuildResident();
     clampCamera();
     infUpdatePanel();
-    setStatus(`Mundo ${inf.name} · semilla ${inf.seed} · explora sin limites`);
+    if (inf.founding === 'queen') setStatus(`Mundo ${inf.name} · semilla ${inf.seed} · haz clic para colocar a la reina fundadora`);
+    else if (inf.founding === 'nest') setStatus(`Mundo ${inf.name} · ahora funda la colonia con un clic${S().nestStyle === 'tree' ? ' sobre la copa de un árbol' : ''}`);
+    else setStatus(`Mundo ${inf.name} · semilla ${inf.seed} · explora sin limites`);
     updateUI();
     try { await infSaveWorld(); } catch (e) {}
 }
@@ -7906,6 +7997,7 @@ function infLeaveWorld(save) {
     if (save !== false) infSaveWorld();
     inf.on = false;
     inf.ready = false;
+    inf.founding = null;
     for (const ch of inf.chunks.values()) ch.canvas = null;
     inf.chunks.clear();
     inf.canvases.clear();
@@ -7940,6 +8032,11 @@ function infUpdatePanel() {
         infPChunksEl.textContent = `${active} / ${inf.chunks.size}`;
     }
     if (infPLandmarksEl) infPLandmarksEl.textContent = String(inf.landmarks.length);
+    if (infPStageEl) {
+        if (inf.founding === 'queen') infPStageEl.textContent = 'Coloca la reina (clic)';
+        else if (inf.founding === 'nest') infPStageEl.textContent = S().nestStyle === 'tree' ? 'Colonia en un árbol' : 'Colonia (clic)';
+        else infPStageEl.textContent = queen ? 'Completa' : 'Sin reina';
+    }
     if (infPSeedEl) infPSeedEl.textContent = `Semilla ${inf.seed} · v${INF_VERSION}`;
 }
 
@@ -8037,7 +8134,7 @@ function configureModeUI() {
         ? `[PvP · ${pvp.side === 'A' ? 'Anfitrion' : pvp.side === 'B' ? 'Jugador 2' : 'Jugador 3'}]`
         : (isInfinite ? '[Mundo Infinito]' : (gameMode === 'normal' ? `[${S().name}]` : '[Modo Sandbox]'));
     if (speciesLabelEl) speciesLabelEl.textContent = speciesKey === 'generic' ? '—' : S().name;
-    if (abilityBarEl) abilityBarEl.classList.toggle('show', gameMode === 'normal' || isPvp);
+    if (abilityBarEl) abilityBarEl.classList.toggle('show', gameMode === 'normal' || isInfinite || isPvp);
 
     document.getElementById('toolbar-sandbox').style.display = (gameMode === 'normal' || isPvp || isInfinite) ? 'none' : 'flex';
     document.getElementById('toolbar-normal').style.display = gameMode === 'normal' && !isPvp ? 'flex' : 'none';
@@ -8987,7 +9084,7 @@ function abilityLeap() {
     for (let i = 0; i < 34; i++) {
         const nx = queen.x + Math.cos(aim) * 8;
         const ny = queen.y + Math.sin(aim) * 8 * TILT;
-        if (nx < 26 || nx > WORLD_W - 26 || ny < 26 || ny > WORLD_H - 26) break;
+        if (gameMode !== 'infinite' && (nx < 26 || nx > WORLD_W - 26 || ny < 26 || ny > WORLD_H - 26)) break;
         if (checkObstacleCollision(nx, ny, 10)) break;
         queen.x = nx;
         queen.y = ny;
@@ -9057,6 +9154,9 @@ function abilityReleaseCharge() {
 
     for (const t of termites) strike(t);
     for (const e of enemies) strike(e);
+    if (gameMode === 'infinite') {
+        for (const cr of infResident.creatures) if (cr.hp > 0) strike(cr);
+    }
 
     const wnest = getWaveNest();
     if (wnest) {
@@ -9067,6 +9167,20 @@ function abilityReleaseCharge() {
             if (diff < 1.0) {
                 damageTermiteNest(wnest, dmg * 0.8);
                 hits++;
+            }
+        }
+    }
+    if (gameMode === 'infinite') {
+        for (const n of termiteNests) {
+            if (!n.isInfMound || n.hp <= 0) continue;
+            const dx = n.x - queen.x;
+            const dy = (n.y - queen.y) / TILT;
+            if (Math.hypot(dx, dy) < 130 + n.radius) {
+                const diff = Math.abs(queen.normalizeAngle(Math.atan2(dy, dx) - aim));
+                if (diff < 1.0) {
+                    damageTermiteNest(n, dmg * 0.8);
+                    hits++;
+                }
             }
         }
     }
@@ -9149,9 +9263,11 @@ function abilityDefense() {
         a.hp = a.maxHp;
         a.hasFood = false;
         a.carriesLeaf = false;
+        const rawX = nest.x + Math.cos(ang) * rr;
+        const rawY = nest.y + Math.sin(ang) * rr * TILT;
         a.defTarget = {
-            x: clamp(nest.x + Math.cos(ang) * rr, 20, WORLD_W - 20),
-            y: clamp(nest.y + Math.sin(ang) * rr * TILT, 20, WORLD_H - 20)
+            x: gameMode === 'infinite' ? rawX : clamp(rawX, 20, WORLD_W - 20),
+            y: gameMode === 'infinite' ? rawY : clamp(rawY, 20, WORLD_H - 20)
         };
         spawnHitParticles(a.x, a.y, '#b5e48c', 3);
     });
@@ -9180,8 +9296,8 @@ function abilityGallery() {
     }
 
     for (const s of spots) {
-        const x = clamp(s.x, 34, WORLD_W - 34);
-        const y = clamp(s.y, 34, WORLD_H - 34);
+        const x = gameMode === 'infinite' ? s.x : clamp(s.x, 34, WORLD_W - 34);
+        const y = gameMode === 'infinite' ? s.y : clamp(s.y, 34, WORLD_H - 34);
         let ok = !checkObstacleCollision(x, y, 18);
         if (ok) {
             for (const t of galTraps) {
@@ -9206,11 +9322,14 @@ function abilityCrushingMandibles() {
         return;
     }
 
+    const pool = gameMode === 'infinite'
+        ? enemies.concat(infResident.creatures, termiteNests.filter(n => n.isInfMound && n.hp > 0))
+        : enemies;
     let target = null;
-    if (queenTarget && enemies.includes(queenTarget) && queenTarget.hp > 0) target = queenTarget;
+    if (queenTarget && pool.includes(queenTarget) && queenTarget.hp > 0) target = queenTarget;
     if (!target) {
         let bestScore = -Infinity;
-        for (const e of enemies) {
+        for (const e of pool) {
             if (e.hp <= 0) continue;
             const dq = Math.hypot(e.x - queen.x, (e.y - queen.y) / TILT);
             if (dq > 700) continue;
@@ -9539,6 +9658,13 @@ function damageTermiteNest(nest, amount) {
     if (nest.hp > 0) return;
 
     nest.hp = 0;
+    if (nest._ck) {
+        const ch = inf.chunks.get(nest._ck);
+        if (ch && ch.deco && ch.deco.termiteNests) {
+            const mi = ch.deco.termiteNests.indexOf(nest);
+            if (mi >= 0) ch.deco.termiteNests.splice(mi, 1);
+        }
+    }
     const idx = termiteNests.indexOf(nest);
     if (idx > -1) termiteNests.splice(idx, 1);
     for (const t of termites) {
@@ -10583,9 +10709,8 @@ function drawLitterNest(n) {
 }
 
 function drawTreeNest(n) {
-    const t = n.tree;
-    const tx = t ? t.x : n.x;
-    const ty = (t ? t.y : n.y) + 18;
+    const tx = n.x;
+    const ty = n.y;
     const r = n.radius;
 
     ctx.fillStyle = 'rgba(0,0,0,0.42)';
@@ -11140,6 +11265,7 @@ function render() {
     }
 
     for (const n of termiteNests) {
+        if (gameMode === 'infinite' && !isInView(n.x, n.y, n.radius + 60)) continue;
         ctx.fillStyle = 'rgba(0,0,0,0.45)';
         ctx.beginPath();
         ctx.ellipse(n.x + 5, n.y + 7, n.radius + 10, (n.radius + 10) * TILT, 0, 0, Math.PI * 2);
@@ -11181,11 +11307,14 @@ function render() {
         }
     }
 
-    if (gameMode === 'normal' && currentTool === 'normal_nest' && S().nestStyle === 'tree' && antNests.length === 0) {
+    const treeNestHint = (gameMode === 'normal' && currentTool === 'normal_nest' && antNests.length === 0)
+        || (gameMode === 'infinite' && inf.founding === 'nest' && antNests.length === 0);
+    if (treeNestHint && S().nestStyle === 'tree') {
         ctx.strokeStyle = 'rgba(181, 228, 140, 0.45)';
         ctx.lineWidth = 2;
         ctx.setLineDash([9, 8]);
         for (const t of trees) {
+            if (gameMode === 'infinite' && !isInView(t.x, t.y, t.radius + 120)) continue;
             ctx.beginPath();
             ctx.ellipse(t.x, t.y, t.radius * 0.92, t.radius * 0.92 * TILT, 0, 0, Math.PI * 2);
             ctx.stroke();
@@ -11300,11 +11429,16 @@ function render() {
     const showCursorPreview = gameMode === 'sandbox'
         || (currentTool === 'queen' && !queen)
         || (currentTool === 'normal_nest' && antNests.length === 0)
+        || (gameMode === 'infinite' && !!inf.founding)
         || (pvp && pvp.phase === 'place' && pvpLocal() && !pvpLocal().nest);
     if (showCursorPreview && !mouse.overMinimap) {
         const placingPvp = !!(pvp && pvp.phase === 'place' && pvpLocal() && !pvpLocal().nest);
-        const valid = placingPvp ? pvpCanPlace(pvp.side, mouse.x, mouse.y) : canPlaceAt(mouse.x, mouse.y, currentTool);
-        const previewRadius = placingPvp ? 30
+        const valid = placingPvp ? pvpCanPlace(pvp.side, mouse.x, mouse.y)
+            : (gameMode === 'infinite' && !!inf.founding) ? infFoundingValid(mouse.x, mouse.y)
+            : canPlaceAt(mouse.x, mouse.y, currentTool);
+        const previewRadius = (gameMode === 'infinite' && inf.founding === 'queen') ? 16
+            : (gameMode === 'infinite' && inf.founding === 'nest') ? (S().nestStyle === 'tree' ? 40 : 28)
+            : placingPvp ? 30
             : (currentTool === 'nest' || currentTool === 'termite_nest' || currentTool === 'normal_nest' || currentTool === 'sandbox_nest') ? 28
             : (currentTool === 'mantis') ? 22
             : (currentTool === 'antlion') ? 24
@@ -11353,12 +11487,90 @@ function tryQueenAttack(wx, wy) {
     for (const e of enemies) consider(e);
     for (const t of termites) consider(t);
     for (const b of beetles) consider(b);
+    if (gameMode === 'infinite') {
+        for (const cr of infResident.creatures) consider(cr);
+        for (const n of termiteNests) if (n.hp > 0) consider(n);
+    }
     if (!best) return false;
     queen.attackTarget = best;
     queenTarget = { x: best.x, y: best.y };
     spawnHitParticles(best.x, best.y, '#ff4d6d', 6);
     setStatus('Objetivo marcado: la reina lo perseguirá y morderá');
     return true;
+}
+
+function infTreeUnder(x, y) {
+    let best = null;
+    let bd = Infinity;
+    for (const t of trees) {
+        const d = Math.hypot(t.x - x, (t.y - y) / TILT);
+        if (d < t.radius + 45 && d < bd) { bd = d; best = t; }
+    }
+    return best;
+}
+
+function infEnsureAround(x, y) {
+    const key = infChunkKey(Math.floor(x / INF_CHUNK), Math.floor(y / INF_CHUNK));
+    const ch = infEnsureChunk(Math.floor(x / INF_CHUNK), Math.floor(y / INF_CHUNK));
+    if (ch.state !== 'active') {
+        infActivateChunk(ch);
+        inf.rebuild = false;
+        infRebuildResident();
+    }
+    return inf.chunks.get(key) || ch;
+}
+
+function infFoundingValid(x, y) {
+    if (gameMode !== 'infinite' || !inf.founding) return false;
+    if (inf.founding === 'queen') return canPlaceAt(x, y, 'queen');
+    if (S().nestStyle === 'tree') return !!infTreeUnder(x, y);
+    return canPlaceAt(x, y, 'normal_nest');
+}
+
+function infFoundingClick(wx, wy) {
+    infEnsureAround(wx, wy);
+    const sp = S();
+    if (inf.founding === 'queen') {
+        if (!canPlaceAt(wx, wy, 'queen')) {
+            setStatus('No puedes colocar a la reina encima de rocas, troncos, árboles o termiteros', true);
+            return;
+        }
+        queen = new QueenAnt(wx, wy, speciesKey);
+        queenTarget = null;
+        camera.x = wx;
+        camera.y = wy;
+        clampCamera();
+        inf.founding = 'nest';
+        spawnHitParticles(wx, wy, '#ffd166', 16);
+        setStatus(sp.nestStyle === 'tree'
+            ? `Reina de ${sp.name} colocada · funda la colonia sobre la copa de un árbol`
+            : `Reina de ${sp.name} colocada · funda la colonia en terreno libre`);
+        updateUI();
+        infSaveWorld();
+        return;
+    }
+    if (sp.nestStyle === 'tree') {
+        const t = infTreeUnder(wx, wy);
+        if (!t) {
+            setStatus(`La colonia de ${sp.name} solo puede fundarse dentro de la copa de un árbol (círculos verdes)`, true);
+            return;
+        }
+        const nest = placeNest(t.x, t.y + 18, 'ant', 4, { style: 'tree', tree: t, species: speciesKey });
+        nest.hp = nest.maxHp;
+    } else {
+        if (!canPlaceAt(wx, wy, 'normal_nest')) {
+            setStatus('Espacio bloqueado para fundar la colonia', true);
+            return;
+        }
+        const nest = placeNest(wx, wy, 'ant', 4, { style: sp.nestStyle, species: speciesKey });
+        nest.hp = nest.maxHp;
+    }
+    inf.founding = null;
+    camera.follow = true;
+    spawnHitParticles(antNests[0].x, antNests[0].y, '#95d5b2', 24);
+    setStatus(`Colonia de ${sp.name} fundada · explora el mundo infinito`);
+    updateUI();
+    infSaveWorld();
 }
 
 function handleLeftClick(wx, wy) {
@@ -11378,6 +11590,37 @@ function handleLeftClick(wx, wy) {
     }
     if (netRole === 'guest') {
         if (roomStarted) netSendCmd({ k: 'tool', tool: currentTool, x: wx, y: wy, species: sandboxSpecies });
+        return;
+    }
+    if (gameMode === 'infinite' && inf.on) {
+        if (inf.founding) {
+            infFoundingClick(wx, wy);
+            return;
+        }
+        let clickedNest = null;
+        let clickBest = Infinity;
+        for (const n of termiteNests) {
+            const d = Math.hypot(n.x - wx, (n.y - wy) / TILT);
+            if (d < n.radius + 14 && d < clickBest) { clickBest = d; clickedNest = n; }
+        }
+        if (clickedNest) {
+            if (raidTarget === clickedNest) {
+                raidTarget = null;
+                setStatus('Incursión cancelada — las hormigas vuelven a sus tareas');
+            } else {
+                raidTarget = clickedNest;
+                spawnHitParticles(clickedNest.x, clickedNest.y, '#dda15e', 8);
+                setStatus(`Termitero marcado (${Math.ceil(clickedNest.hp)} HP) — tus hormigas lo atacarán`, true);
+            }
+            updateUI();
+            return;
+        }
+        if (queen) {
+            if (tryQueenAttack(wx, wy)) return;
+            queenTarget = { x: wx, y: wy };
+            spawnHitParticles(wx, wy, '#ffd166', 4);
+            setStatus('La reina se dirige al punto marcado');
+        }
         return;
     }
     if (gameMode === 'normal') {
@@ -11729,6 +11972,18 @@ function step() {
         else if (n.hunger > 80) n.hp = Math.min(n.maxHp, n.hp + 3 * STEP);
     }
 
+    // La colonia del mundo infinito pone huevos con la comida almacenada
+    if (gameMode === 'infinite' && inf.on && !inf.founding && antNests.length && queen && queen.hp > 0) {
+        inf.layAcc = (inf.layAcc || 0) + STEP;
+        if (inf.layAcc >= 16) {
+            inf.layAcc = 0;
+            if (layEgg(antNests[0])) {
+                setStatus('La colonia puso un huevo con la comida almacenada');
+                updateUI();
+            }
+        }
+    }
+
     // Trampas de la Hormiga León
     for (let i = traps.length - 1; i >= 0; i--) {
         const trap = traps[i];
@@ -11771,7 +12026,7 @@ function step() {
             galTraps.splice(i, 1);
             continue;
         }
-        if (t.stuck && (t.stuck.hp <= 0 || (!enemies.includes(t.stuck) && !ants.includes(t.stuck)))) t.stuck = null;
+        if (t.stuck && (t.stuck.hp <= 0 || (!enemies.includes(t.stuck) && !ants.includes(t.stuck) && !infResident.creatures.includes(t.stuck)))) t.stuck = null;
         if (t.stuck) {
             const d = Math.hypot(t.stuck.x - t.x, (t.stuck.y - t.y) / TILT);
             if (d > t.r * 1.6) t.stuck = null;
@@ -11796,6 +12051,18 @@ function step() {
                         t.stuck = a;
                         a.trapped = 150;
                         spawnHitParticles(a.x, a.y, '#f4d35e', 12);
+                        break;
+                    }
+                }
+            }
+            if (!t.stuck && gameMode === 'infinite') {
+                for (const cr of infResident.creatures) {
+                    if (cr.hp <= 0 || cr.trapped > 0) continue;
+                    if (Math.hypot(cr.x - t.x, (cr.y - t.y) / TILT) < t.r * 0.85) {
+                        t.stuck = cr;
+                        cr.trapped = 150;
+                        spawnHitParticles(cr.x, cr.y, '#f4d35e', 12);
+                        setStatus('¡Trampa de galería! Criatura inmovilizada 2.5s', true);
                         break;
                     }
                 }
