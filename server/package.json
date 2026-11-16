@@ -4,6 +4,9 @@
   "private": true,
   "description": "Servidor de salas PvP para Ants Empires and Colony",
   "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node server.js"
   },

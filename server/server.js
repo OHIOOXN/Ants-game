@@ -66,6 +66,74 @@ function userPayload(key) {
     return { user: u.user, bestWave: u.bestWave || 0, rank: rankOf(key), created: u.created || 0 };
 }
 
+/* ---- Almacenamiento en Supabase (opcional, sobrevive a redeploys) ----
+   Con SUPABASE_URL y SUPABASE_SERVICE_KEY en el entorno, las cuentas y el
+   ranking viven en Supabase. Sin esas variables se usa el archivo local. */
+const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
+function usingSupabase() { return !!(SUPABASE_URL && SUPABASE_KEY); }
+
+async function sbRequest(pathAndQuery, options = {}) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 15000);
+    try {
+        const resp = await fetch(SUPABASE_URL + '/rest/v1/' + pathAndQuery, {
+            method: options.method || 'GET',
+            headers: {
+                apikey: SUPABASE_KEY,
+                Authorization: 'Bearer ' + SUPABASE_KEY,
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                ...(options.headers || {})
+            },
+            body: options.body === undefined ? undefined : JSON.stringify(options.body),
+            signal: ctl.signal
+        });
+        const text = await resp.text();
+        let data = null;
+        if (text) { try { data = JSON.parse(text); } catch (e) { data = null; } }
+        return { status: resp.status, data };
+    } catch (e) {
+        console.error('Supabase no responde:', e.message);
+        return { status: 0, data: null };
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+async function sbFindUser(key) {
+    const r = await sbRequest('aec_users?key=eq.' + encodeURIComponent(key) + '&select=*&limit=1');
+    return (r.status === 200 && Array.isArray(r.data) && r.data[0]) || null;
+}
+
+async function sbCreateToken(key) {
+    const token = newToken();
+    await sbRequest('aec_tokens', { method: 'POST', body: { token, user_key: key, created: Date.now() } });
+    return token;
+}
+
+async function sbTokenUser(token) {
+    const r = await sbRequest('aec_tokens?token=eq.' + encodeURIComponent(token) + '&select=*,user:aec_users(*)&limit=1');
+    if (r.status !== 200 || !Array.isArray(r.data) || !r.data[0]) return null;
+    const rec = r.data[0];
+    if (Date.now() - (rec.created || 0) > 90 * 24 * 3600 * 1000) {
+        await sbRequest('aec_tokens?token=eq.' + encodeURIComponent(token), { method: 'DELETE' });
+        return null;
+    }
+    return rec.user || null;
+}
+
+async function sbProfile(user) {
+    if (!user) return null;
+    let rank = 0;
+    const bw = user.best_wave || 0;
+    if (bw > 0) {
+        const r = await sbRequest('aec_users?and=(best_wave.gte.' + bw + ',created.lte.' + (user.created || 0) + ')&select=key');
+        if (r.status === 200 && Array.isArray(r.data)) rank = r.data.length;
+    }
+    return { user: user.username, bestWave: bw, rank, created: user.created || 0 };
+}
+
 function readBody(req) {
     return new Promise(resolve => {
         let raw = '';
@@ -149,6 +217,22 @@ async function handleApi(req, res, urlPath) {
             return;
         }
         const key = user.toLowerCase();
+        if (usingSupabase()) {
+            if (await sbFindUser(key)) { jsonResponse(res, 409, { error: 'Ese nombre de usuario ya esta en uso' }); return; }
+            const created = Date.now();
+            const salt = crypto.randomBytes(16).toString('hex');
+            const r = await sbRequest('aec_users', {
+                method: 'POST',
+                headers: { Prefer: 'return=minimal' },
+                body: { key, username: user, salt, hash: hashPass(pass, salt), created, best_wave: 0, best_at: 0, best_mode: 'normal' }
+            });
+            if (r.status === 0 || r.status >= 400) { jsonResponse(res, 500, { error: 'No se pudo crear la cuenta, intentalo de nuevo' }); return; }
+            await sbRequest('aec_tokens?created=lt.' + (created - 90 * 24 * 3600 * 1000), { method: 'DELETE' });
+            const token = await sbCreateToken(key);
+            console.log('Cuenta creada (Supabase):', user);
+            jsonResponse(res, 200, { token, profile: { user, bestWave: 0, rank: 0, created } });
+            return;
+        }
         if (db.users[key]) {
             jsonResponse(res, 409, { error: 'Ese nombre de usuario ya esta en uso' });
             return;
@@ -172,6 +256,19 @@ async function handleApi(req, res, urlPath) {
         if (!body) { jsonResponse(res, 400, { error: 'Datos invalidos' }); return; }
         const key = String(body.user || '').trim().toLowerCase();
         const pass = String(body.pass || '');
+        if (usingSupabase()) {
+            const u = await sbFindUser(key);
+            if (!u || !pass) { jsonResponse(res, 401, { error: 'Usuario o contrasena incorrectos' }); return; }
+            const attempt = Buffer.from(hashPass(pass, u.salt), 'hex');
+            const stored = Buffer.from(u.hash, 'hex');
+            if (attempt.length !== stored.length || !crypto.timingSafeEqual(attempt, stored)) {
+                jsonResponse(res, 401, { error: 'Usuario o contrasena incorrectos' });
+                return;
+            }
+            const token = await sbCreateToken(key);
+            jsonResponse(res, 200, { token, profile: await sbProfile(u) });
+            return;
+        }
         const u = db.users[key];
         if (!u || !pass) {
             jsonResponse(res, 401, { error: 'Usuario o contrasena incorrectos' });
@@ -192,6 +289,12 @@ async function handleApi(req, res, urlPath) {
 
     if (urlPath === '/api/me') {
         const token = String((req.headers.authorization || '').replace(/^Bearer\s+/i, '') || (new URL(req.url, 'http://x')).searchParams.get('token') || '');
+        if (usingSupabase()) {
+            const u = await sbTokenUser(token);
+            if (!u) { jsonResponse(res, 401, { error: 'Sesion no valida' }); return; }
+            jsonResponse(res, 200, { profile: await sbProfile(u) });
+            return;
+        }
         const key = tokenUser(token);
         if (!key) { jsonResponse(res, 401, { error: 'Sesion no valida' }); return; }
         jsonResponse(res, 200, { profile: userPayload(key) });
@@ -201,6 +304,24 @@ async function handleApi(req, res, urlPath) {
     if (urlPath === '/api/score' && isPost) {
         const body = await readBody(req);
         if (!body) { jsonResponse(res, 400, { error: 'Datos invalidos' }); return; }
+        if (usingSupabase()) {
+            const u = await sbTokenUser(String(body.token || ''));
+            if (!u) { jsonResponse(res, 401, { error: 'Sesion no valida' }); return; }
+            const wave = Math.max(0, Math.min(500, Math.floor(Number(body.wave) || 0)));
+            const mode = String(body.mode || 'normal').slice(0, 12);
+            let improved = false;
+            if (mode === 'normal' && wave > (u.best_wave || 0)) {
+                await sbRequest('aec_users?key=eq.' + encodeURIComponent(u.key), {
+                    method: 'PATCH',
+                    headers: { Prefer: 'return=minimal' },
+                    body: { best_wave: wave, best_at: Date.now(), best_mode: mode }
+                });
+                u.best_wave = wave;
+                improved = true;
+            }
+            jsonResponse(res, 200, { profile: await sbProfile(u), improved });
+            return;
+        }
         const key = tokenUser(String(body.token || ''));
         if (!key) { jsonResponse(res, 401, { error: 'Sesion no valida' }); return; }
         const wave = Math.max(0, Math.min(500, Math.floor(Number(body.wave) || 0)));
@@ -219,6 +340,14 @@ async function handleApi(req, res, urlPath) {
     }
 
     if (urlPath === '/api/leaderboard') {
+        if (usingSupabase()) {
+            const r = await sbRequest('aec_users?best_wave=gte.1&select=username,best_wave&order=best_wave.desc,created.asc&limit=50');
+            const list = (r.status === 200 && Array.isArray(r.data))
+                ? r.data.map((u, i) => ({ pos: i + 1, user: u.username, bestWave: u.best_wave || 0 }))
+                : [];
+            jsonResponse(res, 200, { top: list });
+            return;
+        }
         const list = Object.entries(db.users)
             .filter(([, u]) => (u.bestWave || 0) > 0)
             .sort((a, b) => (b[1].bestWave || 0) - (a[1].bestWave || 0) || (a[1].created || 0) - (b[1].created || 0))
@@ -230,6 +359,13 @@ async function handleApi(req, res, urlPath) {
 
     if (urlPath === '/api/logout' && isPost) {
         const body = await readBody(req);
+        if (usingSupabase()) {
+            if (body && body.token) {
+                await sbRequest('aec_tokens?token=eq.' + encodeURIComponent(String(body.token)), { method: 'DELETE' });
+            }
+            jsonResponse(res, 200, { ok: true });
+            return;
+        }
         if (body && body.token) {
             delete db.tokens[String(body.token)];
             saveDb();
@@ -407,6 +543,7 @@ server.listen(PORT, () => {
     console.log('Juego:    http://localhost:' + PORT);
     console.log('WebSocket: ws://localhost:' + PORT);
     console.log('API:      http://localhost:' + PORT + '/api/leaderboard');
+    console.log('Cuentas:  ' + (usingSupabase() ? 'Supabase (' + SUPABASE_URL + ')' : 'archivo local'));
 });
 
 process.on('SIGTERM', () => { saveDbNow(); process.exit(0); });
