@@ -1027,72 +1027,8 @@ const WORLD_H = 2400;
 const DAY_SEGMENT = 180;
 const DAY_CYCLE = DAY_SEGMENT * 2;
 
-const BIOME_ORDER = ['forest', 'meadow', 'dry', 'sandy', 'wet', 'desert', 'jungle', 'tundra', 'swamp'];
+const BIOME_ORDER = ['forest', 'meadow', 'dry', 'sandy', 'wet'];
 const BIOMES = {
-    desert: {
-        name: 'Desierto',
-        top: '#d9b36a', bottom: '#b28a4a',
-        mottleA: 'rgba(244, 222, 170, 0.07)', mottleB: 'rgba(150, 112, 58, 0.06)',
-        grass: ['#9c8a3c', '#b09a48', '#c2ac58'],
-        tuft: ['#b8a24e', '#cbb268', '#96803c'],
-        trailA: 'rgba(160, 126, 72, 0.22)', trailB: 'rgba(224, 194, 136, 0.18)',
-        sandClusters: 44, dryClusters: 26, mudClusters: 0, puddles: 0, mounds: 30,
-        shrubs: 12, reeds: 0, succulents: 34, sway: 40,
-        glowMushrooms: 0.0, fog: 0.02, rain: 0.0, dust: 0.16,
-        critters: 2, critterType: 'fly',
-        food: '#e07b39', tint: 'rgba(255, 224, 150, 0.06)',
-        rootCol: '#7a5a2c', shrubCol: '#8a7438',
-        swayCols: ['#cbb268', '#b8a24e', '#dcc87c'],
-        sandA: '#e2c184', sandB: '#c2a05e'
-    },
-    jungle: {
-        name: 'Jungla',
-        top: '#1d4a22', bottom: '#0f2e14',
-        mottleA: 'rgba(64, 140, 70, 0.065)', mottleB: 'rgba(4, 24, 8, 0.08)',
-        grass: ['#1e5c26', '#2b7a32', '#3c9a42'],
-        tuft: ['#2f8a3a', '#3fa348', '#236e2c'],
-        trailA: 'rgba(96, 74, 40, 0.26)', trailB: 'rgba(140, 116, 66, 0.18)',
-        sandClusters: 0, dryClusters: 0, mudClusters: 8, puddles: 10, mounds: 16,
-        shrubs: 22, reeds: 10, succulents: 0, sway: 260,
-        glowMushrooms: 0.14, fog: 0.09, rain: 0.7, dust: 0.0,
-        critters: 14, critterType: 'dragonfly',
-        food: '#ff5d8f', tint: 'rgba(40, 160, 90, 0.05)',
-        rootCol: '#3d2a12', shrubCol: '#1f5c2a',
-        swayCols: ['#3fa348', '#2f8a3a', '#54bc60'],
-        sandA: '#7a6a44', sandB: '#5f5234'
-    },
-    tundra: {
-        name: 'Tundra',
-        top: '#c9d4cd', bottom: '#9fb0aa',
-        mottleA: 'rgba(240, 248, 250, 0.08)', mottleB: 'rgba(110, 130, 128, 0.07)',
-        grass: ['#7d8a68', '#95a37c', '#aeb996'],
-        tuft: ['#93a17c', '#a7b48e', '#7a8a64'],
-        trailA: 'rgba(120, 110, 88, 0.2)', trailB: 'rgba(190, 186, 160, 0.18)',
-        sandClusters: 6, dryClusters: 4, mudClusters: 4, puddles: 6, mounds: 12,
-        shrubs: 6, reeds: 6, succulents: 0, sway: 60,
-        glowMushrooms: 0.05, fog: 0.05, rain: 0.1, dust: 0.02,
-        critters: 4, critterType: 'gnat',
-        food: '#d1495b', tint: 'rgba(230, 242, 246, 0.07)',
-        rootCol: '#4a3a24', shrubCol: '#5d6b4a',
-        swayCols: ['#a7b48e', '#93a17c', '#bcc9a4'],
-        sandA: '#cfd6cf', sandB: '#aab4ac'
-    },
-    swamp: {
-        name: 'Pantano',
-        top: '#3d4a24', bottom: '#262e14',
-        mottleA: 'rgba(120, 140, 60, 0.06)', mottleB: 'rgba(16, 22, 6, 0.09)',
-        grass: ['#4a5c22', '#5d7028', '#718430'],
-        tuft: ['#5d7028', '#6e8030', '#4a5c22'],
-        trailA: 'rgba(86, 74, 40, 0.28)', trailB: 'rgba(130, 118, 66, 0.2)',
-        sandClusters: 0, dryClusters: 0, mudClusters: 26, puddles: 18, mounds: 14,
-        shrubs: 12, reeds: 40, succulents: 0, sway: 150,
-        glowMushrooms: 0.2, fog: 0.12, rain: 0.6, dust: 0.0,
-        critters: 12, critterType: 'dragonfly',
-        food: '#b388eb', tint: 'rgba(90, 120, 50, 0.05)',
-        rootCol: '#3a2c12', shrubCol: '#4a5c26',
-        swayCols: ['#6e8030', '#5d7028', '#829638'],
-        sandA: '#6a6244', sandB: '#504a32'
-    },
     forest: {
         name: 'Bosque verde',
         top: '#2d5522', bottom: '#1f3b16',
@@ -1177,38 +1113,6 @@ const BIOMES = {
 
 /* Paleta de arte por bioma: arboles, arbustos, rocas y ambiente. */
 const BIOME_ART = {
-    desert: {
-        tree: { dark: '#4a5c28', mid: '#6d7c34', light: '#949e46', rim: '#c8ce78', trunk: '#8a6a3a', trunkLight: '#b08a54', bark: '#543e20', accent: 'rgba(250, 236, 180, 0.75)' },
-        bush: { dark: '#5d6428', mid: '#7d8434', light: '#a3a848', rim: '#d2d478' },
-        rock: { base: '#c4ae84', dark: '#8a744e', light: '#e6d6ae', moss: '#9a9a4c' },
-        log: { bark: '#8a6a3e', light: '#c4a068', ring: '#eed6a0' },
-        pollen: 0.03, leafFall: 0.1, ridges: 34,
-        ridgeA: 'rgba(240, 218, 160, 0.3)', ridgeB: 'rgba(150, 116, 62, 0.2)'
-    },
-    jungle: {
-        tree: { dark: '#0a2e12', mid: '#14521e', light: '#1f7a2c', rim: '#3fae52', trunk: '#3a2810', trunkLight: '#5e4424', bark: '#221606', accent: 'rgba(120, 220, 130, 0.4)' },
-        bush: { dark: '#0c3a16', mid: '#166028', light: '#22883a', rim: '#3fae5c' },
-        rock: { base: '#5a6a58', dark: '#2e3c2c', light: '#869886', moss: '#3f9a4c' },
-        log: { bark: '#3c2c16', light: '#6e5232', ring: '#a8875a' },
-        pollen: 0.5, leafFall: 0.9, ridges: 10,
-        ridgeA: 'rgba(60, 140, 70, 0.14)', ridgeB: 'rgba(6, 26, 10, 0.18)'
-    },
-    tundra: {
-        tree: { dark: '#2e4438', mid: '#3f5c4c', light: '#577a66', rim: '#8fae9c', trunk: '#4a3a26', trunkLight: '#6e5a40', bark: '#2e2414', accent: 'rgba(230, 242, 246, 0.6)' },
-        bush: { dark: '#3c4a34', mid: '#526444', light: '#6e8058', rim: '#9cae88' },
-        rock: { base: '#9aa8a2', dark: '#5f6e68', light: '#c8d4ce', moss: '#7d9468' },
-        log: { bark: '#4e3c26', light: '#82643f', ring: '#b49a6c' },
-        pollen: 0.15, leafFall: 0.2, ridges: 14,
-        ridgeA: 'rgba(230, 240, 242, 0.22)', ridgeB: 'rgba(90, 110, 108, 0.18)'
-    },
-    swamp: {
-        tree: { dark: '#1e2a10', mid: '#35481c', light: '#4e6628', rim: '#78923e', trunk: '#3a2e16', trunkLight: '#5c4a2a', bark: '#241c0c', accent: null },
-        bush: { dark: '#263414', mid: '#3c5020', light: '#556c2c', rim: '#7e9a44' },
-        rock: { base: '#6a6a54', dark: '#3e3e2e', light: '#94947c', moss: '#5d7a34' },
-        log: { bark: '#42341c', light: '#745c38', ring: '#a68a5c' },
-        pollen: 0.3, leafFall: 0.5, ridges: 16,
-        ridgeA: 'rgba(110, 130, 60, 0.16)', ridgeB: 'rgba(20, 26, 8, 0.22)'
-    },
     forest: {
         tree: { dark: '#103218', mid: '#23512a', light: '#3d7c34', rim: '#7fba5c', trunk: '#4a2c14', trunkLight: '#6d4a26', bark: '#2b1808', accent: null },
         bush: { dark: '#15401f', mid: '#256b32', light: '#3f8f45', rim: '#7dc46a' },
@@ -1330,8 +1234,8 @@ const SPECIES = {
         name: 'Allomerus decemarticulatus',
         family: 'Allomerus',
         title: 'Especialista en trampas',
-        blurb: 'Construye galerías de fibras vegetales y hongos para atrapar insectos. Sus obreras inmovilizan a la presa y reclutan refuerzos para acabar con ella. Coloca trampas permanentes que frenan a los enemigos hasta que alguien las pise y potencian la mordida de tus obreras.',
-        traits: ['Trampa de galería', 'Trampas permanentes', 'Refuerzos +30% daño', 'Nido arbóreo'],
+        blurb: 'Construye galerías de fibras vegetales y hongos para atrapar insectos. Sus obreras inmovilizan a la presa y reclutan refuerzos para acabar con ella. Coloca hasta 3 trampas que frenan a los enemigos y potencian la mordida de tus obreras.',
+        traits: ['Trampa de galería', 'Máximo 3 trampas', 'Refuerzos +30% daño', 'Nido arbóreo'],
         nestStyle: 'tree',
         queenHp: 420, queenDamage: 2.6, queenSpeed: 2.65,
         workerHp: 28, workerDamage: 0.95, workerSpeed: 2.15, workerScale: 0.94,
@@ -3675,15 +3579,15 @@ class Beetle extends Entity {
 }
 
 const ENEMY_STATS = {
-    spider:    { speed: 1.75, radius: 16, hp: 80,  damage: 5.7,  melee: 30, sight: 260, drop: 15 },
-    mantis:    { speed: 2.3,  radius: 22, hp: 150, damage: 9.5,  melee: 28, sight: 300, drop: 30 },
-    antlion:   { speed: 1.05, radius: 24, hp: 270, damage: 13,   melee: 40, sight: 240, drop: 45 },
-    scorpion:  { speed: 1.5,  radius: 20, hp: 215, damage: 10.5, melee: 34, sight: 280, drop: 40 },
-    centipede: { speed: 2.6,  radius: 14, hp: 95,  damage: 4.8,  melee: 16, sight: 320, drop: 22 },
-    tiger:     { speed: 3.35, radius: 17, hp: 108, damage: 8.4,  melee: 24, sight: 380, drop: 25 },
-    wasp:      { speed: 3.9,  radius: 13, hp: 48,  damage: 11.5, melee: 24, sight: 360, drop: 28 },
-    assassin:  { speed: 2.6,  radius: 15, hp: 120, damage: 8.8,  melee: 30, sight: 330, drop: 26 },
-    anteater:  { speed: 1.35, radius: 30, hp: 700, damage: 14,   melee: 45, sight: 560, drop: 90 }
+    spider:    { speed: 1.75, radius: 16, hp: 100, damage: 7.1,  melee: 30, sight: 260, drop: 15 },
+    mantis:    { speed: 2.3,  radius: 22, hp: 190, damage: 12,   melee: 28, sight: 300, drop: 30 },
+    antlion:   { speed: 1.05, radius: 24, hp: 340, damage: 16.5, melee: 40, sight: 240, drop: 45 },
+    scorpion:  { speed: 1.5,  radius: 20, hp: 270, damage: 13.5, melee: 34, sight: 280, drop: 40 },
+    centipede: { speed: 2.6,  radius: 14, hp: 120, damage: 6,    melee: 16, sight: 320, drop: 22 },
+    tiger:     { speed: 3.35, radius: 17, hp: 135, damage: 10.5, melee: 24, sight: 380, drop: 25 },
+    wasp:      { speed: 3.9,  radius: 13, hp: 58,  damage: 14.25, melee: 24, sight: 360, drop: 28 },
+    assassin:  { speed: 2.6,  radius: 15, hp: 150, damage: 11,   melee: 30, sight: 330, drop: 26 },
+    anteater:  { speed: 1.35, radius: 30, hp: 850, damage: 18,   melee: 45, sight: 560, drop: 90 }
 };
 
 class Enemy extends Entity {
@@ -3833,13 +3737,10 @@ class Enemy extends Entity {
                 this.tongueT = 0.3;
                 this.tongueEnd = { x: target.x, y: target.y };
                 let eaten = 0;
-                let affected = 0;
                 for (const a of ants) {
                     if (a.hp <= 0) continue;
-                    if (affected >= 7) break;
                     const d = Math.hypot(a.x - target.x, (a.y - target.y) / TILT);
                     if (d > 120) continue;
-                    affected++;
                     a.hp -= this.damage * 1.5;
                     if (!a.isStatic) {
                         const pull = Math.atan2((target.y - a.y) / TILT, target.x - a.x);
@@ -6304,6 +6205,19 @@ function drawAmbientLight() {
     if (night > 0.02) {
         ctx.fillStyle = `rgba(10, 20, 54, ${0.54 * night})`;
         ctx.fillRect(0, 0, viewW, viewH);
+        const moon = ctx.createRadialGradient(
+            viewW * 0.78, viewH * 0.14, 8,
+            viewW * 0.78, viewH * 0.14, Math.max(viewW, viewH) * 0.5
+        );
+        moon.addColorStop(0, `rgba(196, 220, 255, ${0.22 * night})`);
+        moon.addColorStop(0.25, `rgba(148, 180, 255, ${0.07 * night})`);
+        moon.addColorStop(1, 'rgba(148, 180, 255, 0)');
+        ctx.fillStyle = moon;
+        ctx.fillRect(0, 0, viewW, viewH);
+        ctx.fillStyle = `rgba(238, 246, 255, ${0.75 * night})`;
+        ctx.beginPath();
+        ctx.arc(viewW * 0.78, viewH * 0.14, 18, 0, Math.PI * 2);
+        ctx.fill();
         ctx.fillStyle = `rgba(206, 222, 246, ${0.85 * night})`;
         for (let i = 0; i < 70; i++) {
             const sx = ((i * 137.5) % 1) * viewW;
@@ -6423,22 +6337,17 @@ function infFbm(x, y, oct) {
     return sum / norm;
 }
 
-/* Pesos de bioma continuos: dos campos de ruido (calor y humedad).
-   Frecuencia baja (~0.00016) para que los biomas cambien de forma gradual. */
+/* Pesos de bioma continuos: dos campos de ruido (calor y humedad). */
 function infWeightsAt(x, y) {
-    const t = infFbm(x * 0.00016 + 11.3, y * 0.00016 - 7.7, 3);
-    const m = infFbm(x * 0.00014 - 42.1, y * 0.00014 + 23.5, 3);
+    const t = infFbm(x * 0.00042 + 11.3, y * 0.00042 - 7.7, 3);
+    const m = infFbm(x * 0.00036 - 42.1, y * 0.00036 + 23.5, 3);
     const w = {};
-    w.desert = clamp((t - 0.66) * 3.4, 0, 1) * clamp((0.42 - m) * 3.4, 0, 1);
-    w.sandy = clamp((t - 0.6) * 3.2, 0, 1) * clamp((0.48 - m) * 3.2, 0, 1) * (1 - w.desert * 0.85);
-    w.tundra = clamp((0.36 - t) * 3.2, 0, 1) * clamp((m - 0.4) * 2.4, 0, 1);
-    w.dry = clamp((t - 0.5) * 2.6, 0, 1) * clamp((0.62 - m) * 2.5, 0, 1) * (1 - (w.sandy + w.desert) * 0.8);
-    w.jungle = clamp((t - 0.56) * 2.8, 0, 1) * clamp((m - 0.64) * 2.8, 0, 1);
-    w.swamp = clamp((m - 0.68) * 2.8, 0, 1) * clamp((0.56 - t) * 3.0, 0, 1);
-    w.wet = clamp((m - 0.58) * 3.2, 0, 1) * clamp((0.62 - t) * 3.2, 0, 1) * (1 - (w.swamp + w.jungle) * 0.8);
-    w.meadow = clamp(1 - Math.abs(t - 0.46) * 3.0, 0, 1) * clamp((0.72 - m) * 2.6, 0, 1)
-        * (1 - (w.wet + w.dry + w.tundra) * 0.7);
-    w.forest = Math.max(0.08, 1 - w.desert - w.sandy - w.dry - w.wet - w.meadow - w.jungle - w.tundra - w.swamp);
+    w.sandy = clamp((t - 0.63) * 4.6, 0, 1) * clamp((0.46 - m) * 4.6, 0, 1);
+    w.dry = clamp((t - 0.49) * 2.9, 0, 1) * clamp((0.63 - m) * 2.7, 0, 1) * (1 - w.sandy * 0.85);
+    w.wet = clamp((m - 0.6) * 3.8, 0, 1) * clamp((0.62 - t) * 3.6, 0, 1);
+    w.meadow = clamp(1 - Math.abs(t - 0.48) * 3.4, 0, 1) * clamp((0.74 - m) * 3.0, 0, 1)
+        * (1 - w.wet * 0.7) * (1 - w.dry * 0.75);
+    w.forest = Math.max(0.08, 1 - w.sandy - w.dry - w.wet - w.meadow);
     let total = 0;
     for (const k of BIOME_ORDER) {
         w[k] = Math.max(0, w[k]);
@@ -6485,25 +6394,25 @@ function infBlendCss(x, y, field) {
 
 /* Densidad media de decoracion por chunk segun bioma. */
 const INF_DENSITY = {
-    trees: { forest: 9, meadow: 2.5, dry: 4, sandy: 0.8, wet: 6, desert: 0.5, jungle: 12, tundra: 3, swamp: 5 },
-    bushes: { forest: 7, meadow: 9, dry: 9, sandy: 4, wet: 5, desert: 3, jungle: 11, tundra: 4, swamp: 6 },
-    logs: { forest: 4, meadow: 1.6, dry: 2.6, sandy: 1.2, wet: 4, desert: 0.6, jungle: 6, tundra: 2.4, swamp: 6 },
-    rocks: { forest: 6, meadow: 5, dry: 11, sandy: 9, wet: 4, desert: 10, jungle: 5, tundra: 12, swamp: 4 },
-    ferns: { forest: 15, meadow: 3, dry: 1.5, sandy: 0.5, wet: 20, desert: 0.2, jungle: 26, tundra: 4, swamp: 14 },
-    flowers: { forest: 26, meadow: 58, dry: 12, sandy: 5, wet: 18, desert: 4, jungle: 30, tundra: 12, swamp: 16 },
-    mushrooms: { forest: 7, meadow: 4, dry: 2, sandy: 0.7, wet: 15, desert: 0.3, jungle: 10, tundra: 3, swamp: 12 },
-    reeds: { forest: 0, meadow: 0, dry: 0, sandy: 0, wet: 14, desert: 0, jungle: 4, tundra: 3, swamp: 26 },
-    succulents: { forest: 0, meadow: 0, dry: 1.5, sandy: 4, wet: 0, desert: 16, jungle: 0, tundra: 1, swamp: 0 },
-    clover: { forest: 12, meadow: 16, dry: 4, sandy: 1, wet: 8, desert: 0.5, jungle: 14, tundra: 5, swamp: 6 },
-    beds: { forest: 2, meadow: 5, dry: 1, sandy: 0.4, wet: 1.2, desert: 0.3, jungle: 3, tundra: 1, swamp: 1 },
-    blades: { forest: 560, meadow: 720, dry: 380, sandy: 230, wet: 610, desert: 120, jungle: 700, tundra: 300, swamp: 480 },
-    tufts: { forest: 175, meadow: 235, dry: 110, sandy: 60, wet: 205, desert: 30, jungle: 260, tundra: 90, swamp: 160 },
-    pebbles: { forest: 70, meadow: 60, dry: 105, sandy: 125, wet: 55, desert: 150, jungle: 60, tundra: 140, swamp: 50 },
-    leaves: { forest: 105, meadow: 52, dry: 76, sandy: 18, wet: 66, desert: 8, jungle: 150, tundra: 24, swamp: 70 },
-    twigs: { forest: 14, meadow: 8, dry: 12, sandy: 6, wet: 10, desert: 3, jungle: 20, tundra: 6, swamp: 12 },
-    fireflies: { forest: 10, meadow: 8, dry: 3, sandy: 1, wet: 20, desert: 1, jungle: 18, tundra: 4, swamp: 22 },
-    critters: { forest: 2, meadow: 3, dry: 1.5, sandy: 1, wet: 3, desert: 1, jungle: 4, tundra: 1.5, swamp: 4 },
-    creatures: { forest: 4, meadow: 3, dry: 2.5, sandy: 1.5, wet: 5, desert: 1.5, jungle: 5, tundra: 2.5, swamp: 5 }
+    trees: { forest: 9, meadow: 2.5, dry: 4, sandy: 0.8, wet: 6 },
+    bushes: { forest: 7, meadow: 9, dry: 9, sandy: 4, wet: 5 },
+    logs: { forest: 4, meadow: 1.6, dry: 2.6, sandy: 1.2, wet: 4 },
+    rocks: { forest: 6, meadow: 5, dry: 11, sandy: 9, wet: 4 },
+    ferns: { forest: 15, meadow: 3, dry: 1.5, sandy: 0.5, wet: 20 },
+    flowers: { forest: 26, meadow: 58, dry: 12, sandy: 5, wet: 18 },
+    mushrooms: { forest: 7, meadow: 4, dry: 2, sandy: 0.7, wet: 15 },
+    reeds: { forest: 0, meadow: 0, dry: 0, sandy: 0, wet: 14 },
+    succulents: { forest: 0, meadow: 0, dry: 1.5, sandy: 4, wet: 0 },
+    clover: { forest: 12, meadow: 16, dry: 4, sandy: 1, wet: 8 },
+    beds: { forest: 2, meadow: 5, dry: 1, sandy: 0.4, wet: 1.2 },
+    blades: { forest: 560, meadow: 720, dry: 380, sandy: 230, wet: 610 },
+    tufts: { forest: 175, meadow: 235, dry: 110, sandy: 60, wet: 205 },
+    pebbles: { forest: 70, meadow: 60, dry: 105, sandy: 125, wet: 55 },
+    leaves: { forest: 105, meadow: 52, dry: 76, sandy: 18, wet: 66 },
+    twigs: { forest: 14, meadow: 8, dry: 12, sandy: 6, wet: 10 },
+    fireflies: { forest: 10, meadow: 8, dry: 3, sandy: 1, wet: 20 },
+    critters: { forest: 2, meadow: 3, dry: 1.5, sandy: 1, wet: 3 },
+    creatures: { forest: 4, meadow: 3, dry: 2.5, sandy: 1.5, wet: 5 }
 };
 
 function infDensity(w, key) {
@@ -9253,6 +9162,7 @@ function pvpUseAbility(side, which) {
 
     if (key === 'allomerus') {
         if (q.abilityCD > 0) return fb(`Trampa disponible en ${fs(q.abilityCD)}s`, true);
+        if (galTraps.length >= 3) return fb('Ya hay 3 trampas de galería activas', true);
         for (let i = 0; i < 14; i++) {
             const ang = (i / 14) * Math.PI * 2 + Math.random() * 0.3;
             const rr = 90 + Math.random() * 50;
@@ -9260,10 +9170,10 @@ function pvpUseAbility(side, which) {
             const y = clamp(q.y + Math.sin(ang) * rr * TILT, 34, WORLD_H - 34);
             if (checkObstacleCollision(x, y, 18)) continue;
             if (galTraps.some(t => Math.hypot(t.x - x, (t.y - y) / TILT) < 80)) continue;
-            galTraps.push({ x, y, r: 46, life: Infinity, stuck: null, rearm: 0, owner: side });
+            galTraps.push({ x, y, r: 46, life: Math.round(25 / STEP), stuck: null, rearm: 0, owner: side });
             q.abilityCD = 32;
             spawnHitParticles(x, y, '#f4d35e', 18);
-            fb(`Trampa de galería desplegada (${galTraps.length} activas) — permanece hasta que alguien la pise`, false);
+            fb(`Trampa de galería desplegada (${galTraps.length}/3) — inmoviliza hormigas rivales`, false);
             return;
         }
         return fb('No hay espacio libre para la trampa de galería', true);
@@ -9775,6 +9685,10 @@ function abilityGallery() {
         setStatus(`Trampa de galería disponible en ${queen.abilityCD.toFixed(1)}s`, true);
         return;
     }
+    if (galTraps.length >= 3) {
+        setStatus('Ya hay 3 trampas de galería activas (máximo)', true);
+        return;
+    }
 
     const spots = [];
     if (mouse.x > 0 && mouse.y > 0) spots.push({ x: mouse.x, y: mouse.y });
@@ -9793,10 +9707,10 @@ function abilityGallery() {
             }
         }
         if (!ok) continue;
-        galTraps.push({ x, y, r: 46, life: Infinity, stuck: null, rearm: 0 });
+        galTraps.push({ x, y, r: 46, life: Math.round(25 / STEP), stuck: null, rearm: 0 });
         queen.abilityCD = 32;
         spawnHitParticles(x, y, '#f4d35e', 18);
-        setStatus(`Trampa de galería desplegada (${galTraps.length} activas) — permanece hasta que alguien la pise · inmoviliza 2.5s · +30% daño de obreras`);
+        setStatus(`Trampa de galería desplegada (${galTraps.length}/3) — 25s · inmoviliza 2.5s · +30% daño de obreras`);
         updateUI();
         return;
     }
@@ -12512,9 +12426,15 @@ function step() {
         }
     }
 
-    // Trampas de galería de Allomerus (permanentes hasta que alguien las pise)
+    // Trampas de galería de Allomerus
     for (let i = galTraps.length - 1; i >= 0; i--) {
         const t = galTraps[i];
+        t.life--;
+        if (t.life <= 0) {
+            if (t.stuck) t.stuck.trapped = 0;
+            galTraps.splice(i, 1);
+            continue;
+        }
         if (t.stuck && (t.stuck.hp <= 0 || (!enemies.includes(t.stuck) && !ants.includes(t.stuck) && !infResident.creatures.includes(t.stuck)))) t.stuck = null;
         if (t.stuck) {
             const d = Math.hypot(t.stuck.x - t.x, (t.stuck.y - t.y) / TILT);
@@ -12557,11 +12477,7 @@ function step() {
                 }
             }
         }
-        if (t.stuck && t.stuck.trapped <= 0) {
-            t.stuck = null;
-            galTraps.splice(i, 1);
-            continue;
-        }
+        if (t.stuck && t.stuck.trapped <= 0) { t.stuck = null; t.rearm = 90; }
     }
 
     for (const b of butterflies) {
