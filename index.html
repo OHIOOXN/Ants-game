@@ -314,7 +314,33 @@
         gap: 9px;
         box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55);
         transition: transform 0.18s, border-color 0.2s, box-shadow 0.2s;
+        position: relative;
+        overflow: hidden;
     }
+    .species-card::before {
+        content: '';
+        position: absolute;
+        left: 0; right: 0; top: 0; height: 4px;
+        background: linear-gradient(90deg, var(--sp-accent, #b5e48c), rgba(255, 255, 255, 0));
+    }
+    .species-banner { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .species-badge {
+        font-size: 0.58rem; letter-spacing: 1px; text-transform: uppercase;
+        color: var(--sp-accent, #b5e48c);
+        border: 1px solid var(--sp-accent, #b5e48c);
+        border-radius: 20px; padding: 2px 9px; background: rgba(0, 0, 0, 0.3);
+        white-space: nowrap;
+    }
+    .species-kind { font-size: 0.56rem; letter-spacing: 1px; color: #95d5b2; white-space: nowrap; }
+    .species-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 2px; }
+    .species-stat { display: flex; flex-direction: column; gap: 3px; }
+    .species-stat > span { font-size: 0.53rem; color: #b7e4c7; letter-spacing: 0.4px; }
+    .species-stat i { display: block; height: 4px; border-radius: 4px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+    .species-stat i::after {
+        content: ''; display: block; height: 100%; width: var(--val);
+        border-radius: 4px; background: linear-gradient(90deg, var(--sp-accent, #b5e48c), #e9f5db);
+    }
+    .species-card canvas { box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.55); }
     .species-card:hover {
         transform: translateY(-5px);
         border-color: #b5e48c;
@@ -739,6 +765,86 @@
     }
     #mob-toast.show { opacity: 1; transform: translateY(0); }
     #hint { left: 10px; bottom: 56px; max-width: calc(100% - 260px); }
+    .sugar-box { margin-top: 12px; padding: 10px 12px; border: 1px solid rgba(149,213,178,0.4); border-radius: 10px; background: rgba(8,14,6,0.55); }
+    .sugar-box > div { margin: 6px 0; }
+    #buff-indicator {
+        position: fixed;
+        right: 14px;
+        bottom: 14px;
+        z-index: 900;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(8, 14, 6, 0.9);
+        border: 1px solid #ffd166;
+        border-radius: 12px;
+        padding: 6px 12px;
+        color: #ffe5b4;
+        font-size: 0.82rem;
+        font-weight: bold;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.55);
+        pointer-events: none;
+    }
+    #buff-icon svg { display: block; }
+
+    /* ===== Subterráneo 2.5D ===== */
+    #btn-underground { background: linear-gradient(180deg,#b07d3a,#5c3a16) !important; border-color:#f0c987 !important; }
+    #btn-cards { background: linear-gradient(180deg,#7b4bb5,#3a1d63) !important; border-color:#d9b8ff !important; }
+    #toolbar-underground { background:rgba(46,29,14,0.94); border-color:#9b7444; }
+    #toolbar-underground .tool-btn.active { background:linear-gradient(180deg,#e09f3e,#9e2a2b); }
+    .stat-ug span { color:#ffd166; }
+    #ug-info {
+        position:absolute; right:10px; top:8px; display:none; flex-direction:column; gap:2px;
+        font-size:0.68rem; line-height:1.35; color:#f2dfc0;
+        background:rgba(26,16,8,0.88); border:1px solid rgba(196,148,84,0.65);
+        border-radius:8px; padding:6px 10px; pointer-events:none; min-width:170px;
+    }
+    #ug-info.show { display:flex; }
+    #ug-info strong { color:#ffd166; }
+    #ug-info .ug-title { color:#ffca8a; font-weight:bold; letter-spacing:0.5px; }
+
+    /* Cartas, cofre y castas */
+    #cards-screen.show { justify-content:flex-start; overflow-y:auto; padding-top:16px; padding-bottom:26px; }
+    #cards-screen h1 { font-size:2rem; margin-bottom:4px; }
+    .cards-box {
+        display:flex; flex-direction:column; gap:12px; width:100%; max-width:920px;
+        background:rgba(20,30,18,0.94); border:1px solid #6d5a9c; border-radius:14px;
+        padding:16px; box-shadow:0 12px 34px rgba(0,0,0,0.65);
+    }
+    .cards-row { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+    .card-tile {
+        width:190px; min-height:150px; border-radius:12px; padding:10px 12px; text-align:left;
+        background:linear-gradient(180deg,#2c2145,#140e24); border:2px solid #8b6dc0;
+        box-shadow:0 6px 18px rgba(0,0,0,0.5); display:flex; flex-direction:column; gap:6px;
+        position:relative; overflow:hidden;
+    }
+    .card-tile::after {
+        content:''; position:absolute; top:-24px; right:-24px; width:68px; height:68px;
+        border-radius:50%; background:radial-gradient(circle, rgba(255,255,255,0.16), transparent 70%);
+        pointer-events:none;
+    }
+    .card-tile .card-name::before { content:'✦ '; color:#ffd166; }
+    .card-tile.species .card-name::before { content:'★ '; }
+    .card-progress { height:5px; border-radius:5px; background:rgba(255,255,255,0.12); overflow:hidden; }
+    .card-progress i { display:block; height:100%; width:0; border-radius:5px;
+        background:linear-gradient(90deg,#52b788,#ffd166); transition:width 0.25s; }
+    .card-tile.species .card-progress i { background:linear-gradient(90deg,#ffd166,#e09f3e); }
+    .card-tile.species { border-color:#ffd166; background:linear-gradient(180deg,#4a3413,#1d1305); }
+    .card-tile .card-name { font-weight:bold; color:#f4f1de; font-size:0.92rem; }
+    .card-tile .card-sub { font-size:0.68rem; color:#c9b6e4; line-height:1.3; }
+    .card-tile .card-count { font-size:1.2rem; color:#ffd166; font-weight:bold; }
+    .card-tile button { margin-top:auto; padding:7px 10px; border-radius:8px; border:1px solid #b7e4c7;
+        background:linear-gradient(180deg,#52b788,#1b4332); color:#fff; font-weight:bold;
+        font-size:0.75rem; cursor:pointer; font-family:inherit; }
+    .card-tile button:disabled { opacity:0.45; cursor:not-allowed; filter:grayscale(0.7); }
+    .chest-banner {
+        background:linear-gradient(90deg,#6b4423,#e09f3e,#6b4423); color:#fff3b0; font-weight:bold;
+        padding:9px; border-radius:10px; font-size:0.9rem;
+    }
+    .caste-row { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+    .caste-btn { padding:7px 16px; font-size:0.78rem; border-radius:8px; cursor:pointer; font-weight:bold;
+        border:1px solid #74c69d; background:linear-gradient(180deg,#2d6a4f,#14240f); color:#e9f5db; }
+    .caste-btn.active { background:linear-gradient(180deg,#e09f3e,#9e2a2b); border-color:#fff3b0; }
 </style>
 </head>
 <body>
@@ -848,6 +954,8 @@
                 <option value="allomerus">Allomerus decemarticulatus</option>
                 <option value="myrmecia">Myrmecia gulosa</option>
                 <option value="crematogaster">Crematogaster opuntiae</option>
+                <option value="lasius">Lasius niger</option>
+                <option value="colobopsis">Colobopsis explodens</option>
             </select>
             <div id="rooms-status">Desconectado</div>
             <div id="rooms-panel">
@@ -885,6 +993,8 @@
                     <option value="allomerus">Allomerus decemarticulatus</option>
                     <option value="myrmecia">Myrmecia gulosa</option>
                     <option value="crematogaster">Crematogaster opuntiae</option>
+                <option value="lasius">Lasius niger</option>
+                <option value="colobopsis">Colobopsis explodens</option>
                 </select>
                 <button id="btn-inf-create" class="menu-btn btn-mode-normal">Crear nuevo mundo</button>
             </div>
@@ -895,12 +1005,58 @@
         </div>
     </div>
 
+    <!-- Cartas y cofre -->
+    <div id="cards-screen" class="overlay">
+        <h1>Cartas y cofre</h1>
+        <p>Sube de nivel tus hormigas con cartas. Cada nivel da <strong>+7.5% de vida y daño</strong>. Las cartas de especie son muy raras: solo puede actuar una especie a la vez.</p>
+        <div class="cards-box">
+            <div id="chest-banner" class="chest-banner" style="display:none;">¡Tienes un cofre sin abrir! Ábrelo para obtener cartas.</div>
+            <div class="cards-row">
+                <div class="card-tile">
+                    <div class="card-name">Carta de obrera</div>
+                    <div class="card-count" id="card-worker-count">0</div>
+                    <div class="card-sub">Nivel <span id="worker-level">1</span> · necesita <span id="worker-need">2</span> cartas</div>
+                    <div class="card-progress"><i id="worker-progress"></i></div>
+                    <button id="btn-up-worker">Subir de nivel</button>
+                </div>
+                <div class="card-tile">
+                    <div class="card-name">Carta de major</div>
+                    <div class="card-count" id="card-major-count">0</div>
+                    <div class="card-sub">Nivel <span id="major-level">1</span> · necesita <span id="major-need">2</span> cartas</div>
+                    <div class="card-progress"><i id="major-progress"></i></div>
+                    <button id="btn-up-major">Subir de nivel</button>
+                </div>
+                <div class="card-tile species">
+                    <div class="card-name">Cartas de especie</div>
+                    <div class="card-count" id="card-species-count">0</div>
+                    <div class="card-sub" id="species-card-info">Sin especie activa</div>
+                    <div class="card-progress"><i id="species-progress"></i></div>
+                    <button id="btn-open-chest">Abrir cofre</button>
+                </div>
+            </div>
+            <div class="sugar-box">
+                <div id="sugar-stock-label">Miel almacenada: 0 · Azúcar almacenada: 0</div>
+                <div class="rooms-row">
+                    <button id="btn-use-honey">Usar 1 miel</button>
+                    <button id="btn-convert-sugar">Cambiar 1 miel → 5 azúcar</button>
+                    <button id="btn-use-sugar">Usar 1 azúcar</button>
+                </div>
+                <div class="card-sub">La miel y el azúcar NO se activan al recogerlos: usa una unidad cuando quieras. Miel: +25% daño y +15% velocidad durante 5 min. Azúcar: +6.25% daño y +3.75% velocidad durante 90s (75% menos).</div>
+            </div>
+            <div id="cards-status" style="font-size:0.8rem;color:#b7e4c7;min-height:1.2em;">—</div>
+            <div class="rooms-row">
+                <button id="btn-cards-back" class="menu-btn btn-menu-back">Volver</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Pantalla de Fin -->
     <div id="end-screen" class="overlay">
         <h1 id="end-title">Victoria</h1>
         <p id="end-text"></p>
         <div class="menu-buttons">
             <button class="menu-btn btn-mode-normal" id="btn-end-restart">Jugar de nuevo</button>
+            <button class="menu-btn btn-mode-infinite" id="btn-end-chest" style="display:none;">Abrir cofre de recompensa</button>
             <button class="menu-btn btn-menu-back" id="btn-end-menu">Menú</button>
         </div>
     </div>
@@ -915,6 +1071,11 @@
         <button class="profile-out" id="btn-logout">Salir</button>
     </div>
     <div id="mob-toast"></div>
+    <div id="buff-indicator" style="display:none;">
+        <span id="buff-icon"></span>
+        <span id="buff-label"></span>
+        <span id="buff-time"></span>
+    </div>
 
     <header>
         <h1>Ants Empires and Colony <span id="mode-badge" style="font-size: 0.85rem; color: #ffd166;"></span></h1>
@@ -922,8 +1083,10 @@
     </header>
 
     <div class="hud">
-        <div class="stat">Comida: <span id="food-count">100</span></div>
+        <div class="stat">Comida: <span id="food-count">100</span><small id="food-cap-label"></small></div>
+        <div class="stat">Miel: <span id="honey-stock">0</span> · Azúcar: <span id="sugar-stock">0</span></div>
         <div class="stat">Hormigas: <span id="ant-count">0</span></div>
+        <div class="stat stat-ug">Obreras: <span id="worker-count">0</span> · Majors: <span id="major-count">0/<span id="major-cap">0</span></span></div>
         <div class="stat sandbox-only">Termitas: <span id="termite-count">0</span></div>
         <div class="stat stat-enemy sandbox-only">Enemigos: <span id="enemy-count">0</span></div>
         <div class="stat sandbox-only">Cría: <span id="spawn-progress">0/10</span></div>
@@ -939,6 +1102,8 @@
         <div class="stat pvp-only">Listas: <span id="pvp-ready">0</span></div>
         <button id="btn-speed" class="sandbox-only">Velocidad: 1x</button>
         <button id="btn-behavior" class="btn-behavior">Modo: Recolección</button>
+        <button id="btn-underground">Entrar a la colonia</button>
+        <button id="btn-cards">Cartas</button>
         <button id="btn-center" class="btn-center">Centrar</button>
         <button id="btn-clear" class="btn-danger">Reiniciar</button>
         <button id="btn-back-menu" class="btn-menu-back">Menú</button>
@@ -959,6 +1124,8 @@
             <option value="allomerus">Allomerus decemarticulatus</option>
             <option value="myrmecia">Myrmecia gulosa</option>
             <option value="crematogaster">Crematogaster opuntiae</option>
+                <option value="lasius">Lasius niger</option>
+                <option value="colobopsis">Colobopsis explodens</option>
         </select>
         <button id="tool-sandbox_queen" class="tool-btn btn-queen" onclick="setTool('sandbox_queen')">Reina</button>
         <button id="tool-sandbox_nest" class="tool-btn btn-fungus" onclick="setTool('sandbox_nest')">Colonia</button>
@@ -984,12 +1151,32 @@
         <button id="tool-normal_nest" class="tool-btn" onclick="setTool('normal_nest')" disabled>Colocar Colonia (0/1)</button>
     </div>
 
+    <!-- Barra de herramientas Subterráneo -->
+    <div class="toolbar" id="toolbar-underground" style="display:none;">
+        <button id="tool-dig" class="tool-btn active" onclick="setUGTool('dig')">Excavar</button>
+        <button id="tool-queen_chamber" class="tool-btn btn-queen" onclick="setUGTool('queen_chamber')">Cámara de reina (5 huevos)</button>
+        <button id="tool-food_chamber" class="tool-btn" onclick="setUGTool('food_chamber')">Cámara de comida (+80)</button>
+        <button id="tool-major_chamber" class="tool-btn btn-predator" onclick="setUGTool('major_chamber')">Sala de majors (5)</button>
+        <button id="ug-exit" class="tool-btn btn-menu-back">Salir al exterior</button>
+    </div>
+
     <!-- Barra de herramientas PvP (oleadas) -->
     <div class="toolbar" id="toolbar-pvp" style="display:none;">
         <label class="pvp-label" for="pvp-wave-count">Obreras a enviar</label>
         <input id="pvp-wave-count" type="number" min="1" max="30" value="8">
         <button id="btn-pvp-wave" class="tool-btn btn-predator">Enviar obreras</button>
         <span id="pvp-hint">Fundad vuestra colonia para empezar</span>
+    </div>
+
+    <!-- Casta, incubación y ataque de majors -->
+    <div class="toolbar" id="caste-bar" style="display:none;">
+        <span class="pvp-label">Casta de la cría:</span>
+        <button id="caste-worker" class="caste-btn active" onclick="setCaste('worker')">Obrera</button>
+        <button id="caste-major" class="caste-btn" onclick="setCaste('major')">Major</button>
+        <span class="pvp-label">Huevos: <span id="egg-cap-label">0/5</span> · Comida: <span id="food-cap-label2">100</span></span>
+        <span class="pvp-label">Majors en ataque:</span>
+        <input id="major-raid-count" type="number" min="1" max="30" value="5" style="width:58px;padding:5px;background:#14240f;color:#e9f5db;border:1px solid #74c69d;border-radius:6px;">
+        <button id="btn-major-raid" class="tool-btn btn-predator">Atacar termitero</button>
     </div>
 
     <!-- Habilidades de la especie (Modo Normal) -->
@@ -1013,6 +1200,14 @@
             <div class="inf-line"><span>Fundación</span><strong id="inf-p-stage">—</strong></div>
             <div class="inf-seed" id="inf-p-seed">Semilla —</div>
         </div>
+        <div id="ug-info">
+            <div class="ug-title">COLONIA SUBTERRÁNEA</div>
+            <div>Cámaras reina: <strong id="ug-queen-rooms">0</strong></div>
+            <div>Cámaras comida: <strong id="ug-food-rooms">0</strong></div>
+            <div>Salas de majors: <strong id="ug-major-rooms">0</strong></div>
+            <div>Excavadas: <strong id="ug-dug">0</strong></div>
+            <div>Herramienta: <strong id="ug-tool-label">Excavar</strong></div>
+        </div>
         <div id="hint">Clic: acción/morder · Botón derecho: cámara · Rueda: zoom · WASD: reina/cámara · Q/E/F: habilidades · Esc: pausa</div>
     </div>
 
@@ -1027,7 +1222,7 @@ const WORLD_H = 2400;
 const DAY_SEGMENT = 180;
 const DAY_CYCLE = DAY_SEGMENT * 2;
 
-const BIOME_ORDER = ['forest', 'meadow', 'dry', 'sandy', 'wet'];
+const BIOME_ORDER = ['forest', 'meadow', 'dry', 'sandy', 'wet', 'desert', 'jungle', 'savanna', 'tundra', 'swamp'];
 const BIOMES = {
     forest: {
         name: 'Bosque verde',
@@ -1108,7 +1303,88 @@ const BIOMES = {
         rootCol: '#3f2b14', shrubCol: '#2f5a34',
         swayCols: ['#458c50', '#367a44', '#57a05f'],
         sandA: '#7a6a44', sandB: '#5f5234'
-    }
+    }    ,
+    desert: {
+        name: 'Desierto árido',
+        top: '#d9b46f', bottom: '#b58d4d',
+        mottleA: 'rgba(255, 232, 176, 0.075)', mottleB: 'rgba(132, 94, 44, 0.07)',
+        grass: ['#9c8a3c', '#b09a48', '#c4ac56'],
+        tuft: ['#b8a552', '#cbb763', '#9e8c43'],
+        trailA: 'rgba(168, 132, 74, 0.19)', trailB: 'rgba(230, 198, 138, 0.14)',
+        sandClusters: 42, dryClusters: 26, mudClusters: 0, puddles: 0, mounds: 30,
+        shrubs: 12, reeds: 0, succulents: 34, sway: 42,
+        glowMushrooms: 0.0, fog: 0.0, rain: 0.0, dust: 0.16,
+        critters: 2, critterType: 'fly',
+        food: '#e0a458', tint: 'rgba(255, 204, 128, 0.06)',
+        rootCol: '#8a632f', shrubCol: '#8d7a3e',
+        swayCols: ['#cbb763', '#b8a552', '#dccb77'],
+        sandA: '#e2c68a', sandB: '#c09b5c'
+    },
+    savanna: {
+        name: 'Sabana dorada',
+        top: '#8f8a3e', bottom: '#686b2c',
+        mottleA: 'rgba(232, 214, 122, 0.06)', mottleB: 'rgba(72, 62, 22, 0.055)',
+        grass: ['#7c8232', '#989b3c', '#b0ad4a'],
+        tuft: ['#adac4c', '#c1bd5a', '#8e923b'],
+        trailA: 'rgba(150, 116, 64, 0.2)', trailB: 'rgba(206, 172, 104, 0.15)',
+        sandClusters: 16, dryClusters: 22, mudClusters: 0, puddles: 1, mounds: 20,
+        shrubs: 20, reeds: 0, succulents: 8, sway: 130,
+        glowMushrooms: 0.0, fog: 0.0, rain: 0.05, dust: 0.06,
+        critters: 5, critterType: 'fly',
+        food: '#d9a05b', tint: 'rgba(240, 206, 110, 0.04)',
+        rootCol: '#6d5029', shrubCol: '#837438',
+        swayCols: ['#c1bd5a', '#adac4c', '#d4ca6a'],
+        sandA: '#c9b276', sandB: '#a58d54'
+    },
+    tundra: {
+        name: 'Tundra helada',
+        top: '#7b9289', bottom: '#4d6660',
+        mottleA: 'rgba(226, 242, 240, 0.085)', mottleB: 'rgba(30, 60, 58, 0.06)',
+        grass: ['#5d796f', '#799489', '#93aaa0'],
+        tuft: ['#a8c0b6', '#bcd2c8', '#8faa9f'],
+        trailA: 'rgba(120, 132, 126, 0.2)', trailB: 'rgba(198, 214, 210, 0.14)',
+        sandClusters: 6, dryClusters: 8, mudClusters: 4, puddles: 8, mounds: 12,
+        shrubs: 8, reeds: 4, succulents: 0, sway: 60,
+        glowMushrooms: 0.06, fog: 0.09, rain: 0.14, dust: 0.02,
+        critters: 3, critterType: 'gnat',
+        food: '#c6d8d0', tint: 'rgba(190, 225, 220, 0.05)',
+        rootCol: '#4b4a3c', shrubCol: '#587268',
+        swayCols: ['#bcd2c8', '#a8c0b6', '#d4e5dd'],
+        sandA: '#b8c8c0', sandB: '#8fa39a'
+    },
+    swamp: {
+        name: 'Pantano sombrío',
+        top: '#3d5138', bottom: '#243626',
+        mottleA: 'rgba(104, 146, 92, 0.06)', mottleB: 'rgba(8, 22, 14, 0.09)',
+        grass: ['#33512f', '#49663a', '#5e7d48'],
+        tuft: ['#5f8750', '#71995e', '#4c7243'],
+        trailA: 'rgba(74, 70, 36, 0.26)', trailB: 'rgba(118, 124, 66, 0.15)',
+        sandClusters: 0, dryClusters: 2, mudClusters: 22, puddles: 22, mounds: 18,
+        shrubs: 16, reeds: 40, succulents: 0, sway: 170,
+        glowMushrooms: 0.3, fog: 0.12, rain: 0.62, dust: 0.0,
+        critters: 8, critterType: 'dragonfly',
+        food: '#9bc47a', tint: 'rgba(60, 120, 90, 0.05)',
+        rootCol: '#3a2c18', shrubCol: '#3d6038',
+        swayCols: ['#71995e', '#5f8750', '#86ac70'],
+        sandA: '#7a7652', sandB: '#5c5c3c'
+    },
+
+    jungle: {
+        name: 'Jungla',
+        top: '#1d4a22', bottom: '#0f2e14',
+        mottleA: 'rgba(64, 140, 70, 0.065)', mottleB: 'rgba(4, 24, 8, 0.08)',
+        grass: ['#1e5c26', '#2b7a32', '#3c9a42'],
+        tuft: ['#2f8a3a', '#3fa348', '#236e2c'],
+        trailA: 'rgba(96, 74, 40, 0.26)', trailB: 'rgba(140, 116, 66, 0.18)',
+        sandClusters: 0, dryClusters: 0, mudClusters: 8, puddles: 10, mounds: 16,
+        shrubs: 22, reeds: 10, succulents: 0, sway: 260,
+        glowMushrooms: 0.14, fog: 0.09, rain: 0.7, dust: 0.0,
+        critters: 14, critterType: 'dragonfly',
+        food: '#ff5d8f', tint: 'rgba(40, 160, 90, 0.05)',
+        rootCol: '#3d2a12', shrubCol: '#1f5c2a',
+        swayCols: ['#3fa348', '#2f8a3a', '#54bc60'],
+        sandA: '#7a6a44', sandB: '#5f5234'
+    },
 };
 
 /* Paleta de arte por bioma: arboles, arbustos, rocas y ambiente. */
@@ -1152,7 +1428,48 @@ const BIOME_ART = {
         log: { bark: '#3c2a18', light: '#745336', ring: '#bb9a68' },
         pollen: 0.25, leafFall: 0.4, ridges: 9,
         ridgeA: 'rgba(104, 154, 122, 0.12)', ridgeB: 'rgba(4, 16, 10, 0.16)'
-    }
+    }    ,
+    desert: {
+        tree: { dark:'#4a3d1e', mid:'#6f6530', light:'#9d9448', rim:'#d4cb7c', trunk:'#8a6534', trunkLight:'#b98e50', bark:'#5a3d1c', accent:'rgba(255,236,176,0.75)' },
+        bush: { dark:'#4c4c1e', mid:'#72712d', light:'#9c9a42', rim:'#cfc972' },
+        rock: { base:'#c2a878', dark:'#8a754c', light:'#e6d2a6', moss:'#a5a25a' },
+        log: { bark:'#7a5a32', light:'#b48e54', ring:'#e6cb94' },
+        pollen: 0.03, leafFall: 0.08, ridges: 38,
+        ridgeA:'rgba(246,222,172,0.3)', ridgeB:'rgba(156,116,62,0.16)'
+    },
+    savanna: {
+        tree: { dark:'#3f4a1c', mid:'#65702a', light:'#95a043', rim:'#cbd070', trunk:'#6a4a24', trunkLight:'#997039', bark:'#3c2912', accent:'rgba(236,222,140,0.45)' },
+        bush: { dark:'#4c5420', mid:'#737d30', light:'#9ea547', rim:'#cbd17a' },
+        rock: { base:'#9b9471', dark:'#655f43', light:'#c5bd90', moss:'#8a9048' },
+        log: { bark:'#5d4226', light:'#9a7344', ring:'#d8b982' },
+        pollen: 0.3, leafFall: 0.5, ridges: 16,
+        ridgeA:'rgba(214,198,110,0.18)', ridgeB:'rgba(90,72,28,0.12)'
+    },
+    tundra: {
+        tree: { dark:'#223d37', mid:'#3c5c52', light:'#5e8072', rim:'#a6c6b8', trunk:'#4a4a3c', trunkLight:'#6f6f58', bark:'#2c2c22', accent:'rgba(230,245,240,0.8)' },
+        bush: { dark:'#2b4a40', mid:'#456c5c', light:'#6b9280', rim:'#b8d4c6' },
+        rock: { base:'#9aa9a2', dark:'#66766e', light:'#cdd9d2', moss:'#8fae9e' },
+        log: { bark:'#4c4a3c', light:'#807d63', ring:'#c2c6aa' },
+        pollen: 0.1, leafFall: 0.18, ridges: 12,
+        ridgeA:'rgba(222,240,236,0.2)', ridgeB:'rgba(46,74,70,0.13)'
+    },
+    swamp: {
+        tree: { dark:'#152b1a', mid:'#2a4a2c', light:'#416c3c', rim:'#78a765', trunk:'#332817', trunkLight:'#55432a', bark:'#1d150b', accent:null },
+        bush: { dark:'#173a22', mid:'#2d5c34', light:'#477d45', rim:'#7fb46c' },
+        rock: { base:'#5c6a58', dark:'#313c31', light:'#859384', moss:'#4f9a52' },
+        log: { bark:'#332a18', light:'#665538', ring:'#a99567' },
+        pollen: 0.2, leafFall: 0.55, ridges: 10,
+        ridgeA:'rgba(96,140,96,0.14)', ridgeB:'rgba(6,18,10,0.18)'
+    },
+
+    jungle: {
+        tree: { dark: '#0a2e12', mid: '#14521e', light: '#1f7a2c', rim: '#3fae52', trunk: '#3a2810', trunkLight: '#5e4424', bark: '#221606', accent: 'rgba(120, 220, 130, 0.4)' },
+        bush: { dark: '#0c3a16', mid: '#166028', light: '#22883a', rim: '#3fae5c' },
+        rock: { base: '#5a6a58', dark: '#2e3c2c', light: '#869886', moss: '#3f9a4c' },
+        log: { bark: '#3c2c16', light: '#6e5232', ring: '#a8875a' },
+        pollen: 0.5, leafFall: 0.9, ridges: 10,
+        ridgeA: 'rgba(60, 140, 70, 0.14)', ridgeB: 'rgba(6, 26, 10, 0.18)'
+    },
 };
 
 function biomeForSeed(seed) {
@@ -1165,6 +1482,21 @@ const EGG_TIME = 20;
 const FOOD_LIFETIME = 300;
 const QUEEN_CAPACITY = 5;
 const MAX_WAVES = 5;
+const FOOD_TYPES = {
+    berry: { name:'Bayas', color:'#e63946', value:1, life:300 },
+    meat: { name:'Carne', color:'#a8492b', value:4, life:180 },
+    honey: { name:'Miel', color:'#ffd166', value:10, life:420 },
+    sugar: { name:'Azúcar', color:'#f4f1de', value:2, life:300 }
+};
+const BERRY_SPAWN_INTERVAL = 300;
+const BERRY_LIFETIME = 300;
+const HONEY_CHANCE = 0.004;
+const SPECIES_CARD_KEYS = ['camponotus','leptogenys','odontomachus','cephalotes','atta','allomerus','myrmecia','crematogaster','lasius','colobopsis'];
+const CARD_LEVEL_GAIN = 0.075;
+const UG_COLS = 30;
+const UG_ROWS = 18;
+const UG_CELL_W = 48;
+const UG_CELL_H = 40;
 const SAVE_KEY = 'aec_save_v2';
 
 /* Especies jugables (Modo Normal). La familia define nido + rasgos de todas las hormigas. */
@@ -1265,6 +1597,30 @@ const SPECIES = {
         workerHp: 38, workerDamage: 1.0, workerSpeed: 2.3, workerScale: 1.0,
         venom: false, workerCharge: false, cactusShelter: true, acid: true
     },
+    lasius: {
+        key: 'lasius',
+        name: 'Lasius niger',
+        family: 'Lasius',
+        title: 'Hormiga negra de los árboles',
+        blurb: 'Lasius niger anida SOLO en árboles y cría pulgones en las ramas. Llama entre 1 y 3 pulgones al azar: su barra se llena y sueltan miel, pero cualquier enemigo puede matarlos.',
+        traits: ['Nido obligatorio en árboles', 'Llama 1-3 pulgones al azar', 'Miel constante de los pulgones', 'Los enemigos cazan pulgones'],
+        nestStyle: 'tree',
+        queenHp: 430, queenDamage: 2.5, queenSpeed: 2.85,
+        workerHp: 30, workerDamage: 0.85, workerSpeed: 2.3, workerScale: 0.98,
+        venom: false, workerCharge: false, aphidTending: true
+    },
+    colobopsis: {
+        key: 'colobopsis',
+        name: 'Colobopsis explodens',
+        family: 'Colobopsis',
+        title: 'Hormiga explosiva',
+        blurb: 'Anida SOLO en árboles. Sus obreras son bombas vivas: al morir estallan contra los enemigos cercanos y dejan un líquido corrosivo que sigue quemando a quien lo pisa. La reina explosiona con aún más fuerza.',
+        traits: ['Nido obligatorio en árboles', 'Explosión al morir', 'Líquido corrosivo', 'Daño en área'],
+        nestStyle: 'tree',
+        queenHp: 400, queenDamage: 2.4, queenSpeed: 2.7,
+        workerHp: 26, workerDamage: 0.8, workerSpeed: 2.2, workerScale: 0.96,
+        venom: false, workerCharge: false, explosive: true
+    },
     generic: {
         key: 'generic',
         name: 'Colonia silvestre',
@@ -1288,7 +1644,9 @@ const ANT_PALETTES = {
     atta: { head: '#7a3b1e', thorax: '#9c5a2c', gaster: '#5c2a12', leg: '#3d1c0a', accent: '#d9a066', mandible: '#2e1408', sheen: '#c98a4b' },
     allomerus: { head: '#5e2b0d', thorax: '#8a4a1c', gaster: '#3f1a06', leg: '#2a1204', accent: '#f4d35e', mandible: '#2a1204', sheen: '#c07a3e' },
     myrmecia: { head: '#8f1d14', thorax: '#b03a1e', gaster: '#5c1009', leg: '#33100a', accent: '#ffd166', mandible: '#ffd166', sheen: '#e0704a' },
-    crematogaster: { head: '#45190c', thorax: '#7a2f12', gaster: '#2e0f06', leg: '#20100a', accent: '#e9c46a', mandible: '#1a0a04', sheen: '#a34e35' }
+    crematogaster: { head: '#45190c', thorax: '#7a2f12', gaster: '#2e0f06', leg: '#20100a', accent: '#e9c46a', mandible: '#1a0a04', sheen: '#a34e35' },
+    lasius: { head: '#7a4a1e', thorax: '#96602c', gaster: '#5e3816', leg: '#33200e', accent: '#ffd166', mandible: '#33200e', sheen: '#d09a55' },
+    colobopsis: { head: '#5c2a12', thorax: '#7c3a18', gaster: '#40200d', leg: '#2a1408', accent: '#d8f340', mandible: '#201008', sheen: '#b06a30' }
 };
 
 let speciesKey = 'generic';
@@ -1412,6 +1770,8 @@ let termiteNests = [];
 let ants = [];
 let termites = [];
 let beetles = [];
+let aphids = [];
+let causticPools = [];
 let enemies = [];
 let webs = [];
 let foods = [];
@@ -1685,515 +2045,341 @@ class Entity {
 /* ============================================================
    Diseños de hormigas por especie
    ============================================================ */
-function drawAntennae(c, pal, headX = 5, headY = 1.6) {
-    c.strokeStyle = pal.mandible;
-    c.lineWidth = 1;
+/* ============================================================
+   Diseños de hormigas por especie — anatomía realista (quitina suave)
+   Cuerpo = cabeza + mesosoma + pecíolo + gáster, 6 patas articuladas,
+   antenas acodadas, ojos compuestos y mandíbulas propias de cada especie.
+   ============================================================ */
+
+/* Forma base de cada especie: proporciones y rasgos anatómicos. */
+const ANT_FORMS = {
+    generic:       { gx:-5.6, grx:4.4, gry:2.8, bands:3, sting:0, heart:0, tx:0,    trx:2.7, try:2.0, spines:0, px:-1.6, hx:4.4, hrx:3.0, hry:2.6, head:'oval',   eye:0.85, mand:'small',  legK:1,    legT:1.3, sw:3.4 },
+    camponotus:    { gx:-6.8, grx:5.5, gry:3.5, bands:4, sting:0, heart:0, tx:-0.4, trx:3.0, try:2.3, spines:0, px:-2.0, hx:4.8, hrx:3.4, hry:3.0, head:'oval',   eye:0.8,  mand:'small',  legK:1.05, legT:1.4, sw:3.2 },
+    leptogenys:    { gx:-7.2, grx:5.6, gry:2.4, bands:3, sting:1, heart:0, tx:-0.6, trx:2.6, try:1.7, spines:0, px:-2.1, hx:4.4, hrx:2.6, hry:1.9, head:'oval',   eye:0.8,  mand:'long',   legK:1.25, legT:1.1, sw:4.6 },
+    odontomachus:  { gx:-6.2, grx:4.8, gry:2.8, bands:3, sting:1, heart:0, tx:-0.2, trx:2.9, try:2.1, spines:0, px:-1.8, hx:5.0, hrx:3.5, hry:3.2, head:'tri',    eye:1.0,  mand:'trap',   legK:1,    legT:1.4, sw:3.4 },
+    cephalotes:    { gx:-7.0, grx:5.4, gry:3.8, bands:4, sting:0, heart:0, tx:-0.6, trx:3.0, try:2.3, spines:1, px:-2.1, hx:5.2, hrx:3.5, hry:4.3, head:'shield', eye:0.9,  mand:'small',  legK:0.95, legT:1.4, sw:3.0 },
+    atta:          { gx:-6.6, grx:5.3, gry:3.2, bands:3, sting:0, heart:0, tx:-0.8, trx:3.0, try:2.2, spines:2, px:-2.2, hx:5.0, hrx:4.0, hry:3.7, head:'oval',   eye:0.9,  mand:'strong', legK:1.1,  legT:1.5, sw:3.3 },
+    allomerus:     { gx:-5.8, grx:4.5, gry:2.8, bands:3, sting:0, heart:0, tx:-0.4, trx:2.6, try:1.9, spines:0, px:-1.7, hx:4.4, hrx:3.0, hry:2.6, head:'oval',   eye:0.8,  mand:'small',  legK:0.95, legT:1.2, sw:3.2 },
+    myrmecia:      { gx:-6.4, grx:5.0, gry:3.0, bands:3, sting:1, heart:0, tx:-0.4, trx:3.0, try:2.2, spines:0, px:-1.9, hx:5.2, hrx:3.6, hry:3.2, head:'oval',   eye:1.35, mand:'strong', legK:1.15, legT:1.5, sw:3.8 },
+    crematogaster: { gx:-5.6, grx:4.3, gry:2.6, bands:3, sting:1, heart:1, tx:-0.4, trx:2.5, try:1.9, spines:0, px:-1.7, hx:4.4, hrx:2.8, hry:2.5, head:'oval',   eye:0.8,  mand:'small',  legK:1,    legT:1.2, sw:3.4 },
+    lasius:       { gx:-5.8, grx:4.5, gry:2.7, bands:3, sting:0, heart:0, tx:-0.4, trx:2.6, try:1.9, spines:0, px:-1.6, hx:4.5, hrx:2.9, hry:2.5, head:'oval',   eye:0.85, mand:'small',  legK:1,    legT:1.2, sw:3.3 },
+    colobopsis:   { gx:-5.9, grx:4.6, gry:2.8, bands:3, sting:0, heart:0, tx:-0.4, trx:2.6, try:1.9, spines:0, px:-1.7, hx:4.7, hrx:3.0, hry:2.6, head:'oval',   eye:0.85, mand:'small',  legK:1,    legT:1.2, sw:3.3 }
+};
+
+/* Segmento de quitina con volumen: degradado radial suave (sin pixelado). */
+function antOval(c, x, y, rx, ry, base, rot = 0, hi = 1.5, lo = 0.45) {
+    const g = c.createRadialGradient(
+        x - rx * 0.34, y - ry * 0.48, Math.max(0.1, Math.min(rx, ry) * 0.08),
+        x, y, Math.max(rx, ry) * 1.28
+    );
+    g.addColorStop(0, shadeColor(base, hi));
+    g.addColorStop(0.52, base);
+    g.addColorStop(1, shadeColor(base, lo));
+    c.fillStyle = g;
     c.beginPath();
-    c.moveTo(headX, -headY);
-    c.quadraticCurveTo(headX + 4, -headY - 4.5, headX + 7, -headY - 2.6);
-    c.moveTo(headX, headY);
-    c.quadraticCurveTo(headX + 4, headY + 4.5, headX + 7, headY + 2.6);
+    c.ellipse(x, y, Math.max(0.1, rx), Math.max(0.1, ry), rot, 0, Math.PI * 2);
+    c.fill();
+}
+
+/* Seis patas articuladas: coxa, fémur, tibia y tarso, con marcheda alterna. */
+function antLegs(c, color, sw, k = 1, thick = 1.3) {
+    const defs = [
+        [3.0, 1.8, 8.2, 6.2, 12.0, 11.2],
+        [0.0, 2.2, 0.2, 8.0, -2.4, 13.2],
+        [-3.0, 1.8, -7.4, 6.2, -11.6, 11.2]
+    ];
+    c.save();
+    c.strokeStyle = color;
+    c.lineCap = 'round';
+    c.lineJoin = 'round';
+    for (let i = 0; i < defs.length; i++) {
+        const [ax, ay, kx, ky, fx, fy] = defs[i];
+        const phase = i === 1 ? -1 : 1;
+        for (const s of [-1, 1]) {
+            const swing = sw * s * phase;
+            c.lineWidth = thick * k;
+            c.beginPath();
+            c.moveTo(ax, s * ay);
+            c.lineTo(kx + swing * 0.32, s * ky);
+            c.lineTo(fx + swing, s * fy);
+            c.stroke();
+            c.lineWidth = Math.max(0.6, thick * 0.55 * k);
+            c.beginPath();
+            c.moveTo(fx + swing, s * fy);
+            c.lineTo(fx + swing + 1.5, s * (fy + 1.4));
+            c.stroke();
+        }
+    }
+    c.restore();
+}
+
+/* Antenas acodadas: escape largo, articulación y funículo con maza terminal. */
+function drawAntennae(c, pal, headX = 5, headY = 1.6, k = 1) {
+    c.save();
+    c.strokeStyle = pal.mandible;
+    c.lineCap = 'round';
+    c.lineJoin = 'round';
+    for (const s of [-1, 1]) {
+        const bx = headX + 0.8 * k;
+        const by = s * headY * 0.65;
+        const ex = headX + 6.6 * k;
+        const ey = s * (headY + 3.4 * k);
+        const tx = headX + 8.6 * k;
+        const ty = s * (headY + 1.4 * k);
+        c.lineWidth = 1.15 * k;
+        c.beginPath();
+        c.moveTo(bx, by);
+        c.lineTo(ex, ey);
+        c.quadraticCurveTo(ex + 2.3 * k, ey + s * 0.5 * k, tx, ty);
+        c.stroke();
+        c.fillStyle = shadeColor(pal.mandible, 1.7);
+        c.beginPath();
+        c.arc(ex, ey, 0.7 * k, 0, Math.PI * 2);
+        c.fill();
+        c.fillStyle = pal.mandible;
+        c.beginPath();
+        c.arc(tx, ty, 1.2 * k, 0, Math.PI * 2);
+        c.fill();
+    }
+    c.restore();
+}
+
+/* Pecíolo: cintura estrecha que separa mesosoma y gáster. */
+function antPetiole(c, pal, x, r = 1.6) {
+    antOval(c, x, 0, r * 1.2, r, pal.thorax, 0, 1.45, 0.5);
+    c.strokeStyle = shadeColor(pal.thorax, 0.55);
+    c.lineWidth = 0.5;
+    c.beginPath();
+    c.ellipse(x, 0, r * 1.2, r, 0, 0, Math.PI * 2);
     c.stroke();
+}
+
+/* Gáster: tergitos, brillo dorsal y aguijón cuando corresponde. */
+function antGaster(c, pal, x, rx, ry, f) {
+    if (f.heart) {
+        const g = c.createRadialGradient(x - rx * 0.3, -ry * 0.4, 1, x, 0, rx * 1.35);
+        g.addColorStop(0, shadeColor(pal.gaster, 1.75));
+        g.addColorStop(0.55, pal.gaster);
+        g.addColorStop(1, shadeColor(pal.gaster, 0.45));
+        c.fillStyle = g;
+        c.beginPath();
+        c.moveTo(x + rx * 0.95, 0);
+        c.bezierCurveTo(x + rx * 0.32, -ry * 1.35, x - rx * 0.85, -ry * 1.05, x - rx, 0);
+        c.bezierCurveTo(x - rx * 0.85, ry * 1.05, x + rx * 0.32, ry * 1.35, x + rx * 0.95, 0);
+        c.closePath();
+        c.fill();
+    } else {
+        antOval(c, x, 0, rx, ry, pal.gaster, 0, 1.6, 0.42);
+    }
+    const nb = f.bands || 0;
+    c.strokeStyle = 'rgba(0,0,0,0.26)';
+    c.lineWidth = 0.7;
+    for (let i = 1; i <= nb; i++) {
+        const px = x + rx - (i / (nb + 1)) * 2 * rx;
+        const hh = ry * Math.sqrt(Math.max(0, 1 - ((px - x) / rx) * ((px - x) / rx)));
+        c.beginPath();
+        c.moveTo(px, -hh * 0.9);
+        c.quadraticCurveTo(px - 1.1, 0, px, hh * 0.9);
+        c.stroke();
+    }
+    c.fillStyle = 'rgba(255,255,255,0.11)';
+    c.beginPath();
+    c.ellipse(x - rx * 0.12, -ry * 0.46, rx * 0.55, ry * 0.2, -0.12, 0, Math.PI * 2);
+    c.fill();
+    if (f.sting) {
+        c.strokeStyle = shadeColor(pal.mandible, 1.45);
+        c.lineWidth = 1.1;
+        c.beginPath();
+        c.moveTo(x - rx * 0.8, 0);
+        c.lineTo(x - rx - 2.2, 0);
+        c.stroke();
+    }
+}
+
+/* Cabeza, ojos compuestos y mandíbulas según la especie. */
+function antHead(c, pal, x, rx, ry, shape, eyeR, mand) {
+    if (shape === 'shield') {
+        const g = c.createLinearGradient(x - rx, 0, x + rx, 0);
+        g.addColorStop(0, shadeColor(pal.head, 0.55));
+        g.addColorStop(0.55, shadeColor(pal.head, 1.3));
+        g.addColorStop(1, pal.head);
+        c.fillStyle = g;
+        c.beginPath();
+        c.moveTo(x - rx * 0.7, -ry);
+        c.quadraticCurveTo(x + rx * 0.7, -ry * 1.05, x + rx, 0);
+        c.quadraticCurveTo(x + rx * 0.7, ry * 1.05, x - rx * 0.7, ry);
+        c.lineTo(x - rx, 0);
+        c.closePath();
+        c.fill();
+        c.strokeStyle = shadeColor(pal.head, 1.45);
+        c.lineWidth = 0.9;
+        c.stroke();
+    } else if (shape === 'tri') {
+        const g = c.createLinearGradient(x - rx, 0, x + rx, 0);
+        g.addColorStop(0, shadeColor(pal.head, 0.55));
+        g.addColorStop(0.55, shadeColor(pal.head, 1.3));
+        g.addColorStop(1, pal.head);
+        c.fillStyle = g;
+        c.beginPath();
+        c.moveTo(x - rx, -ry * 0.85);
+        c.lineTo(x + rx * 0.72, -ry);
+        c.quadraticCurveTo(x + rx, 0, x + rx * 0.72, ry);
+        c.lineTo(x - rx, ry * 0.85);
+        c.closePath();
+        c.fill();
+    } else {
+        antOval(c, x, 0, rx, ry, pal.head, 0, 1.5, 0.45);
+    }
+
+    const ex = x + rx * 0.3;
+    const ey = ry * 0.7;
+    for (const s of [-1, 1]) {
+        c.fillStyle = '#0b0705';
+        c.beginPath();
+        c.arc(ex, s * ey, eyeR, 0, Math.PI * 2);
+        c.fill();
+        c.fillStyle = 'rgba(255,255,255,0.5)';
+        c.beginPath();
+        c.arc(ex - eyeR * 0.25, s * ey - eyeR * 0.28, eyeR * 0.32, 0, Math.PI * 2);
+        c.fill();
+    }
+
+    const mx = x + rx * 0.72;
+    c.strokeStyle = pal.mandible;
+    c.fillStyle = pal.mandible;
+    if (mand === 'trap') {
+        for (const s of [-1, 1]) {
+            c.lineWidth = 2.2;
+            c.beginPath();
+            c.moveTo(mx, s * ry * 0.42);
+            c.lineTo(mx + 7.5, s * (ry * 0.42 + 2.8));
+            c.stroke();
+            c.lineWidth = 1.1;
+            c.beginPath();
+            c.moveTo(mx + 4.4, s * (ry * 0.42 + 1.7));
+            c.lineTo(mx + 5.2, s * (ry * 0.42 + 0.6));
+            c.stroke();
+        }
+    } else if (mand === 'strong') {
+        for (const s of [-1, 1]) {
+            c.beginPath();
+            c.moveTo(mx, s * ry * 0.5);
+            c.lineTo(mx + 3.8, s * (ry * 0.5 + 0.8));
+            c.lineTo(mx + 4.6, s * ry * 0.16);
+            c.lineTo(mx + 0.6, s * ry * 0.12);
+            c.closePath();
+            c.fill();
+        }
+    } else if (mand === 'long') {
+        for (const s of [-1, 1]) {
+            c.lineWidth = 1.4;
+            c.beginPath();
+            c.moveTo(mx, s * ry * 0.38);
+            c.quadraticCurveTo(mx + 3.6, s * (ry * 0.38 + 0.7), mx + 5, s * 0.4);
+            c.stroke();
+        }
+    } else {
+        for (const s of [-1, 1]) {
+            c.lineWidth = 1.7;
+            c.beginPath();
+            c.moveTo(mx, s * ry * 0.42);
+            c.quadraticCurveTo(mx + 2.4, s * (ry * 0.42 + 0.4), mx + 3.2, s * 0.25);
+            c.stroke();
+        }
+    }
 }
 
 function drawWorkerBody(c, key, walk, dark = 0) {
     const pal = antPalette(key, dark);
-    const sw = Math.sin(walk) * 3.5;
+    const f = ANT_FORMS[key] || ANT_FORMS.generic;
+    const sw = Math.sin(walk || 0) * f.sw;
 
-    c.strokeStyle = pal.leg;
-    c.lineWidth = 1.3;
-    c.beginPath();
-    c.moveTo(-2, -3); c.lineTo(-5 + sw, -11);
-    c.moveTo(0, -3); c.lineTo(1 - sw, -12);
-    c.moveTo(2, -3); c.lineTo(6 + sw, -11);
-    c.moveTo(-2, 3); c.lineTo(-5 - sw, 11);
-    c.moveTo(0, 3); c.lineTo(1 + sw, 12);
-    c.moveTo(2, 3); c.lineTo(6 - sw, 11);
-    c.stroke();
+    antLegs(c, pal.leg, sw, f.legK, f.legT);
+    antGaster(c, pal, f.gx, f.grx, f.gry, f);
+    antPetiole(c, pal, f.px, 1.6 * f.legK);
 
-    if (key === 'camponotus') {
-        c.fillStyle = pal.gaster;
-        c.beginPath();
-        c.ellipse(-6.4, 0, 5.4, 3.6, 0, 0, Math.PI * 2);
-        c.fill();
-        c.strokeStyle = pal.accent;
-        c.lineWidth = 0.9;
-        c.beginPath();
-        c.moveTo(-9.4, -2.3); c.lineTo(-9.4, 2.3);
-        c.moveTo(-7.1, -3.1); c.lineTo(-7.1, 3.1);
-        c.stroke();
-        c.fillStyle = pal.sheen;
-        c.globalAlpha = 0.5;
-        c.beginPath();
-        c.ellipse(-6.4, -1.4, 3.6, 1.1, -0.15, 0, Math.PI * 2);
-        c.fill();
-        c.globalAlpha = 1;
-        c.fillStyle = pal.thorax;
-        c.beginPath();
-        c.ellipse(-0.4, 0, 3.1, 2.4, 0, 0, Math.PI * 2);
-        c.fill();
-        c.fillStyle = pal.head;
-        c.beginPath();
-        c.ellipse(4.6, 0, 3.4, 3, 0, 0, Math.PI * 2);
-        c.fill();
-        c.strokeStyle = pal.mandible;
-        c.lineWidth = 1.7;
-        c.beginPath();
-        c.moveTo(7.4, -1.8); c.lineTo(9.6, -0.6);
-        c.moveTo(7.4, 1.8); c.lineTo(9.6, 0.6);
-        c.stroke();
-        c.strokeStyle = 'rgba(200, 160, 120, 0.42)';
-        c.lineWidth = 0.7;
-        for (let i = 0; i < 4; i++) {
-            const x = -10 + i * 1.8;
-            c.beginPath();
-            c.moveTo(x, -3.2); c.lineTo(x - 1.2, -5);
-            c.moveTo(x, 3.2); c.lineTo(x - 1.2, 5);
-            c.stroke();
-        }
-    } else if (key === 'leptogenys') {
-        c.strokeStyle = pal.leg;
-        c.lineWidth = 1.05;
-        c.beginPath();
-        c.moveTo(-2, -2.6); c.lineTo(-8 + sw * 1.4, -13);
-        c.moveTo(1, -2.6); c.lineTo(2 - sw * 1.4, -14);
-        c.moveTo(-2, 2.6); c.lineTo(-8 - sw * 1.4, 13);
-        c.moveTo(1, 2.6); c.lineTo(2 + sw * 1.4, 14);
-        c.stroke();
-
-        c.fillStyle = pal.gaster;
-        c.beginPath();
-        c.ellipse(-7, 0, 5.8, 2.5, 0.06, 0, Math.PI * 2);
-        c.fill();
-        c.fillStyle = pal.accent;
-        c.beginPath();
-        c.moveTo(-12.2, 0); c.lineTo(-15.6, -1.5); c.lineTo(-15.6, 1.5);
-        c.closePath();
-        c.fill();
-        c.fillStyle = pal.sheen;
-        c.globalAlpha = 0.55;
-        c.beginPath();
-        c.ellipse(-7, -0.9, 4.2, 0.8, 0.06, 0, Math.PI * 2);
-        c.fill();
-        c.globalAlpha = 1;
-        c.fillStyle = pal.thorax;
-        c.beginPath();
-        c.ellipse(-0.6, 0, 2.8, 1.7, 0, 0, Math.PI * 2);
-        c.fill();
-        c.fillStyle = pal.head;
-        c.beginPath();
-        c.ellipse(4.2, 0, 2.5, 1.9, 0, 0, Math.PI * 2);
-        c.fill();
-        c.strokeStyle = pal.mandible;
+    antOval(c, f.tx, 0, f.trx, f.try, pal.thorax, 0, 1.5, 0.45);
+    if (f.spines) {
+        const n = f.spines === 2 ? 2 : 3;
+        c.strokeStyle = shadeColor(pal.thorax, 0.65);
         c.lineWidth = 1.1;
-        c.beginPath();
-        c.moveTo(6.3, -1); c.lineTo(8.4, -0.4);
-        c.moveTo(6.3, 1); c.lineTo(8.4, 0.4);
-        c.stroke();
-    } else if (key === 'odontomachus') {
-        c.fillStyle = pal.gaster;
-        c.beginPath();
-        c.ellipse(-6, 0, 4.9, 2.9, 0, 0, Math.PI * 2);
-        c.fill();
-        c.fillStyle = pal.sheen;
-        c.globalAlpha = 0.5;
-        c.beginPath();
-        c.ellipse(-6, -1, 3.2, 0.9, 0, 0, Math.PI * 2);
-        c.fill();
-        c.globalAlpha = 1;
-        c.fillStyle = pal.thorax;
-        c.beginPath();
-        c.ellipse(-0.2, 0, 2.8, 2, 0, 0, Math.PI * 2);
-        c.fill();
-        c.fillStyle = pal.head;
-        c.beginPath();
-        c.moveTo(3.2, -3);
-        c.lineTo(7, -3.6);
-        c.lineTo(8, 0);
-        c.lineTo(7, 3.6);
-        c.lineTo(3.2, 3);
-        c.closePath();
-        c.fill();
-        c.strokeStyle = pal.mandible;
-        c.lineWidth = 1.8;
-        c.beginPath();
-        c.moveTo(7.2, -2.4); c.lineTo(14, -4.4);
-        c.moveTo(7.2, 2.4); c.lineTo(14, 4.4);
-        c.stroke();
-        c.lineWidth = 1.1;
-        c.beginPath();
-        c.moveTo(10.5, -3.2); c.lineTo(11.4, -2.6);
-        c.moveTo(10.5, 3.2); c.lineTo(11.4, 2.6);
-        c.stroke();
-    } else if (key === 'cephalotes') {
-        // Hormiga tortuga: cuerpo plano y acorazado, cabeza en escudo
-        c.strokeStyle = pal.leg;
-        c.lineWidth = 1.2;
-        c.beginPath();
-        c.moveTo(-2, -3.4); c.lineTo(-7 + sw, -10);
-        c.moveTo(0, -3.4); c.lineTo(1 - sw, -11);
-        c.moveTo(2, -3.4); c.lineTo(6 + sw, -10);
-        c.moveTo(-2, 3.4); c.lineTo(-7 - sw, 10);
-        c.moveTo(0, 3.4); c.lineTo(1 + sw, 11);
-        c.moveTo(2, 3.4); c.lineTo(6 - sw, 10);
-        c.stroke();
-
-        c.fillStyle = pal.gaster;
-        c.beginPath();
-        c.ellipse(-7.2, 0, 5.6, 3.9, 0, 0, Math.PI * 2);
-        c.fill();
-        c.strokeStyle = 'rgba(0,0,0,0.5)';
-        c.lineWidth = 0.8;
-        for (let i = 0; i < 3; i++) {
-            c.beginPath();
-            c.arc(-7.2, 0, 2.2 + i * 1.5, -1.0, 1.0);
-            c.stroke();
+        for (let i = 0; i < n; i++) {
+            const bx = f.tx - 1.5 + i * 1.5;
+            for (const s of [-1, 1]) {
+                c.beginPath();
+                c.moveTo(bx, s * (f.try - 0.3));
+                c.lineTo(bx - 1.2 + i * 0.5, s * (f.try + 2.3 + i * 0.3));
+                c.stroke();
+            }
         }
-        c.strokeStyle = pal.accent;
-        c.lineWidth = 0.9;
-        c.globalAlpha = 0.85;
-        for (let i = 0; i < 7; i++) {
-            const a = -0.9 + i * 0.3;
-            c.beginPath();
-            c.moveTo(-7.2 + Math.cos(a) * 4.4, Math.sin(a) * 3.1);
-            c.lineTo(-7.2 + Math.cos(a) * 6.2, Math.sin(a) * 4.4);
-            c.stroke();
-        }
-        c.globalAlpha = 1;
-
-        c.fillStyle = pal.thorax;
-        c.beginPath();
-        c.ellipse(-0.6, 0, 3.2, 2.3, 0, 0, Math.PI * 2);
-        c.fill();
-
-        c.fillStyle = pal.head;
-        c.beginPath();
-        c.moveTo(2.6, -4.4);
-        c.lineTo(7.6, -5.2);
-        c.lineTo(9.4, 0);
-        c.lineTo(7.6, 5.2);
-        c.lineTo(2.6, 4.4);
-        c.closePath();
-        c.fill();
-        c.strokeStyle = pal.accent;
-        c.lineWidth = 0.8;
-        c.beginPath();
-        c.moveTo(3.2, -3.6); c.lineTo(7.2, -4.2);
-        c.moveTo(3.2, 3.6); c.lineTo(7.2, 4.2);
-        c.stroke();
-
-        c.fillStyle = '#0e0e0c';
-        c.beginPath();
-        c.arc(8.2, -2.2, 1.1, 0, Math.PI * 2);
-        c.arc(8.2, 2.2, 1.1, 0, Math.PI * 2);
-        c.fill();
-        c.fillStyle = 'rgba(255,255,255,0.55)';
-        c.beginPath();
-        c.arc(7.8, -2.6, 0.4, 0, Math.PI * 2);
-        c.fill();
-    } else if (key === 'atta') {
-        // Cortadora de hojas: cabeza grande, tórax espinoso, rojiza
-        c.strokeStyle = pal.leg;
-        c.lineWidth = 1.4;
-        c.beginPath();
-        c.moveTo(-2, -3); c.lineTo(-6 + sw, -12);
-        c.moveTo(0, -3); c.lineTo(2 - sw, -13);
-        c.moveTo(2, -3); c.lineTo(7 + sw, -11);
-        c.moveTo(-2, 3); c.lineTo(-6 - sw, 12);
-        c.moveTo(0, 3); c.lineTo(2 + sw, 13);
-        c.moveTo(2, 3); c.lineTo(7 - sw, 11);
-        c.stroke();
-
-        c.fillStyle = pal.gaster;
-        c.beginPath();
-        c.ellipse(-6.6, 0, 5.4, 3.2, 0, 0, Math.PI * 2);
-        c.fill();
-        c.strokeStyle = 'rgba(40, 16, 4, 0.6)';
-        c.lineWidth = 0.8;
-        c.beginPath();
-        c.ellipse(-4.4, 0, 2.2, 2.9, 0, 0, Math.PI * 2);
-        c.ellipse(-7.6, 0, 2.2, 3.1, 0, 0, Math.PI * 2);
-        c.stroke();
-        c.fillStyle = pal.sheen;
-        c.globalAlpha = 0.4;
-        c.beginPath();
-        c.ellipse(-6.6, -1.2, 4, 1, 0, 0, Math.PI * 2);
-        c.fill();
-        c.globalAlpha = 1;
-
-        c.fillStyle = pal.thorax;
-        c.beginPath();
-        c.ellipse(-0.8, 0, 3, 2.2, 0, 0, Math.PI * 2);
-        c.fill();
-        c.strokeStyle = pal.accent;
-        c.lineWidth = 1.1;
-        for (let i = 0; i < 3; i++) {
-            c.beginPath();
-            c.moveTo(-2 + i * 1.6, -2.4);
-            c.lineTo(-3.2 + i * 1.6, -4.4);
-            c.moveTo(-2 + i * 1.6, 2.4);
-            c.lineTo(-3.2 + i * 1.6, 4.4);
-            c.stroke();
-        }
-
-        c.fillStyle = pal.head;
-        c.beginPath();
-        c.ellipse(5, 0, 4.4, 3.9, 0, 0, Math.PI * 2);
-        c.fill();
-        c.fillStyle = 'rgba(0,0,0,0.35)';
-        c.beginPath();
-        c.ellipse(6.4, -0.6, 2.4, 2.6, 0, 0, Math.PI * 2);
-        c.fill();
-        c.fillStyle = '#1b0b04';
-        c.beginPath();
-        c.arc(7.6, -1.8, 1, 0, Math.PI * 2);
-        c.arc(7.6, 1.8, 1, 0, Math.PI * 2);
-        c.fill();
-
-        c.strokeStyle = pal.mandible;
-        c.lineWidth = 1.6;
-        c.beginPath();
-        c.moveTo(8.6, -2); c.lineTo(11, -1);
-        c.moveTo(8.6, 2); c.lineTo(11, 1);
-        c.stroke();
-    } else {
-        c.fillStyle = pal.gaster;
-        c.beginPath();
-        c.ellipse(-5, 0, 4.2, 2.7, 0, 0, Math.PI * 2);
-        c.fill();
-        c.fillStyle = pal.thorax;
-        c.beginPath();
-        c.ellipse(0, 0, 2.6, 1.9, 0, 0, Math.PI * 2);
-        c.fill();
-        c.fillStyle = pal.head;
-        c.beginPath();
-        c.ellipse(4.2, 0, 2.6, 2.3, 0, 0, Math.PI * 2);
-        c.fill();
-        c.fillStyle = pal.sheen;
-        c.globalAlpha = 0.5;
-        c.beginPath();
-        c.ellipse(-5, -0.7, 2.5, 1.1, 0, 0, Math.PI * 2);
-        c.fill();
-        c.globalAlpha = 1;
-        c.strokeStyle = pal.mandible;
-        c.lineWidth = 1.1;
-        c.beginPath();
-        c.moveTo(6.2, -1.4); c.lineTo(8.2, -0.5);
-        c.moveTo(6.2, 1.4); c.lineTo(8.2, 0.5);
-        c.stroke();
     }
-    drawAntennae(c, pal);
+    c.fillStyle = 'rgba(255,255,255,0.1)';
+    c.beginPath();
+    c.ellipse(f.tx - 0.4, -f.try * 0.42, f.trx * 0.6, f.try * 0.26, -0.12, 0, Math.PI * 2);
+    c.fill();
+
+    antHead(c, pal, f.hx, f.hrx, f.hry, f.head, f.eye, f.mand);
+    drawAntennae(c, pal, f.hx + f.hrx * 0.55, f.hry * 0.5, f.legK);
 }
 
+/* Reina: mismo plan corporal, pero gáster y cabeza mucho mayores, ocelos y
+   cicatrices alares de la alada que perdió las alas tras fundar la colonia. */
 function drawQueenBody(c, key, charge = 0, walk = null) {
     const pal = antPalette(key, 0);
-    const k = key === 'generic' ? 'generic' : key;
+    const f = ANT_FORMS[key] || ANT_FORMS.generic;
     const step = walk == null ? 0 : Math.sin(walk) * 5;
+    const q = 1.7;
 
-    c.strokeStyle = pal.leg;
-    c.lineWidth = 2.1;
-    c.beginPath();
-    c.moveTo(-6, -6); c.lineTo(-14 - step, -20);
-    c.moveTo(0, -6); c.lineTo(2 + step * 0.6, -22);
-    c.moveTo(7, -6); c.lineTo(15 - step * 0.4, -19);
-    c.moveTo(-6, 6); c.lineTo(-14 + step, 20);
-    c.moveTo(0, 6); c.lineTo(2 - step * 0.6, 22);
-    c.moveTo(7, 6); c.lineTo(15 + step * 0.4, 19);
-    c.stroke();
+    antLegs(c, pal.leg, step * 0.7, f.legK * 1.2, f.legT * 1.4);
+    antGaster(c, pal, f.gx * q, f.grx * q, f.gry * q * 1.08, { ...f, bands: f.bands + 1 });
+    antPetiole(c, pal, f.px * q, 2.3);
 
-    c.fillStyle = pal.gaster;
-    c.beginPath();
-    c.ellipse(-10, 0, 10, 6.6, 0, 0, Math.PI * 2);
-    c.fill();
-
-    c.fillStyle = pal.sheen;
-    c.globalAlpha = 0.5;
-    c.beginPath();
-    c.ellipse(-10, -2.4, 7, 1.9, -0.08, 0, Math.PI * 2);
-    c.fill();
-    c.globalAlpha = 1;
-
-    if (k === 'camponotus') {
-        c.strokeStyle = pal.accent;
-        c.lineWidth = 1.2;
-        c.beginPath();
-        c.moveTo(-15, -4.4); c.lineTo(-15, 4.4);
-        c.moveTo(-12, -5.7); c.lineTo(-12, 5.7);
-        c.moveTo(-9, -6.4); c.lineTo(-9, 6.4);
-        c.stroke();
-    } else if (k === 'leptogenys') {
-        c.fillStyle = pal.accent;
-        c.beginPath();
-        c.moveTo(-19.6, 0); c.lineTo(-24.4, -2.2); c.lineTo(-24.4, 2.2);
-        c.closePath();
-        c.fill();
-    } else if (k === 'odontomachus') {
-        c.fillStyle = 'rgba(255, 209, 102, 0.35)';
-        c.beginPath();
-        c.ellipse(-10, 0, 11.5, 7.8, 0, 0, Math.PI * 2);
-        c.fill();
+    antOval(c, f.tx * q, 0, f.trx * q, f.try * q, pal.thorax, 0, 1.5, 0.42);
+    if (f.spines) {
+        c.strokeStyle = shadeColor(pal.thorax, 0.65);
+        c.lineWidth = 1.3;
+        for (let i = 0; i < 3; i++) {
+            const bx = f.tx * q - 2.6 + i * 2.6;
+            for (const s of [-1, 1]) {
+                c.beginPath();
+                c.moveTo(bx, s * (f.try * q - 0.5));
+                c.lineTo(bx - 2, s * (f.try * q + 3.6));
+                c.stroke();
+            }
+        }
     }
-
-    c.fillStyle = pal.thorax;
-    c.beginPath();
-    c.ellipse(0, 0, 6.2, 4.6, 0, 0, Math.PI * 2);
-    c.fill();
-
-    c.fillStyle = pal.sheen;
-    c.globalAlpha = 0.4;
-    c.beginPath();
-    c.ellipse(-0.5, -1.4, 4.2, 1.4, 0, 0, Math.PI * 2);
-    c.fill();
-    c.globalAlpha = 1;
-
-    c.strokeStyle = 'rgba(235, 225, 200, 0.45)';
+    c.strokeStyle = 'rgba(255,255,255,0.22)';
     c.lineWidth = 0.9;
     c.beginPath();
-    c.moveTo(-2.5, -3.6); c.lineTo(2.5, -1.4);
-    c.moveTo(-2.5, 3.6); c.lineTo(2.5, 1.4);
+    c.ellipse(f.tx * q - 1, -f.try * q * 0.5, f.trx * q * 0.5, f.try * q * 0.28, -0.3, 0, Math.PI * 2);
     c.stroke();
 
-    if (k === 'odontomachus') {
-        c.fillStyle = pal.head;
-        c.beginPath();
-        c.moveTo(5.6, -4.2);
-        c.lineTo(12.4, -5);
-        c.lineTo(14, 0);
-        c.lineTo(12.4, 5);
-        c.lineTo(5.6, 4.2);
-        c.closePath();
-        c.fill();
-        c.strokeStyle = pal.mandible;
-        c.lineWidth = 2.4;
-        c.beginPath();
-        c.moveTo(13.4, -3.4); c.lineTo(23, -6.2);
-        c.moveTo(13.4, 3.4); c.lineTo(23, 6.2);
-        c.stroke();
-        if (charge > 0) {
-            c.strokeStyle = `rgba(255, 209, 102, ${0.35 + charge * 0.5})`;
-            c.lineWidth = 2.6;
-            c.beginPath();
-            c.moveTo(13.4, -3.4); c.lineTo(23, -6.2);
-            c.moveTo(13.4, 3.4); c.lineTo(23, 6.2);
-            c.stroke();
-        }
-        c.fillStyle = '#1b1b1b';
-        c.beginPath();
-        c.arc(11.6, -2.2, 0.9, 0, Math.PI * 2);
-        c.arc(11.6, 2.2, 0.9, 0, Math.PI * 2);
-        c.fill();
-    } else if (k === 'camponotus') {
-        c.fillStyle = pal.head;
-        c.beginPath();
-        c.ellipse(9.5, 0, 5, 4.4, 0, 0, Math.PI * 2);
-        c.fill();
-        c.strokeStyle = pal.mandible;
-        c.lineWidth = 2;
-        c.beginPath();
-        c.moveTo(13.6, -2.6); c.lineTo(16, -1);
-        c.moveTo(13.6, 2.6); c.lineTo(16, 1);
-        c.stroke();
-    } else if (k === 'leptogenys') {
-        c.fillStyle = pal.head;
-        c.beginPath();
-        c.ellipse(9.2, 0, 4.2, 3.4, 0, 0, Math.PI * 2);
-        c.fill();
-        c.strokeStyle = pal.mandible;
-        c.lineWidth = 1.3;
-        c.beginPath();
-        c.moveTo(12.6, -1.8); c.lineTo(14.8, -0.8);
-        c.moveTo(12.6, 1.8); c.lineTo(14.8, 0.8);
-        c.stroke();
-    } else if (k === 'cephalotes') {
-        c.strokeStyle = pal.accent;
-        c.lineWidth = 1;
-        c.globalAlpha = 0.85;
-        for (let i = 0; i < 9; i++) {
-            const a = -1.0 + i * 0.25;
-            c.beginPath();
-            c.moveTo(-10 + Math.cos(a) * 7.5, Math.sin(a) * 5.2);
-            c.lineTo(-10 + Math.cos(a) * 10.5, Math.sin(a) * 7.2);
-            c.stroke();
-        }
-        c.globalAlpha = 1;
+    const hx = f.hx * q;
+    const hrx = f.hrx * q * 0.94;
+    const hry = f.hry * q * 0.94;
+    antHead(c, pal, hx, hrx, hry, f.head, f.eye * q * 0.8, f.mand);
 
-        c.fillStyle = pal.head;
-        c.beginPath();
-        c.moveTo(4.4, -5.6);
-        c.lineTo(11.4, -6.4);
-        c.lineTo(13.6, 0);
-        c.lineTo(11.4, 6.4);
-        c.lineTo(4.4, 5.6);
-        c.closePath();
-        c.fill();
-        c.strokeStyle = pal.accent;
-        c.lineWidth = 0.9;
-        c.beginPath();
-        c.moveTo(5, -4.6); c.lineTo(10.6, -5.2);
-        c.moveTo(5, 4.6); c.lineTo(10.6, 5.2);
-        c.stroke();
-        c.fillStyle = '#0e0e0c';
-        c.beginPath();
-        c.arc(11.8, -2.6, 1.3, 0, Math.PI * 2);
-        c.arc(11.8, 2.6, 1.3, 0, Math.PI * 2);
-        c.fill();
-        c.strokeStyle = pal.mandible;
-        c.lineWidth = 1.8;
-        c.beginPath();
-        c.moveTo(12.6, -2.4); c.lineTo(15.4, -1.2);
-        c.moveTo(12.6, 2.4); c.lineTo(15.4, 1.2);
-        c.stroke();
-    } else if (k === 'atta') {
-        c.strokeStyle = pal.accent;
-        c.lineWidth = 1.2;
-        for (let i = 0; i < 3; i++) {
-            c.beginPath();
-            c.moveTo(-2 + i * 2.2, -5.4);
-            c.lineTo(-4 + i * 2.2, -8.4);
-            c.moveTo(-2 + i * 2.2, 5.4);
-            c.lineTo(-4 + i * 2.2, 8.4);
-            c.stroke();
-        }
-        c.fillStyle = pal.head;
-        c.beginPath();
-        c.ellipse(11, 0, 6, 5.2, 0, 0, Math.PI * 2);
-        c.fill();
-        c.fillStyle = 'rgba(0,0,0,0.35)';
-        c.beginPath();
-        c.ellipse(13, -0.8, 3.2, 3.6, 0, 0, Math.PI * 2);
-        c.fill();
-        c.fillStyle = '#1b0b04';
-        c.beginPath();
-        c.arc(14, -2.4, 1.3, 0, Math.PI * 2);
-        c.arc(14, 2.4, 1.3, 0, Math.PI * 2);
-        c.fill();
-        c.strokeStyle = pal.mandible;
-        c.lineWidth = 2.2;
-        c.beginPath();
-        c.moveTo(15, -2.8); c.lineTo(18.6, -1.4);
-        c.moveTo(15, 2.8); c.lineTo(18.6, 1.4);
-        c.stroke();
-    } else {
-        c.fillStyle = pal.head;
-        c.beginPath();
-        c.ellipse(8, 0, 4.4, 3.8, 0, 0, Math.PI * 2);
-        c.fill();
-    }
-
+    /* Ocelos en la frente (visibles en las reinas). */
     c.fillStyle = '#ffd166';
     c.beginPath();
-    c.moveTo(7.6, -4.4); c.lineTo(8.4, -7.6); c.lineTo(9.8, -4.6);
-    c.moveTo(9.8, -4.6); c.lineTo(11.4, -7.2); c.lineTo(12, -4.2);
+    c.arc(hx + hrx * 0.1, -hry * 0.32, 0.85, 0, Math.PI * 2);
+    c.arc(hx + hrx * 0.42, -hry * 0.2, 0.75, 0, Math.PI * 2);
+    c.arc(hx + hrx * 0.42, hry * 0.2, 0.75, 0, Math.PI * 2);
     c.fill();
 
-    c.strokeStyle = pal.mandible;
-    c.lineWidth = 1.15;
-    c.beginPath();
-    c.moveTo(11, -2.6); c.quadraticCurveTo(16 - step * 0.7, -8, 20, -7);
-    c.moveTo(11, 2.6); c.quadraticCurveTo(16 + step * 0.7, 8, 20, 7);
-    c.stroke();
-}
+    drawAntennae(c, pal, hx + hrx * 0.55, hry * 0.5, f.legK * 1.2);
 
+    if (key === 'odontomachus' && charge > 0) {
+        const mx = hx + hrx * 0.72;
+        const my = hry * 0.42 + 2.8 * q;
+        c.strokeStyle = `rgba(255, 209, 102, ${0.35 + charge * 0.5})`;
+        c.lineWidth = 2.6;
+        c.beginPath();
+        c.moveTo(mx, -hry * 0.42); c.lineTo(mx + 7.5 * q, -my);
+        c.moveTo(mx, hry * 0.42); c.lineTo(mx + 7.5 * q, my);
+        c.stroke();
+    }
+}
 function drawSpeciesPortrait(cnv, key) {
     const c = cnv.getContext('2d');
     const w = cnv.width;
@@ -2203,6 +2389,8 @@ function drawSpeciesPortrait(cnv, key) {
         : key === 'leptogenys' ? '#33260f'
         : key === 'cephalotes' ? '#2b2b24'
         : key === 'atta' ? '#3a2413'
+        : key === 'lasius' ? '#2b3a16'
+        : key === 'colobopsis' ? '#3a3410'
         : '#2e2414');
     bg.addColorStop(1, '#0d170a');
     c.fillStyle = bg;
@@ -2298,6 +2486,22 @@ function drawSpeciesPortrait(cnv, key) {
             c.fillStyle = 'rgba(120, 150, 90, 0.13)';
             c.beginPath();
             c.ellipse((i * 83 + 25) % w, h * 0.25 + ((i * 47) % (h * 0.5)), 14, 6, 0.3, 0, Math.PI * 2);
+            c.fill();
+        }
+    } else if (key === 'colobopsis') {
+        const cx = w * 0.5, cy = h * 0.52;
+        const glow = c.createRadialGradient(cx, cy, 3, cx, cy, w * 0.34);
+        glow.addColorStop(0, 'rgba(216, 243, 64, 0.5)');
+        glow.addColorStop(0.45, 'rgba(180, 200, 40, 0.18)');
+        glow.addColorStop(1, 'rgba(120, 140, 20, 0)');
+        c.fillStyle = glow;
+        c.fillRect(0, 0, w, h);
+        for (let i = 0; i < 16; i++) {
+            const a = i / 16 * Math.PI * 2;
+            const rr = 34 + (i % 3) * 16;
+            c.fillStyle = 'rgba(216, 243, 64, 0.28)';
+            c.beginPath();
+            c.ellipse(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr * TILT, 6 + (i % 3) * 3, 3 + (i % 2) * 2, a, 0, Math.PI * 2);
             c.fill();
         }
     } else if (key === 'atta') {
@@ -2490,7 +2694,7 @@ class QueenAnt extends Entity {
             if (dist < nest.radius + 10) {
                 const delivered = this.load;
                 this.load = 0;
-                storedFood += delivered;
+                addFood(delivered, 'berry');
                 growNest(nest, delivered);
                 spawnHitParticles(nest.x, nest.y, '#ffd166', 8);
 
@@ -2602,7 +2806,7 @@ function galleryBonusFor(target) {
 }
 
 class Ant extends Entity {
-    constructor(x, y, nestRef) {
+    constructor(x, y, nestRef, caste = 'worker') {
         super(x, y);
         this.species = (nestRef && nestRef.species) || speciesKey;
         const sp = SP(this.species);
@@ -2645,6 +2849,22 @@ class Ant extends Entity {
         this.poison = 0;
         this.poisonDmg = 0.05;
         this.wave = false;
+        this.caste = caste === 'major' ? 'major' : 'worker';
+        this.raidAssigned = false;
+        this.ugJob = null;
+        if (this.caste === 'major') {
+            this.maxHp = Math.round(this.maxHp * 2.1);
+            this.hp = this.maxHp;
+            this.damage *= 2.2;
+            this.speed *= 0.88;
+        }
+        applyLevelStats(this, this.caste);
+        if (PROG.honeyBuff > 0 || PROG.sugarBuff > 0) {
+            const m = activeBuff();
+            this.damage *= m.dmg;
+            this.speed *= m.spd;
+            this.buffMul = m;
+        }
     }
 
     tryEscapeJump() {
@@ -2884,7 +3104,7 @@ class Ant extends Entity {
             }
         }
 
-        const raid = !this.hasFood ? getRaidTarget() : null;
+        const raid = (!this.hasFood && isRaidAssigned(this)) ? getRaidTarget() : null;
         if (raid) {
             const ra = Math.atan2((raid.y - this.y) / TILT, raid.x - this.x);
             this.angle = this.lerpAngle(this.angle, ra, 0.17);
@@ -2934,7 +3154,7 @@ class Ant extends Entity {
                     this.nest.hunger = Math.min(100, (this.nest.hunger ?? 100) + 9);
                     this.nest.hp = Math.min(this.nest.maxHp, this.nest.hp + 3);
                 }
-                storedFood += 1;
+                addFood(this.carriesLeaf ? 1 : 1, this.foodType || 'berry');
                 growNest(this.nest, 2);
                 if (gameMode === 'sandbox') {
                     foodSpawnCounter += 2;
@@ -3075,6 +3295,7 @@ class Ant extends Entity {
                 const idx = foods.indexOf(bestFood);
                 if (idx > -1) {
                     this.hasFood = true;
+                    this.foodType = bestFood.type || 'berry';
                     this.carriesLeaf = false;
                     bestFood.claimedBy = null;
                     this.targetFood = null;
@@ -3130,7 +3351,24 @@ class Ant extends Entity {
         ctx.rotate(this.angle);
         ctx.scale(this.scale, this.scale);
 
+        const isMajor = this.caste === 'major';
+        if (isMajor) ctx.scale(1.1, 1.1);
         drawWorkerBody(ctx, this.species, this.walkCycle, this.vetRounds || 0);
+        if (isMajor) {
+            /* Soldado: cabeza desproporcionada con mandíbulas de triturar. */
+            const pal = antPalette(this.species, this.vetRounds || 0);
+            const f = ANT_FORMS[this.species] || ANT_FORMS.generic;
+            antHead(ctx, pal, f.hx + 1.2, f.hrx * 1.55, f.hry * 1.5,
+                f.head === 'shield' ? 'shield' : 'oval', f.eye * 1.15, 'strong');
+            /* Estrías del exoesqueleto y músculo mandibular marcado. */
+            ctx.strokeStyle = shadeColor(pal.head, 1.35);
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.ellipse(f.hx + 1.2, 0, f.hrx * 1.55 - 0.7, f.hry * 1.5 - 0.7, 0, -0.9, 0.9);
+            ctx.stroke();
+            ctx.fillStyle = pal.accent;
+            ctx.beginPath(); ctx.arc(f.hx + 0.4, -f.hry * 1.05, 0.9, 0, Math.PI * 2); ctx.fill();
+        }
 
         if (this.biteFlash > 0) {
             const bf = this.biteFlash / 14;
@@ -3306,7 +3544,7 @@ class Termite extends Entity {
 
                     if (dist < this.nest.radius) {
                         this.hasFood = false;
-                        storedFood += 1;
+                        addFood(1, 'berry');
                         foodSpawnCounter += 1;
                         checkAutoSpawn();
                         this.hp = Math.min(this.maxHp, this.hp + 5);
@@ -3363,40 +3601,94 @@ class Termite extends Entity {
             ctx.fillRect(-w / 2, -17, w * Math.max(0, this.hp / this.maxHp), 3.5);
         }
 
-        ctx.strokeStyle = this.soldier ? '#4a1c0e' : '#7f4f24';
-        ctx.lineWidth = 1.2;
         const legSwing = Math.sin(this.walkCycle) * 3;
-        ctx.beginPath();
-        ctx.moveTo(-2, -3); ctx.lineTo(-4 + legSwing, -10);
-        ctx.moveTo(1, -3); ctx.lineTo(3 - legSwing, -10);
-        ctx.moveTo(-2, 3); ctx.lineTo(-4 - legSwing, 10);
-        ctx.moveTo(1, 3); ctx.lineTo(3 + legSwing, 10);
-        ctx.stroke();
-
-        ctx.fillStyle = this.soldier ? '#e3c7a2' : '#f8edeb';
-        ctx.beginPath();
-        ctx.ellipse(-4, 0, 5.2, 3.2, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = this.soldier ? '#9c6644' : '#bc6c25';
-        ctx.beginPath();
-        ctx.arc(3.8, 0, this.soldier ? 4 : 3.4, 0, Math.PI * 2);
-        ctx.fill();
-
-        if (this.soldier) {
-            ctx.strokeStyle = '#4a1c0e';
-            ctx.lineWidth = 1.6;
-            ctx.beginPath();
-            ctx.moveTo(6, -2.5); ctx.lineTo(12, -5);
-            ctx.moveTo(6, 2.5); ctx.lineTo(12, 5);
-            ctx.stroke();
-        } else if (this.hasFood) {
-            ctx.fillStyle = '#ff2a55';
-            ctx.beginPath();
-            ctx.arc(8, 0, 3, 0, Math.PI * 2);
-            ctx.fill();
+        const legCol = this.soldier ? '#7a3a1c' : '#a67c52';
+        ctx.strokeStyle = legCol;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        for (const pair of [[-3, -6, -9], [0, 0, -1.5], [3, 6, 9]]) {
+            for (const s of [-1, 1]) {
+                const sw = legSwing * s;
+                ctx.lineWidth = 1.3;
+                ctx.beginPath();
+                ctx.moveTo(pair[0], s * 2.2);
+                ctx.lineTo(pair[1] + sw * 0.3, s * 6);
+                ctx.lineTo(pair[2] + sw, s * 10);
+                ctx.stroke();
+            }
         }
 
+        /* Abdomen segmentado: los termitas no tienen la cintura de las avispas. */
+        antOval(ctx, -5, 0, 5.8, 3.5, this.soldier ? '#e3c7a2' : '#f8edeb', 0, 1.35, 0.6);
+        ctx.strokeStyle = 'rgba(120, 80, 45, 0.3)';
+        ctx.lineWidth = 0.8;
+        for (let i = 0; i < 5; i++) {
+            const x = -1.6 - i * 1.9;
+            ctx.beginPath();
+            ctx.moveTo(x, -2.5); ctx.quadraticCurveTo(x - 0.9, 0, x, 2.5);
+            ctx.stroke();
+        }
+        antOval(ctx, 1.6, 0, 3.1, 2.5, this.soldier ? '#b07a4e' : '#c99a6b', 0, 1.4, 0.55);
+
+        if (this.soldier) {
+            /* Soldado: cabeza oscura, fontanela y poderosas mandíbulas en pinza. */
+            antOval(ctx, 6.2, 0, 4.3, 3.6, '#8c3b1e', 0, 1.45, 0.5);
+            ctx.fillStyle = '#40200f';
+            ctx.beginPath();
+            ctx.arc(7.2, -2.2, 0.8, 0, Math.PI * 2);
+            ctx.arc(7.2, 2.2, 0.8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#5c2a12';
+            ctx.beginPath();
+            ctx.ellipse(8.6, 0, 1.4, 1.1, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#4a1c0e';
+            ctx.lineWidth = 2.6;
+            ctx.beginPath();
+            ctx.moveTo(9, -2.3); ctx.quadraticCurveTo(14.5, -5.2, 16, -2.2);
+            ctx.moveTo(9, 2.3); ctx.quadraticCurveTo(14.5, 5.2, 16, 2.2);
+            ctx.stroke();
+            ctx.lineWidth = 1;
+            for (const s of [-1, 1]) {
+                ctx.beginPath();
+                ctx.moveTo(13.4, s * 4.1); ctx.lineTo(12.8, s * 2.9);
+                ctx.stroke();
+            }
+        } else {
+            antOval(ctx, 5.4, 0, 3.1, 2.6, '#bc6c25', 0, 1.4, 0.55);
+            ctx.fillStyle = '#3d1c0a';
+            ctx.beginPath();
+            ctx.arc(6.6, -1.6, 0.65, 0, Math.PI * 2);
+            ctx.arc(6.6, 1.6, 0.65, 0, Math.PI * 2);
+            ctx.fill();
+            /* Antenas moniliformes: cuentas en lugar de antenas acodadas. */
+            ctx.strokeStyle = '#8a5a2b';
+            ctx.lineWidth = 1;
+            for (const s of [-1, 1]) {
+                ctx.beginPath();
+                ctx.moveTo(7.4, s * 1.2);
+                ctx.quadraticCurveTo(11, s * 2.6, 12.5, s * 2);
+                ctx.stroke();
+                for (let i = 0; i < 4; i++) {
+                    ctx.fillStyle = '#9c6a33';
+                    ctx.beginPath();
+                    ctx.arc(8.6 + i * 1.2, s * (1.9 + 0.3 * Math.sin(i)), 0.55, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            ctx.strokeStyle = '#6b3d18';
+            ctx.lineWidth = 1.3;
+            ctx.beginPath();
+            ctx.moveTo(8, -1); ctx.lineTo(10, -0.5);
+            ctx.moveTo(8, 1); ctx.lineTo(10, 0.5);
+            ctx.stroke();
+        }
+        if (this.hasFood && !this.soldier) {
+            ctx.fillStyle = '#ff2a55';
+            ctx.beginPath();
+            ctx.arc(9, 0, 2.8, 0, Math.PI * 2);
+            ctx.fill();
+        }
         if (this.slowTimer > 0) {
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
             ctx.lineWidth = 1.4;
@@ -3521,38 +3813,60 @@ class Beetle extends Entity {
         ctx.scale(1, TILT);
         ctx.rotate(this.angle);
 
-        ctx.strokeStyle = '#1b2618';
-        ctx.lineWidth = 2;
         const swing = Math.sin(this.walkCycle) * 3;
+        ctx.strokeStyle = '#1b2618';
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        /* Patas con fémur, tibia y espolones. */
+        for (const def of [[-6, -11, -15], [0, -12, -15], [7, -9, -14]]) {
+            for (const s of [-1, 1]) {
+                const sw = swing * s;
+                ctx.lineWidth = 2.2;
+                ctx.beginPath();
+                ctx.moveTo(def[0], s * 7);
+                ctx.lineTo(def[1] + sw * 0.4, s * 12);
+                ctx.lineTo(def[2] + sw, s * 17);
+                ctx.stroke();
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(def[2] + sw, s * 17);
+                ctx.lineTo(def[2] + sw - 2, s * 19);
+                ctx.stroke();
+            }
+        }
+
+        /* Cuerpo y élitros: dos cubiertas con sutura central y brillo metálico. */
+        antOval(ctx, 0, 0, 15.5, 11.5, '#283618', 0, 1.5, 0.5);
+        ctx.save();
         ctx.beginPath();
-        ctx.moveTo(-4, -8); ctx.lineTo(-8 + swing, -16);
-        ctx.moveTo(2, -8); ctx.lineTo(4 - swing, -17);
-        ctx.moveTo(7, -6); ctx.lineTo(11 + swing, -14);
-        ctx.moveTo(-4, 8); ctx.lineTo(-8 - swing, 16);
-        ctx.moveTo(2, 8); ctx.lineTo(4 + swing, 17);
-        ctx.moveTo(7, 6); ctx.lineTo(11 - swing, 14);
+        ctx.ellipse(-1.5, 0, 13, 9.6, 0, 0, Math.PI * 2);
+        ctx.clip();
+        antOval(ctx, -1.5, -4.9, 13, 5.2, '#4f772d', 0, 1.55, 0.62);
+        antOval(ctx, -1.5, 4.9, 13, 5.2, '#426b26', 0, 1.5, 0.6);
+        ctx.restore();
+        ctx.strokeStyle = '#1b2618';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(-14, 0); ctx.lineTo(11.5, 0);
         ctx.stroke();
-
-        ctx.fillStyle = '#283618';
+        ctx.strokeStyle = 'rgba(181, 228, 140, 0.3)';
+        ctx.lineWidth = 1.4;
         ctx.beginPath();
-        ctx.ellipse(0, 0, 15, 11, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#4f772d';
+        ctx.moveTo(-12, -5.5); ctx.quadraticCurveTo(-2, -8.4, 9, -4.4);
+        ctx.stroke();
+        /* Pronoto, cabeza con cuerno y antenas. */
+        antOval(ctx, 9.5, 0, 5.6, 6.4, '#3a5a20', 0, 1.5, 0.5);
+        antOval(ctx, 15, 0, 3.4, 3.8, '#1f3018', 0, 1.4, 0.55);
+        ctx.strokeStyle = '#1f3018';
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.ellipse(-2, -1, 12, 8, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = 'rgba(181, 228, 140, 0.35)';
+        ctx.moveTo(17, 0); ctx.quadraticCurveTo(22, -3.4, 23, -1.2);
+        ctx.stroke();
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.ellipse(-2, -3.5, 8, 3, -0.2, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#132a13';
-        ctx.beginPath();
-        ctx.moveTo(13, -3); ctx.lineTo(19, 0); ctx.lineTo(13, 3);
-        ctx.fill();
-
+        ctx.moveTo(16.5, -2); ctx.quadraticCurveTo(20, -5, 21, -4);
+        ctx.moveTo(16.5, 2); ctx.quadraticCurveTo(20, 5, 21, 4);
+        ctx.stroke();
         if (this.hasBall) {
             ctx.save();
             ctx.translate(-21, 0);
@@ -3580,7 +3894,7 @@ class Beetle extends Entity {
 
 const ENEMY_STATS = {
     spider:    { speed: 1.75, radius: 16, hp: 100, damage: 7.1,  melee: 30, sight: 260, drop: 15 },
-    mantis:    { speed: 2.3,  radius: 22, hp: 190, damage: 12,   melee: 28, sight: 300, drop: 30 },
+    mantis:    { speed: 2.35, radius: 24, hp: 420, damage: 14,   melee: 26, sight: 330, drop: 55, miniBoss: true },
     antlion:   { speed: 1.05, radius: 24, hp: 340, damage: 16.5, melee: 40, sight: 240, drop: 45 },
     scorpion:  { speed: 1.5,  radius: 20, hp: 270, damage: 13.5, melee: 34, sight: 280, drop: 40 },
     centipede: { speed: 2.6,  radius: 14, hp: 120, damage: 6,    melee: 16, sight: 320, drop: 22 },
@@ -3589,6 +3903,123 @@ const ENEMY_STATS = {
     assassin:  { speed: 2.6,  radius: 15, hp: 150, damage: 11,   melee: 30, sight: 330, drop: 26 },
     anteater:  { speed: 1.35, radius: 30, hp: 850, damage: 18,   melee: 45, sight: 560, drop: 90 }
 };
+
+/* Pulgones simbióticos: viven en las ramas, sueltan miel poco a poco y son
+   presa de los enemigos. No son hormigas: no atacan ni recolectan. */
+class Aphid {
+    constructor(x, y, tree = null, owner = '') {
+        this.x = x;
+        this.y = y;
+        this.ax = x;
+        this.ay = y;
+        this.tree = tree;
+        this.owner = owner;
+        this.isAphid = true;
+        this.radius = 6;
+        this.maxHp = 30;
+        this.hp = 30;
+        this.angle = Math.random() * Math.PI * 2;
+        this.wiggle = Math.random() * Math.PI * 2;
+        this.produceT = 0;
+        this.produceEvery = 12 + Math.random() * 6;
+        this.poison = 0;
+        this.dead = false;
+    }
+
+    update() {
+        if (this.hp <= 0) { this.dead = true; return; }
+        if (this.poison > 0) {
+            this.poison = Math.max(0, this.poison - 2);
+            this.hp -= 0.08;
+        }
+        this.wiggle += 0.045;
+        this.x = this.ax + Math.sin(this.wiggle) * 2.6;
+        this.y = this.ay + Math.cos(this.wiggle * 0.7) * 1.3;
+        this.angle = Math.sin(this.wiggle * 0.5) * 0.35;
+
+        this.produceT += STEP;
+        if (this.produceT >= this.produceEvery) {
+            this.produceT = 0;
+            const fx = this.x + (Math.random() - 0.5) * 6;
+            const fy = this.y + 4 + (Math.random() - 0.5) * 3;
+            foods.push({ x: fx, y: fy, amount: 1, age: 0, type: 'honey' });
+            spawnHitParticles(fx, fy, '#ffd166', 3);
+        }
+    }
+
+    draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+
+        ctx.fillStyle = 'rgba(0,0,0,0.32)';
+        ctx.beginPath();
+        ctx.ellipse(1, 3, 7, 3.2, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        /* Barra de miel: se llena y al completarse suelta una gota de miel. */
+        const bw = 16;
+        const fill = Math.max(0, Math.min(1, this.produceT / this.produceEvery));
+        ctx.fillStyle = 'rgba(0,0,0,0.65)';
+        ctx.fillRect(-bw / 2, -15, bw, 3.2);
+        ctx.fillStyle = fill > 0.96 ? '#ffd166' : '#8ac926';
+        ctx.fillRect(-bw / 2, -15, bw * fill, 3.2);
+        if (this.hp < this.maxHp) {
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fillRect(-bw / 2, -20, bw, 3);
+            ctx.fillStyle = '#e63946';
+            ctx.fillRect(-bw / 2, -20, bw * Math.max(0, this.hp / this.maxHp), 3);
+        }
+
+        ctx.scale(1, TILT);
+        ctx.rotate(this.angle);
+
+        ctx.strokeStyle = '#3d5a10';
+        ctx.lineWidth = 1;
+        ctx.lineCap = 'round';
+        for (const s of [-1, 1]) {
+            for (let i = 0; i < 3; i++) {
+                const bx = -3 + i * 3;
+                ctx.beginPath();
+                ctx.moveTo(bx, s * 2.4);
+                ctx.lineTo(bx - 1 + Math.sin(this.wiggle + i) * 0.8, s * 5.5);
+                ctx.stroke();
+            }
+            ctx.beginPath();
+            ctx.moveTo(4.5, s * 1.2);
+            ctx.quadraticCurveTo(8, s * 3, 8.5, s * 1.6);
+            ctx.stroke();
+        }
+
+        antOval(ctx, -1, 0, 5.6, 4.2, '#8ac926', 0, 1.55, 0.5);
+        antOval(ctx, 4.3, 0, 2.8, 2.6, '#6a9e15', 0, 1.4, 0.55);
+        ctx.fillStyle = '#3d5a10';
+        ctx.beginPath();
+        ctx.arc(5.2, -1.2, 0.7, 0, Math.PI * 2);
+        ctx.arc(5.2, 1.2, 0.7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#6a9e15';
+        ctx.lineWidth = 1.4;
+        for (const s of [-1, 1]) {
+            ctx.beginPath();
+            ctx.moveTo(-4.4, s * 2.2);
+            ctx.lineTo(-6.2, s * 3.2);
+            ctx.stroke();
+        }
+        const dew = 0.4 + 0.6 * (this.produceT / this.produceEvery);
+        ctx.fillStyle = `rgba(255, 209, 102, ${0.35 + dew * 0.5})`;
+        ctx.beginPath();
+        ctx.arc(-6.6, -2.4, 1 + dew * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+        if (this.poison > 0) {
+            ctx.strokeStyle = 'rgba(199,125,255,0.7)';
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.arc(0, 0, 8, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+}
 
 class Enemy extends Entity {
     constructor(x, y, type) {
@@ -3626,6 +4057,7 @@ class Enemy extends Entity {
         this.tongueT = 0;
         this.tongueEnd = null;
         this.isAnt = false;
+        this.isMiniBoss = !!st.miniBoss;
     }
 
     update() {
@@ -3662,7 +4094,7 @@ class Enemy extends Entity {
                 this.trapCD -= STEP;
                 if (this.trapCD <= 0 && !this.trapTarget) {
                     this.trapCD = 13;
-                    traps.push({ x: this.x, y: this.y, owner: this, r: 30, life: 1200, triggered: false, target: null });
+                    traps.push({ x: this.x, y: this.y, owner: this, r: 30, life: 1e9, triggered: false, target: null });
                     this.trapState = 'inside';
                     this.trapWait = 20;
                     this.trapAnchor = { x: this.x, y: this.y };
@@ -3710,6 +4142,13 @@ class Enemy extends Entity {
             }
         }
 
+        /* Los pulgones son presa blanda: los enemigos los prefieren si están cerca. */
+        for (const ap of aphids) {
+            if (ap.hp <= 0) continue;
+            const d = Math.hypot(ap.x - this.x, (ap.y - this.y) / TILT);
+            if (d * 0.7 < minDist) { minDist = d; target = ap; }
+        }
+
         if (this.type === 'antlion' && this.trapState === 'inside' && !this.trapTarget) {
             target = null;
         }
@@ -3737,7 +4176,9 @@ class Enemy extends Entity {
                 this.tongueT = 0.3;
                 this.tongueEnd = { x: target.x, y: target.y };
                 let eaten = 0;
+                this.anteaterEaten = this.anteaterEaten || 0;
                 for (const a of ants) {
+                    if (eaten >= 7 - this.anteaterEaten) break;
                     if (a.hp <= 0) continue;
                     const d = Math.hypot(a.x - target.x, (a.y - target.y) / TILT);
                     if (d > 120) continue;
@@ -3752,7 +4193,8 @@ class Enemy extends Entity {
                 }
                 spawnHitParticles(target.x, target.y, '#ff8fab', 8);
                 spawnHitParticles(this.x + Math.cos(this.angle) * 30, this.y + Math.sin(this.angle) * 30 * TILT, '#ffd166', 3);
-                if (eaten > 0) setStatus(`El oso hormiguero se comió ${eaten} hormiga(s) con un solo latigazo de lengua`, true);
+                this.anteaterEaten += eaten;
+                if (eaten > 0) setStatus(`El oso hormiguero se comió ${eaten} hormiga(s) — máximo 7 en toda la partida`, true);
             }
 
             if (this.type === 'spider' && minDist < 230 && minDist > 50 && this.attackCooldown === 0) {
@@ -3868,386 +4310,472 @@ class Enemy extends Entity {
         ctx.ellipse(4, 8, this.radius * 1.1, this.radius * 0.6, 0, 0, Math.PI * 2);
         ctx.fill();
 
+        if (this.isMiniBoss) {
+            const pulse = 0.45 + 0.35 * Math.sin(gameTime * 4);
+            ctx.strokeStyle = `rgba(255, 183, 3, ${pulse})`;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, this.radius * 1.55, this.radius * 1.55 * TILT, 0, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fillStyle = '#ffb703';
+            ctx.beginPath();
+            ctx.moveTo(-9, -this.radius - 30);
+            ctx.lineTo(-6, -this.radius - 38);
+            ctx.lineTo(-2, -this.radius - 31);
+            ctx.lineTo(2, -this.radius - 38);
+            ctx.lineTo(6, -this.radius - 31);
+            ctx.lineTo(9, -this.radius - 38);
+            ctx.lineTo(9, -this.radius - 29);
+            ctx.closePath();
+            ctx.fill();
+        }
+
         ctx.scale(1, TILT);
         ctx.rotate(this.angle);
 
         if (this.type === 'mantis') {
+            const swing = Math.sin(this.walkCycle) * 3;
             ctx.strokeStyle = '#1b4332';
-            ctx.lineWidth = 2.6;
-            const swing = Math.sin(this.walkCycle) * 4;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            /* Cuatro patas traseras articuladas. */
+            for (const s of [-1, 1]) {
+                ctx.lineWidth = 2.4;
+                ctx.beginPath();
+                ctx.moveTo(-8, s * 5); ctx.lineTo(-14 + swing * s, s * 11); ctx.lineTo(-18 + swing * s, s * 19);
+                ctx.moveTo(0, s * 5); ctx.lineTo(-3 - swing * s, s * 11); ctx.lineTo(-2 - swing * s, s * 19);
+                ctx.stroke();
+            }
+            /* Patas raptoras plegadas con espinas internas. */
+            for (const s of [-1, 1]) {
+                ctx.strokeStyle = '#2d6a4f';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(9, s * 3); ctx.lineTo(21, s * 10); ctx.lineTo(15, s * 5);
+                ctx.stroke();
+                ctx.strokeStyle = '#1b4332';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < 4; i++) {
+                    const t = i / 4;
+                    const bx = 9 + 12 * t;
+                    const by = s * (3 + 7 * t);
+                    ctx.beginPath();
+                    ctx.moveTo(bx, by); ctx.lineTo(bx - 1, by + s * 2.6);
+                    ctx.stroke();
+                }
+            }
+            /* Abdomen segmentado y alas translúcidas. */
+            antOval(ctx, -9, 0, 17, 7.6, '#2d6a4f', 0.05, 1.5, 0.5);
+            ctx.strokeStyle = 'rgba(10,40,25,0.5)';
+            ctx.lineWidth = 0.9;
+            for (let i = 0; i < 5; i++) {
+                const x = -4 - i * 5.2;
+                ctx.beginPath();
+                ctx.moveTo(x, -5.4); ctx.quadraticCurveTo(x - 1, 0, x, 5.4);
+                ctx.stroke();
+            }
+            ctx.fillStyle = 'rgba(190,240,190,0.26)';
             ctx.beginPath();
-            ctx.moveTo(-6, -5); ctx.lineTo(-16 + swing, -20);
-            ctx.moveTo(-6, 5); ctx.lineTo(-16 - swing, 20);
-            ctx.moveTo(0, -5); ctx.lineTo(-3 - swing, -18);
-            ctx.moveTo(0, 5); ctx.lineTo(-3 + swing, 18);
-            ctx.stroke();
-
-            ctx.strokeStyle = '#40916c';
-            ctx.lineWidth = 4.2;
-            ctx.beginPath();
-            ctx.moveTo(10, -4); ctx.lineTo(28, -17); ctx.lineTo(21, -3);
-            ctx.moveTo(10, 4); ctx.lineTo(28, 17); ctx.lineTo(21, 3);
-            ctx.stroke();
-
-            ctx.fillStyle = '#1b4332';
-            ctx.beginPath();
-            ctx.ellipse(-8, 0, 17, 8, 0, 0, Math.PI * 2);
+            ctx.ellipse(-8, -3, 14, 4, -0.16, 0, Math.PI * 2);
+            ctx.ellipse(-8, 3, 14, 4, 0.16, 0, Math.PI * 2);
             ctx.fill();
-
-            ctx.fillStyle = '#2d6a4f';
-            ctx.beginPath();
-            ctx.ellipse(9, 0, 12, 6, 0, 0, Math.PI * 2);
-            ctx.fill();
-
+            /* Protórax alargado y cabeza triangular con ojos compuestos. */
+            antOval(ctx, 8, 0, 6.5, 3.6, '#40916c', 0, 1.5, 0.5);
             ctx.fillStyle = '#74c69d';
             ctx.beginPath();
-            ctx.arc(21, 0, 6.5, 0, Math.PI * 2);
+            ctx.moveTo(14, -4.5); ctx.lineTo(24, 0); ctx.lineTo(14, 4.5);
+            ctx.closePath();
             ctx.fill();
-
-            ctx.fillStyle = '#ffb703';
-            ctx.beginPath();
-            ctx.arc(23, -4.5, 2.6, 0, Math.PI * 2);
-            ctx.arc(23, 4.5, 2.6, 0, Math.PI * 2);
-            ctx.fill();
-        } else if (this.type === 'antlion') {
-            ctx.strokeStyle = '#6b4b2a';
-            ctx.lineWidth = 2;
-            const sw = Math.sin(this.walkCycle) * 3;
-            ctx.beginPath();
-            for (let i = -1; i <= 1; i++) {
-                ctx.moveTo(i * 6, 8); ctx.lineTo(i * 7 + sw, 17);
-                ctx.moveTo(i * 6, -8); ctx.lineTo(i * 7 - sw, -17);
+            for (const s of [-1, 1]) {
+                ctx.fillStyle = '#ffb703';
+                ctx.beginPath(); ctx.arc(21, s * 3.3, 2.7, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#1b4332';
+                ctx.beginPath(); ctx.arc(21.4, s * 3.3, 1, 0, Math.PI * 2); ctx.fill();
             }
-            ctx.stroke();
-
-            ctx.fillStyle = '#c9ae7f';
+            ctx.strokeStyle = '#1b4332';
+            ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.ellipse(-8, 0, 16, 11, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.strokeStyle = 'rgba(90, 66, 38, 0.55)';
+            ctx.moveTo(19, -2); ctx.quadraticCurveTo(27, -6, 29, -3);
+            ctx.moveTo(19, 2); ctx.quadraticCurveTo(27, 6, 29, 3);
+            ctx.stroke();
+        } else if (this.type === 'antlion') {
+            const sw = Math.sin(this.walkCycle) * 3;
+            ctx.strokeStyle = '#6b4b2a';
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            for (const s of [-1, 1]) {
+                for (let i = 0; i < 3; i++) {
+                    const bx = -8 + i * 7;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(bx, s * 7);
+                    ctx.lineTo(bx - 1 + sw * s, s * 13);
+                    ctx.lineTo(bx - 3 + sw * s, s * 18);
+                    ctx.stroke();
+                }
+            }
+            /* Abdomen larvario abultado con tergitos y cerdas. */
+            antOval(ctx, -8, 0, 16, 11.5, '#c9ae7f', 0, 1.4, 0.55);
+            ctx.strokeStyle = 'rgba(90, 66, 38, 0.5)';
             ctx.lineWidth = 1.2;
-            for (let i = 0; i < 4; i++) {
+            for (let i = 0; i < 5; i++) {
+                const x = -2 - i * 4.6;
                 ctx.beginPath();
-                ctx.arc(-8, 0, 4 + i * 3.2, -1.1, 1.1);
+                ctx.moveTo(x, -8); ctx.quadraticCurveTo(x - 1.6, 0, x, 8);
                 ctx.stroke();
             }
-
-            ctx.fillStyle = '#a98b5c';
-            ctx.beginPath();
-            ctx.ellipse(8, 0, 9, 7.5, 0, 0, Math.PI * 2);
-            ctx.fill();
-
+            ctx.lineWidth = 1;
+            for (const s of [-1, 1]) {
+                for (let i = 0; i < 6; i++) {
+                    const x = 3 - i * 4;
+                    ctx.beginPath();
+                    ctx.moveTo(x, s * 8); ctx.lineTo(x - 2, s * 12);
+                    ctx.stroke();
+                }
+            }
+            /* Cabeza con ojos y enormes mandíbulas en hoz dentadas. */
+            antOval(ctx, 8.5, 0, 9, 7.6, '#a98b5c', 0, 1.4, 0.55);
             ctx.fillStyle = '#2b1a0c';
             ctx.beginPath();
-            ctx.arc(12, -3, 1.8, 0, Math.PI * 2);
-            ctx.arc(12, 3, 1.8, 0, Math.PI * 2);
+            ctx.arc(12, -3.4, 1.9, 0, Math.PI * 2);
+            ctx.arc(12, 3.4, 1.9, 0, Math.PI * 2);
             ctx.fill();
-
             ctx.strokeStyle = '#3d2b18';
-            ctx.lineWidth = 3.2;
+            ctx.lineWidth = 3.6;
             ctx.beginPath();
-            ctx.moveTo(15, -3); ctx.quadraticCurveTo(24, -9, 31, -3);
-            ctx.moveTo(15, 3); ctx.quadraticCurveTo(24, 9, 31, 3);
+            ctx.moveTo(15, -3.4); ctx.quadraticCurveTo(25, -8.5, 32, -2.5);
+            ctx.moveTo(15, 3.4); ctx.quadraticCurveTo(25, 8.5, 32, 2.5);
             ctx.stroke();
-        } else if (this.type === 'scorpion') {
-            ctx.strokeStyle = '#4a1414';
-            ctx.lineWidth = 2.2;
-            const sw = Math.sin(this.walkCycle) * 3;
-            for (let i = -1; i <= 1; i += 2) {
-                ctx.beginPath();
-                ctx.moveTo(-8, i * 4); ctx.lineTo(-16 + sw, i * 14);
-                ctx.moveTo(-4, i * 5); ctx.lineTo(-6 - sw, i * 17);
-                ctx.moveTo(2, i * 5); ctx.lineTo(4 + sw, i * 16);
-                ctx.moveTo(7, i * 4); ctx.lineTo(12 - sw, i * 14);
-                ctx.stroke();
+            ctx.lineWidth = 1.2;
+            for (const s of [-1, 1]) {
+                for (let i = 0; i < 3; i++) {
+                    const t = 0.35 + i * 0.2;
+                    const x = 15 + 17 * t;
+                    const y = s * (3.4 + 3.2 * Math.sin(t * Math.PI));
+                    ctx.beginPath();
+                    ctx.moveTo(x, y); ctx.lineTo(x + 1, y - s * 2.2);
+                    ctx.stroke();
+                }
             }
-
+        } else if (this.type === 'scorpion') {
+            const sw = Math.sin(this.walkCycle) * 3;
+            ctx.strokeStyle = '#4a1414';
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            for (const s of [-1, 1]) {
+                for (let i = 0; i < 4; i++) {
+                    const bx = -10 + i * 6;
+                    ctx.lineWidth = 2.1;
+                    ctx.beginPath();
+                    ctx.moveTo(bx, s * 4.5);
+                    ctx.lineTo(bx - 3 + sw * s, s * 11);
+                    ctx.lineTo(bx - 5 + sw * s, s * 17);
+                    ctx.stroke();
+                }
+            }
+            /* Prosoma y mesosoma segmentados. */
+            antOval(ctx, -8, 0, 8.5, 6.8, '#6a1f1f', 0, 1.4, 0.5);
+            for (let i = 0; i < 4; i++) {
+                antOval(ctx, -1.5 - i * 4.4, 0, 4.2 - i * 0.35, 5.3 - i * 0.4, '#8c2f2f', 0, 1.4, 0.55);
+            }
+            /* Cola con segmentos que se curva sobre el dorso y remata en aguijón. */
+            const segs = [[-14, -4], [-20, -10], [-23, -18], [-18, -24], [-9, -25], [-2, -21]];
             ctx.strokeStyle = '#7f1d1d';
-            ctx.lineWidth = 5;
+            ctx.lineWidth = 6;
             ctx.beginPath();
-            ctx.moveTo(-14, 0);
-            ctx.quadraticCurveTo(-22, -6, -14, -14);
+            ctx.moveTo(-13, -2);
+            for (const pt of segs) ctx.lineTo(pt[0], pt[1]);
+            ctx.stroke();
+            ctx.strokeStyle = 'rgba(255,180,120,0.22)';
+            ctx.lineWidth = 2;
             ctx.stroke();
             ctx.fillStyle = '#ffd166';
             ctx.beginPath();
-            ctx.arc(-13, -16, 3, 0, Math.PI * 2);
+            ctx.moveTo(-2, -21); ctx.lineTo(3, -19); ctx.lineTo(-2, -17);
+            ctx.closePath();
             ctx.fill();
-
-            ctx.fillStyle = '#6a1f1f';
-            ctx.beginPath();
-            ctx.ellipse(-10, 0, 8, 6.5, 0, 0, Math.PI * 2);
-            ctx.ellipse(-2, 0, 6, 5.5, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = '#8c2f2f';
-            ctx.beginPath();
-            ctx.ellipse(7, 0, 7, 6, 0, 0, Math.PI * 2);
-            ctx.fill();
-
+            /* Quelíceros con pinzas dentadas. */
             ctx.strokeStyle = '#6a1f1f';
-            ctx.lineWidth = 3;
+            ctx.lineWidth = 3.2;
             ctx.beginPath();
-            ctx.moveTo(12, -3); ctx.lineTo(20, -8);
-            ctx.moveTo(12, 3); ctx.lineTo(20, 8);
+            ctx.moveTo(6, -4); ctx.lineTo(13, -9);
+            ctx.moveTo(6, 4); ctx.lineTo(13, 9);
             ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(20, -10, 3.4, Math.PI * 0.4, Math.PI * 1.9);
-            ctx.arc(20, 10, 3.4, Math.PI * 1.1, Math.PI * 0.6, true);
-            ctx.stroke();
-
-            ctx.fillStyle = '#e9c46a';
-            ctx.beginPath();
-            ctx.arc(15, -3, 1.3, 0, Math.PI * 2);
-            ctx.arc(15, 3, 1.3, 0, Math.PI * 2);
-            ctx.fill();
-        } else if (this.type === 'centipede') {
-            ctx.strokeStyle = '#7a2a12';
-            ctx.lineWidth = 1.6;
-            const sw = Math.sin(this.walkCycle) * 3;
-            for (let i = -3; i <= 3; i++) {
+            for (const s of [-1, 1]) {
+                antOval(ctx, 16, s * 9, 5, 3.8, '#8c2f2f', s * 0.3, 1.4, 0.55);
+                ctx.strokeStyle = '#4a1414';
+                ctx.lineWidth = 1.8;
                 ctx.beginPath();
-                ctx.moveTo(i * 4.5, 3); ctx.lineTo(i * 4.5 - 3 + sw, 10);
-                ctx.moveTo(i * 4.5, -3); ctx.lineTo(i * 4.5 - 3 - sw, -10);
+                ctx.moveTo(19, s * 10.6); ctx.lineTo(24, s * 8.4);
+                ctx.moveTo(19, s * 7.4); ctx.lineTo(24, s * 9.6);
                 ctx.stroke();
             }
-            for (let i = 0; i < 6; i++) {
-                const x = 12 - i * 6;
-                ctx.fillStyle = i % 2 ? '#b23a1a' : '#8c2f14';
-                ctx.beginPath();
-                ctx.ellipse(x, 0, 4.6, 3.4, 0, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            ctx.fillStyle = '#e76f51';
+            ctx.fillStyle = '#e9c46a';
             ctx.beginPath();
-            ctx.arc(15, 0, 4, 0, Math.PI * 2);
+            ctx.arc(11, -3, 1.3, 0, Math.PI * 2);
+            ctx.arc(11, 3, 1.3, 0, Math.PI * 2);
             ctx.fill();
+        } else if (this.type === 'centipede') {
+            const sw = Math.sin(this.walkCycle) * 3.5;
+            ctx.lineCap = 'round';
+            for (let i = 0; i < 9; i++) {
+                const x = 14 - i * 4.6;
+                for (const s of [-1, 1]) {
+                    ctx.strokeStyle = '#5c1f0d';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(x, s * 2.5);
+                    ctx.lineTo(x - 2 + sw * s, s * 8);
+                    ctx.lineTo(x - 4 + sw * s, s * 12);
+                    ctx.stroke();
+                }
+                antOval(ctx, x, 0, 4.4, 3.5, i % 2 ? '#b23a1a' : '#8c2f14', 0, 1.5, 0.5);
+                ctx.strokeStyle = 'rgba(0,0,0,0.28)';
+                ctx.lineWidth = 0.7;
+                ctx.beginPath();
+                ctx.moveTo(x + 4, -2.4); ctx.quadraticCurveTo(x + 5, 0, x + 4, 2.4);
+                ctx.stroke();
+            }
+            antOval(ctx, 17, 0, 4.6, 4, '#e76f51', 0, 1.5, 0.5);
             ctx.strokeStyle = '#4a1c0e';
             ctx.lineWidth = 1.4;
             ctx.beginPath();
-            ctx.moveTo(18, -2); ctx.lineTo(24, -5);
-            ctx.moveTo(18, 2); ctx.lineTo(24, 5);
+            ctx.moveTo(20, -2); ctx.quadraticCurveTo(28, -6, 31, -3);
+            ctx.moveTo(20, 2); ctx.quadraticCurveTo(28, 6, 31, 3);
+            ctx.moveTo(20, -2.5); ctx.lineTo(26, -5);
+            ctx.moveTo(20, 2.5); ctx.lineTo(26, 5);
             ctx.stroke();
+            ctx.fillStyle = '#1b0d08';
+            ctx.beginPath();
+            ctx.arc(18.5, -1.8, 1.1, 0, Math.PI * 2);
+            ctx.arc(18.5, 1.8, 1.1, 0, Math.PI * 2);
+            ctx.fill();
         } else if (this.type === 'wasp') {
             const flap = 0.5 + 0.5 * Math.abs(Math.sin(this.walkCycle * 2.2));
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.32)';
-            ctx.beginPath();
-            ctx.ellipse(-4, -9, 11, 4 * flap + 1, -0.5, 0, Math.PI * 2);
-            ctx.ellipse(-4, 9, 11, 4 * flap + 1, 0.5, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = '#1b1b1b';
-            ctx.beginPath();
-            ctx.ellipse(-10, 0, 9, 5, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#ffd166';
-            ctx.beginPath();
-            ctx.ellipse(-13, 0, 2.2, 4.2, 0, 0, Math.PI * 2);
-            ctx.ellipse(-7, 0, 2.2, 4.6, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = '#3d2b0f';
-            ctx.beginPath();
-            ctx.ellipse(0, 0, 4, 3.4, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = '#ffd166';
-            ctx.beginPath();
-            ctx.arc(6, 0, 3.6, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = '#1b1b1b';
-            ctx.beginPath();
-            ctx.arc(7.4, -1.2, 1, 0, Math.PI * 2);
-            ctx.arc(7.4, 1.2, 1, 0, Math.PI * 2);
-            ctx.fill();
-
+            /* Alas translúcidas con venas. */
+            ctx.fillStyle = `rgba(230, 245, 255, ${0.26 + flap * 0.16})`;
+            ctx.strokeStyle = 'rgba(120, 160, 190, 0.5)';
+            ctx.lineWidth = 0.7;
+            for (const s of [-1, 1]) {
+                ctx.beginPath();
+                ctx.ellipse(-4, s * 9, 12, 3.4 * flap + 1.2, s * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            }
             ctx.strokeStyle = '#1b1b1b';
-            ctx.lineWidth = 1.6;
+            ctx.lineWidth = 1.1;
+            for (const s of [-1, 1]) {
+                for (let i = 0; i < 3; i++) {
+                    const bx = -4 + i * 5;
+                    ctx.beginPath();
+                    ctx.moveTo(bx, s * 3);
+                    ctx.lineTo(bx - 1, s * 8);
+                    ctx.lineTo(bx - 3, s * 12);
+                    ctx.stroke();
+                }
+            }
+            /* Gáster con bandas, pecíolo estrecho y aguijón. */
+            antOval(ctx, -11, 0, 9.5, 5.4, '#1b1b1b', 0, 1.5, 0.55);
+            ctx.fillStyle = '#ffd166';
             ctx.beginPath();
-            ctx.moveTo(-18, 0); ctx.lineTo(-23, 0);
+            for (let i = 0; i < 3; i++) {
+                ctx.ellipse(-15 + i * 3.6, 0, 1.9, 4.7 - i * 0.35, 0, 0, Math.PI * 2);
+            }
+            ctx.fill();
+            antOval(ctx, -2.5, 0, 1.7, 1.4, '#3d2b0f', 0, 1.4, 0.5);
+            antOval(ctx, 1, 0, 4.5, 3.8, '#3d2b0f', 0, 1.5, 0.5);
+            antOval(ctx, 7, 0, 3.8, 3.4, '#ffd166', 0, 1.4, 0.6);
+            ctx.fillStyle = '#1b1b1b';
+            ctx.beginPath();
+            ctx.arc(8.4, -1.3, 1.1, 0, Math.PI * 2);
+            ctx.arc(8.4, 1.3, 1.1, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#1b1b1b';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(9, -2); ctx.quadraticCurveTo(14, -4.5, 15, -2);
+            ctx.moveTo(9, 2); ctx.quadraticCurveTo(14, 4.5, 15, 2);
+            ctx.moveTo(-19, 0); ctx.lineTo(-24, 0);
             ctx.stroke();
         } else if (this.type === 'assassin') {
             const sw = Math.sin(this.walkCycle) * 3;
             ctx.strokeStyle = '#2b130a';
-            ctx.lineWidth = 1.5;
-            for (let i = -1; i <= 1; i++) {
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            for (const s of [-1, 1]) {
+                for (let i = 0; i < 3; i++) {
+                    const bx = -8 + i * 7;
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(bx, s * 3.8);
+                    ctx.lineTo(bx - 1 + sw * s, s * 9);
+                    ctx.lineTo(bx + 1 + sw * s, s * 14);
+                    ctx.stroke();
+                }
+            }
+            /* Alas plegadas sobre el dorso. */
+            const flap = 0.5 + 0.5 * Math.abs(Math.sin(this.walkCycle * 2));
+            ctx.fillStyle = 'rgba(120, 60, 40, 0.45)';
+            ctx.beginPath();
+            ctx.ellipse(-6, -3, 13, 4.5 * flap + 1, -0.16, 0, Math.PI * 2);
+            ctx.ellipse(-6, 3, 13, 4.5 * flap + 1, 0.16, 0, Math.PI * 2);
+            ctx.fill();
+            antOval(ctx, -9, 0, 9.5, 5.4, '#7a1f0e', 0, 1.5, 0.5);
+            ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+            ctx.lineWidth = 0.8;
+            for (let i = 0; i < 4; i++) {
+                const x = -3 - i * 3.6;
                 ctx.beginPath();
-                ctx.moveTo(i * 5, 4); ctx.lineTo(i * 6 + sw, 13);
-                ctx.moveTo(i * 5, -4); ctx.lineTo(i * 6 - sw, -13);
+                ctx.moveTo(x, -4.4); ctx.quadraticCurveTo(x - 1, 0, x, 4.4);
                 ctx.stroke();
             }
-
-            ctx.fillStyle = '#7a1f0e';
-            ctx.beginPath();
-            ctx.ellipse(-9, 0, 9, 5.4, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#1b0d08';
-            ctx.beginPath();
-            ctx.ellipse(-9, 0, 3.2, 5.4, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = '#b23a1a';
-            ctx.beginPath();
-            ctx.ellipse(2, 0, 7, 4.2, 0, 0, Math.PI * 2);
-            ctx.fill();
-
+            antOval(ctx, 2, 0, 6.6, 4.2, '#b23a1a', 0, 1.5, 0.5);
             ctx.fillStyle = '#e76f51';
             ctx.beginPath();
-            ctx.ellipse(10, 0, 3.6, 3, 0, 0, Math.PI * 2);
+            ctx.moveTo(7, -3.6);
+            ctx.quadraticCurveTo(13, -2.4, 14, 0);
+            ctx.quadraticCurveTo(13, 2.4, 7, 3.6);
+            ctx.closePath();
             ctx.fill();
-
             ctx.strokeStyle = '#1b0d08';
-            ctx.lineWidth = 1.8;
-            ctx.beginPath();
-            ctx.moveTo(13, 0); ctx.lineTo(21, 0);
-            ctx.stroke();
-
-            ctx.fillStyle = '#1b0d08';
-            ctx.beginPath();
-            ctx.arc(11, -1.6, 0.9, 0, Math.PI * 2);
-            ctx.arc(11, 1.6, 0.9, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.strokeStyle = '#c77dff';
-            ctx.lineWidth = 1;
-            ctx.globalAlpha = 0.7;
-            ctx.beginPath();
-            ctx.arc(21, 0, 2.4, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.globalAlpha = 1;
-        } else if (this.type === 'anteater') {
-            const sw = Math.sin(this.walkCycle) * 3;
-
-            ctx.fillStyle = '#6b503a';
-            ctx.beginPath();
-            ctx.ellipse(-30, 0, 20, 12, 0.35, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = '#513a28';
-            ctx.lineWidth = 1.2;
-            for (let i = 0; i < 5; i++) {
-                ctx.beginPath();
-                ctx.moveTo(-38 + i * 3, -7 + i * 2.4);
-                ctx.quadraticCurveTo(-47 + i * 2, -2 + i * 2.4, -37 + i * 2, 4 + i * 2.4);
-                ctx.stroke();
-            }
-
-            ctx.strokeStyle = '#3a2a1c';
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.moveTo(-14, 7); ctx.lineTo(-18 + sw, 19);
-            ctx.moveTo(-4, 8); ctx.lineTo(-6 - sw, 20);
-            ctx.moveTo(10, 7); ctx.lineTo(14 + sw, 17);
-            ctx.moveTo(17, 6); ctx.lineTo(21 - sw, 15);
-            ctx.stroke();
-
-            ctx.strokeStyle = '#f1e3c8';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(14 + sw, 17); ctx.lineTo(20 + sw, 21);
-            ctx.moveTo(21 - sw, 15); ctx.lineTo(27 - sw, 18);
+            ctx.moveTo(13, 0); ctx.lineTo(22, 0);
             ctx.stroke();
-
-            ctx.fillStyle = '#8d6e4f';
+            ctx.fillStyle = '#1b0d08';
             ctx.beginPath();
-            ctx.ellipse(-4, 0, 24, 14, 0, 0, Math.PI * 2);
+            ctx.arc(10, -2, 1, 0, Math.PI * 2);
+            ctx.arc(10, 2, 1, 0, Math.PI * 2);
             ctx.fill();
-
+            ctx.strokeStyle = 'rgba(199, 125, 255, 0.7)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(22, 0, 2.4, 0, Math.PI * 2);
+            ctx.stroke();
+        } else if (this.type === 'anteater') {
+            const sw = Math.sin(this.walkCycle) * 3;
+            /* Cola peluda. */
+            ctx.fillStyle = '#6b503a';
+            ctx.beginPath();
+            ctx.moveTo(-14, -6);
+            ctx.bezierCurveTo(-40, -18, -52, -6, -50, 0);
+            ctx.bezierCurveTo(-52, 6, -40, 18, -14, 6);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(60, 40, 25, 0.7)';
+            ctx.lineWidth = 1.2;
+            for (let i = 0; i < 8; i++) {
+                const t = i / 8;
+                const x = -18 - t * 28;
+                ctx.beginPath();
+                ctx.moveTo(x, -7 - t * 6);
+                ctx.quadraticCurveTo(x - 8, 0, x, 7 + t * 6);
+                ctx.stroke();
+            }
+            /* Patas con garras grandes para abrir hormigueros. */
+            const paws = [[-14, 18], [-4, 20], [10, 17], [17, 15]];
+            ctx.strokeStyle = '#3a2a1c';
+            ctx.lineWidth = 4.5;
+            ctx.lineCap = 'round';
+            for (const p of paws) {
+                ctx.beginPath();
+                ctx.moveTo(p[0], p[1] * 0.45);
+                ctx.lineTo(p[0] + sw * 0.4, p[1]);
+                ctx.stroke();
+            }
+            ctx.strokeStyle = '#f1e3c8';
+            ctx.lineWidth = 2.4;
+            for (const p of paws) {
+                ctx.beginPath();
+                ctx.moveTo(p[0] + sw * 0.4, p[1]);
+                ctx.lineTo(p[0] + sw * 0.4 + 5, p[1] + 4);
+                ctx.stroke();
+            }
+            /* Cuerpo con pelaje y franja dorsal. */
+            antOval(ctx, -4, 0, 24, 14, '#8d6e4f', 0, 1.4, 0.55);
             ctx.fillStyle = '#2b2018';
             ctx.beginPath();
             ctx.ellipse(-12, 0, 7, 13.2, 0.1, 0, Math.PI * 2);
             ctx.fill();
-
-            ctx.fillStyle = '#a1815c';
-            ctx.beginPath();
-            ctx.ellipse(16, 0, 10, 8, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = '#8f7150';
-            ctx.beginPath();
-            ctx.moveTo(22, -4.5);
-            ctx.lineTo(38, -2.2);
-            ctx.lineTo(39, 2.2);
-            ctx.lineTo(22, 4.5);
-            ctx.closePath();
-            ctx.fill();
-
-            ctx.fillStyle = '#3b2a1b';
-            ctx.beginPath();
-            ctx.arc(39, 0, 1.8, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = '#7d6144';
-            ctx.beginPath();
-            ctx.ellipse(12, -7, 4, 2.6, -0.5, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = '#1b120b';
-            ctx.beginPath();
-            ctx.arc(19, -2.5, 1.5, 0, Math.PI * 2);
-            ctx.fill();
-        } else if (this.type === 'tiger') {
-            const sw = Math.sin(this.walkCycle * 1.7) * 4.5;
-            ctx.strokeStyle = '#241a10';
-            ctx.lineWidth = 2.1;
-            for (let i = -1; i <= 1; i += 2) {
+            ctx.strokeStyle = 'rgba(230, 210, 180, 0.28)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 9; i++) {
+                const x = -20 + i * 3.4;
                 ctx.beginPath();
-                ctx.moveTo(-6, i * 4); ctx.lineTo(-14 + sw, i * 16);
-                ctx.moveTo(-2, i * 5); ctx.lineTo(-3 - sw, i * 19);
-                ctx.moveTo(3, i * 5); ctx.lineTo(6 + sw, i * 18);
-                ctx.moveTo(8, i * 4); ctx.lineTo(13 - sw, i * 15);
+                ctx.moveTo(x, -10); ctx.lineTo(x - 3, -14);
+                ctx.moveTo(x, 10); ctx.lineTo(x - 3, 14);
                 ctx.stroke();
             }
-
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            antOval(ctx, 16, 0, 10, 8, '#a1815c', 0, 1.4, 0.55);
+            ctx.fillStyle = '#8f7150';
             ctx.beginPath();
-            ctx.ellipse(2, 3, this.radius * 1.35, this.radius * 0.95, 0, 0, Math.PI * 2);
+            ctx.moveTo(22, -4.5); ctx.lineTo(38, -2); ctx.lineTo(39, 2); ctx.lineTo(22, 4.5);
+            ctx.closePath();
             ctx.fill();
-
-            ctx.fillStyle = '#7c4a12';
+            ctx.fillStyle = '#3b2a1b';
+            ctx.beginPath(); ctx.arc(39, 0, 1.8, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#7d6144';
+            ctx.beginPath(); ctx.ellipse(12, -7, 4, 2.6, -0.5, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#1b120b';
+            ctx.beginPath(); ctx.arc(19, -2.5, 1.5, 0, Math.PI * 2); ctx.fill();
+        } else if (this.type === 'tiger') {
+            const sw = Math.sin(this.walkCycle * 1.7) * 4.5;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            for (const s of [-1, 1]) {
+                for (let i = 0; i < 3; i++) {
+                    const bx = -8 + i * 8;
+                    ctx.strokeStyle = '#241a10';
+                    ctx.lineWidth = 2.1;
+                    ctx.beginPath();
+                    ctx.moveTo(bx, s * 5);
+                    ctx.lineTo(bx - 4 + sw * s, s * 12);
+                    ctx.lineTo(bx - 7 + sw * s, s * 18);
+                    ctx.stroke();
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(bx - 7 + sw * s, s * 18);
+                    ctx.lineTo(bx - 9 + sw * s, s * 20);
+                    ctx.stroke();
+                }
+            }
+            /* Élitros metálicos con manchas claras. */
+            antOval(ctx, -6, 0, 17, 9.5, '#7c4a12', 0, 1.6, 0.5);
+            ctx.save();
             ctx.beginPath();
-            ctx.ellipse(-7, 0, 17, 9.5, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#a86b1c';
-            ctx.beginPath();
-            ctx.ellipse(-7, 0, 14, 7.6, 0, 0, Math.PI * 2);
-            ctx.fill();
-
+            ctx.ellipse(-7, 0, 15, 8, 0, 0, Math.PI * 2);
+            ctx.clip();
+            antOval(ctx, -7, -4.2, 15, 4.4, '#a86b1c', 0, 1.6, 0.62);
+            antOval(ctx, -7, 4.2, 15, 4.4, '#96601a', 0, 1.6, 0.6);
+            ctx.clip();
             ctx.fillStyle = '#f2e7c4';
             ctx.beginPath();
-            ctx.ellipse(-13, 0, 2.4, 8.2, 0.25, 0, Math.PI * 2);
-            ctx.ellipse(-5, 0, 2.2, 7.4, -0.2, 0, Math.PI * 2);
-            ctx.ellipse(2, 0, 1.8, 6.4, 0.15, 0, Math.PI * 2);
+            ctx.ellipse(-14, 0, 2.4, 7.6, 0.25, 0, Math.PI * 2);
+            ctx.ellipse(-6, 0, 2.2, 6.8, -0.2, 0, Math.PI * 2);
+            ctx.ellipse(1, 0, 1.8, 5.8, 0.15, 0, Math.PI * 2);
             ctx.fill();
-            ctx.strokeStyle = 'rgba(60, 30, 8, 0.55)';
+            ctx.restore();
+            ctx.strokeStyle = '#3d2b18';
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(-7, -8.4);
-            ctx.lineTo(-7, 8.4);
+            ctx.moveTo(-21, 0); ctx.lineTo(8, 0);
             ctx.stroke();
-
-            ctx.fillStyle = '#3d2b18';
-            ctx.beginPath();
-            ctx.ellipse(11, 0, 7, 6.2, 0, 0, Math.PI * 2);
-            ctx.fill();
-
+            antOval(ctx, 11, 0, 7, 6.2, '#3d2b18', 0, 1.5, 0.5);
             ctx.fillStyle = '#f4f1de';
             ctx.beginPath();
             ctx.moveTo(15, -4.4); ctx.lineTo(27, -8.6); ctx.lineTo(24, -1.6);
             ctx.moveTo(15, 4.4); ctx.lineTo(27, 8.6); ctx.lineTo(24, 1.6);
             ctx.fill();
-
             ctx.fillStyle = '#ffefb0';
             ctx.beginPath();
-            ctx.arc(16, -2.4, 1.7, 0, Math.PI * 2);
-            ctx.arc(16, 2.4, 1.7, 0, Math.PI * 2);
+            ctx.arc(16, -2.6, 1.8, 0, Math.PI * 2);
+            ctx.arc(16, 2.6, 1.8, 0, Math.PI * 2);
             ctx.fill();
             ctx.fillStyle = '#1b120b';
             ctx.beginPath();
-            ctx.arc(16.6, -2.4, 0.85, 0, Math.PI * 2);
-            ctx.arc(16.6, 2.4, 0.85, 0, Math.PI * 2);
+            ctx.arc(16.7, -2.6, 0.9, 0, Math.PI * 2);
+            ctx.arc(16.7, 2.6, 0.9, 0, Math.PI * 2);
             ctx.fill();
-
             ctx.strokeStyle = '#3d2b18';
             ctx.lineWidth = 1.3;
             ctx.beginPath();
@@ -4255,32 +4783,51 @@ class Enemy extends Entity {
             ctx.moveTo(8, 6); ctx.lineTo(16, 13);
             ctx.stroke();
         } else {
-            ctx.strokeStyle = '#0f0f0f';
-            ctx.lineWidth = 2.4;
             const swing = Math.sin(this.walkCycle) * 3.5;
-            for (let i = -1; i <= 1; i += 2) {
-                ctx.beginPath();
-                ctx.moveTo(-3, 0); ctx.lineTo(-16 + swing * i, i * 21);
-                ctx.moveTo(-1, 0); ctx.lineTo(-7 - swing * i, i * 23);
-                ctx.moveTo(2, 0); ctx.lineTo(9 + swing * i, i * 22);
-                ctx.moveTo(4, 0); ctx.lineTo(17 - swing * i, i * 18);
-                ctx.stroke();
+            ctx.strokeStyle = '#0f0f0f';
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            /* Ocho patas con codo y tarso. */
+            for (const s of [-1, 1]) {
+                for (let i = 0; i < 4; i++) {
+                    const ax = -6 + i * 4;
+                    const kx = ax - 7 + i * 2;
+                    const fx = ax - 14 + i * 5;
+                    ctx.lineWidth = 2.4;
+                    ctx.beginPath();
+                    ctx.moveTo(ax, s * 3);
+                    ctx.lineTo(kx + swing * s, s * 12);
+                    ctx.lineTo(fx + swing * s, s * 20);
+                    ctx.stroke();
+                    ctx.lineWidth = 1.2;
+                    ctx.beginPath();
+                    ctx.moveTo(fx + swing * s, s * 20);
+                    ctx.lineTo(fx + swing * s - 2, s * 23);
+                    ctx.stroke();
+                }
             }
-
-            ctx.fillStyle = '#161616';
+            /* Cefalotórax, pedicelo y abdomen con marcas. */
+            antOval(ctx, -7, 0, 11.5, 9, '#161616', 0, 1.6, 0.5);
+            antOval(ctx, 5, 0, 7, 6, '#202020', 0, 1.5, 0.5);
+            antOval(ctx, -8, 0, 5.5, 4.5, '#d90429', 0, 1.5, 0.6);
+            ctx.fillStyle = 'rgba(255,255,255,0.35)';
             ctx.beginPath();
-            ctx.arc(-7, 0, 11.5, 0, Math.PI * 2);
-            ctx.arc(7, 0, 7.8, 0, Math.PI * 2);
+            ctx.ellipse(-8, -1.6, 2.6, 1.2, -0.3, 0, Math.PI * 2);
             ctx.fill();
-
-            ctx.fillStyle = '#d90429';
-            ctx.beginPath();
-            ctx.moveTo(-8, -4); ctx.lineTo(-3, 0); ctx.lineTo(-8, 4); ctx.lineTo(-13, 0);
-            ctx.fill();
-
+            /* Ojos y quelíceros con colmillos. */
             ctx.fillStyle = '#ff0054';
-            ctx.fillRect(13, -3.5, 2.2, 2.2);
-            ctx.fillRect(13, 1.3, 2.2, 2.2);
+            ctx.beginPath();
+            ctx.arc(8, -2.6, 1.3, 0, Math.PI * 2);
+            ctx.arc(8, 2.6, 1.3, 0, Math.PI * 2);
+            ctx.fillRect(10, -3.5, 2.2, 2.2);
+            ctx.fillRect(10, 1.3, 2.2, 2.2);
+            ctx.fill();
+            ctx.strokeStyle = '#0f0f0f';
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.moveTo(11, -2); ctx.lineTo(15, -4);
+            ctx.moveTo(11, 2); ctx.lineTo(15, 4);
+            ctx.stroke();
         }
 
         ctx.restore();
@@ -4307,7 +4854,15 @@ function layEgg(nest) {
         if (col.food < EGG_COST || pvpOwnEggs(nest) >= PVP_EGG_MAX) return false;
         col.food -= EGG_COST;
     } else {
-        if (storedFood < EGG_COST || eggs.length >= 6) return false;
+        const eggCap = ugEggCap();
+        if (storedFood < EGG_COST || eggs.length >= eggCap) {
+            if (eggs.length >= eggCap) setStatus(`Sin espacio en cámaras de reina: ${eggCap} huevos. Construye otra cámara`, true);
+            return false;
+        }
+        if (PROG.caste === 'major' && ugLivingMajors() + ugMajorEggs() >= ugMajorCap()) {
+            setStatus(`Sin espacio en salas de majors: ${ugMajorCap()} majors. Construye otra sala`, true);
+            return false;
+        }
         storedFood -= EGG_COST;
     }
     const a = Math.random() * Math.PI * 2;
@@ -4316,20 +4871,22 @@ function layEgg(nest) {
         x: nest.x + Math.cos(a) * r,
         y: nest.y + Math.sin(a) * r * TILT,
         nest,
-        timer: EGG_TIME
+        timer: EGG_TIME,
+        caste: (pvp ? 'worker' : PROG.caste),
+        chamber: ugCell(UG.entranceC, 4)
     });
     spawnHitParticles(nest.x, nest.y, '#ffd166', 12);
     return true;
 }
 
-function spawnFoodCluster(x, y, count = 12) {
+function spawnFoodCluster(x, y, count = 12, type = 'berry') {
     for (let i = 0; i < count; i++) {
         const offsetX = (Math.random() - 0.5) * 60;
         const offsetY = (Math.random() - 0.5) * 60 * TILT;
         const fx = gameMode === 'infinite' ? x + offsetX : clamp(x + offsetX, 30, WORLD_W - 30);
         const fy = gameMode === 'infinite' ? y + offsetY : clamp(y + offsetY, 30, WORLD_H - 30);
         if (!checkObstacleCollision(fx, fy, 4)) {
-            foods.push({ x: fx, y: fy, amount: 5, age: 0 });
+            foods.push({ x: fx, y: fy, amount: 5, age: 0, type: type || 'berry' });
         }
     }
 }
@@ -4353,7 +4910,7 @@ function triggerNatureHarvest() {
     const sources = [...bushes, ...trees];
     for (let i = 0; i < Math.min(12, sources.length); i++) {
         const src = sources[Math.floor(Math.random() * sources.length)];
-        spawnFoodCluster(src.x, src.y, 8);
+        spawnFoodCluster(src.x, src.y, 8, 'berry');
     }
     setStatus('¡Los árboles y arbustos del bosque han producido nuevo alimento!');
     spawnHitParticles(camera.x, camera.y, '#b5e48c', 20);
@@ -6205,19 +6762,7 @@ function drawAmbientLight() {
     if (night > 0.02) {
         ctx.fillStyle = `rgba(10, 20, 54, ${0.54 * night})`;
         ctx.fillRect(0, 0, viewW, viewH);
-        const moon = ctx.createRadialGradient(
-            viewW * 0.78, viewH * 0.14, 8,
-            viewW * 0.78, viewH * 0.14, Math.max(viewW, viewH) * 0.5
-        );
-        moon.addColorStop(0, `rgba(196, 220, 255, ${0.22 * night})`);
-        moon.addColorStop(0.25, `rgba(148, 180, 255, ${0.07 * night})`);
-        moon.addColorStop(1, 'rgba(148, 180, 255, 0)');
-        ctx.fillStyle = moon;
-        ctx.fillRect(0, 0, viewW, viewH);
-        ctx.fillStyle = `rgba(238, 246, 255, ${0.75 * night})`;
-        ctx.beginPath();
-        ctx.arc(viewW * 0.78, viewH * 0.14, 18, 0, Math.PI * 2);
-        ctx.fill();
+        // No se dibuja la luna: noches sin luna, solo estrellas y oscuridad.
         ctx.fillStyle = `rgba(206, 222, 246, ${0.85 * night})`;
         for (let i = 0; i < 70; i++) {
             const sx = ((i * 137.5) % 1) * viewW;
@@ -6342,12 +6887,19 @@ function infWeightsAt(x, y) {
     const t = infFbm(x * 0.00042 + 11.3, y * 0.00042 - 7.7, 3);
     const m = infFbm(x * 0.00036 - 42.1, y * 0.00036 + 23.5, 3);
     const w = {};
-    w.sandy = clamp((t - 0.63) * 4.6, 0, 1) * clamp((0.46 - m) * 4.6, 0, 1);
-    w.dry = clamp((t - 0.49) * 2.9, 0, 1) * clamp((0.63 - m) * 2.7, 0, 1) * (1 - w.sandy * 0.85);
-    w.wet = clamp((m - 0.6) * 3.8, 0, 1) * clamp((0.62 - t) * 3.6, 0, 1);
-    w.meadow = clamp(1 - Math.abs(t - 0.48) * 3.4, 0, 1) * clamp((0.74 - m) * 3.0, 0, 1)
-        * (1 - w.wet * 0.7) * (1 - w.dry * 0.75);
-    w.forest = Math.max(0.08, 1 - w.sandy - w.dry - w.wet - w.meadow);
+    // Transiciones amplias (ruido suave) para que el cambio de bioma no sea repentino.
+    w.sandy = clamp((t - 0.61) * 3.1, 0, 1) * clamp((0.5 - m) * 3.1, 0, 1);
+    w.dry = clamp((t - 0.48) * 2.1, 0, 1) * clamp((0.66 - m) * 2.1, 0, 1) * (1 - w.sandy * 0.8);
+    w.wet = clamp((m - 0.57) * 2.6, 0, 1) * clamp((0.64 - t) * 2.5, 0, 1);
+    w.meadow = clamp(1 - Math.abs(t - 0.48) * 2.5, 0, 1) * clamp((0.76 - m) * 2.3, 0, 1)
+        * (1 - w.wet * 0.6) * (1 - w.dry * 0.65);
+    w.desert = clamp((t - 0.68) * 3.0, 0, 1) * clamp((0.38 - m) * 3.0, 0, 1);
+    w.savanna = clamp((t - 0.5) * 2.4, 0, 1) * clamp((0.56 - m) * 2.4, 0, 1) * (1 - w.desert * 0.9);
+    w.tundra = clamp((0.33 - t) * 3.1, 0, 1) * clamp((0.3 + m * 0.9), 0, 1);
+    w.swamp = clamp((m - 0.62) * 2.9, 0, 1) * clamp((0.62 - t) * 2.4, 0, 1);
+    const extra = Math.min(0.88, w.desert + w.savanna + w.tundra + w.swamp);
+    for (const k of ['sandy','dry','wet','meadow']) w[k] *= (1 - extra);
+    w.forest = Math.max(0.06, 1 - w.sandy - w.dry - w.wet - w.meadow - extra);
     let total = 0;
     for (const k of BIOME_ORDER) {
         w[k] = Math.max(0, w[k]);
@@ -6394,25 +6946,25 @@ function infBlendCss(x, y, field) {
 
 /* Densidad media de decoracion por chunk segun bioma. */
 const INF_DENSITY = {
-    trees: { forest: 9, meadow: 2.5, dry: 4, sandy: 0.8, wet: 6 },
-    bushes: { forest: 7, meadow: 9, dry: 9, sandy: 4, wet: 5 },
-    logs: { forest: 4, meadow: 1.6, dry: 2.6, sandy: 1.2, wet: 4 },
-    rocks: { forest: 6, meadow: 5, dry: 11, sandy: 9, wet: 4 },
-    ferns: { forest: 15, meadow: 3, dry: 1.5, sandy: 0.5, wet: 20 },
-    flowers: { forest: 26, meadow: 58, dry: 12, sandy: 5, wet: 18 },
-    mushrooms: { forest: 7, meadow: 4, dry: 2, sandy: 0.7, wet: 15 },
-    reeds: { forest: 0, meadow: 0, dry: 0, sandy: 0, wet: 14 },
-    succulents: { forest: 0, meadow: 0, dry: 1.5, sandy: 4, wet: 0 },
-    clover: { forest: 12, meadow: 16, dry: 4, sandy: 1, wet: 8 },
-    beds: { forest: 2, meadow: 5, dry: 1, sandy: 0.4, wet: 1.2 },
-    blades: { forest: 560, meadow: 720, dry: 380, sandy: 230, wet: 610 },
-    tufts: { forest: 175, meadow: 235, dry: 110, sandy: 60, wet: 205 },
-    pebbles: { forest: 70, meadow: 60, dry: 105, sandy: 125, wet: 55 },
-    leaves: { forest: 105, meadow: 52, dry: 76, sandy: 18, wet: 66 },
-    twigs: { forest: 14, meadow: 8, dry: 12, sandy: 6, wet: 10 },
-    fireflies: { forest: 10, meadow: 8, dry: 3, sandy: 1, wet: 20 },
-    critters: { forest: 2, meadow: 3, dry: 1.5, sandy: 1, wet: 3 },
-    creatures: { forest: 4, meadow: 3, dry: 2.5, sandy: 1.5, wet: 5 }
+    trees: { forest: 9, meadow: 2.5, dry: 4, sandy: 0.8, wet: 6 , desert: 0.3, savanna: 3.2, jungle: 12, tundra: 2.2, swamp: 7},
+    bushes: { forest: 7, meadow: 9, dry: 9, sandy: 4, wet: 5 , desert: 3, savanna: 8, jungle: 11, tundra: 4, swamp: 9},
+    logs: { forest: 4, meadow: 1.6, dry: 2.6, sandy: 1.2, wet: 4 , desert: 0.8, savanna: 2.4, jungle: 6, tundra: 2.6, swamp: 6},
+    rocks: { forest: 6, meadow: 5, dry: 11, sandy: 9, wet: 4 , desert: 12, savanna: 6, jungle: 5, tundra: 8, swamp: 5},
+    ferns: { forest: 15, meadow: 3, dry: 1.5, sandy: 0.5, wet: 20 , desert: 0.2, savanna: 1.2, jungle: 26, tundra: 2, swamp: 18},
+    flowers: { forest: 26, meadow: 58, dry: 12, sandy: 5, wet: 18 , desert: 2, savanna: 34, jungle: 30, tundra: 10, swamp: 12},
+    mushrooms: { forest: 7, meadow: 4, dry: 2, sandy: 0.7, wet: 15 , desert: 0.2, savanna: 1.8, jungle: 10, tundra: 5, swamp: 17},
+    reeds: { forest: 0, meadow: 0, dry: 0, sandy: 0, wet: 14 , desert: 0, savanna: 0, jungle: 4, tundra: 3, swamp: 24},
+    succulents: { forest: 0, meadow: 0, dry: 1.5, sandy: 4, wet: 0 , desert: 10, savanna: 2, jungle: 0, tundra: 0, swamp: 0},
+    clover: { forest: 12, meadow: 16, dry: 4, sandy: 1, wet: 8 , desert: 0.3, savanna: 8, jungle: 14, tundra: 3, swamp: 6},
+    beds: { forest: 2, meadow: 5, dry: 1, sandy: 0.4, wet: 1.2 , desert: 0.2, savanna: 4, jungle: 3, tundra: 1, swamp: 1.5},
+    blades: { forest: 560, meadow: 720, dry: 380, sandy: 230, wet: 610 , desert: 90, savanna: 640, jungle: 700, tundra: 260, swamp: 520},
+    tufts: { forest: 175, meadow: 235, dry: 110, sandy: 60, wet: 205 , desert: 35, savanna: 210, jungle: 260, tundra: 90, swamp: 180},
+    pebbles: { forest: 70, meadow: 60, dry: 105, sandy: 125, wet: 55 , desert: 150, savanna: 70, jungle: 60, tundra: 85, swamp: 60},
+    leaves: { forest: 105, meadow: 52, dry: 76, sandy: 18, wet: 66 , desert: 8, savanna: 70, jungle: 150, tundra: 40, swamp: 80},
+    twigs: { forest: 14, meadow: 8, dry: 12, sandy: 6, wet: 10 , desert: 5, savanna: 10, jungle: 20, tundra: 9, swamp: 16},
+    fireflies: { forest: 10, meadow: 8, dry: 3, sandy: 1, wet: 20 , desert: 0.4, savanna: 5, jungle: 18, tundra: 4, swamp: 24},
+    critters: { forest: 2, meadow: 3, dry: 1.5, sandy: 1, wet: 3 , desert: 0.8, savanna: 2.5, jungle: 4, tundra: 2, swamp: 4},
+    creatures: { forest: 4, meadow: 3, dry: 2.5, sandy: 1.5, wet: 5 , desert: 2, savanna: 3.5, jungle: 5, tundra: 2.5, swamp: 6},
 };
 
 function infDensity(w, key) {
@@ -8501,11 +9053,14 @@ async function infRefreshWorldList() {
    Flujo del juego
    ============================================================ */
 function resetWorld() {
+    ugReset();
     antNests = [];
     termiteNests = [];
     ants = [];
     termites = [];
     beetles = [];
+    aphids = [];
+    causticPools = [];
     enemies = [];
     webs = [];
     particles = [];
@@ -8557,6 +9112,13 @@ function configureModeUI() {
     document.querySelectorAll('.pvp-only').forEach(el => {
         el.style.display = isPvp ? (el.tagName === 'BUTTON' ? 'inline-block' : 'block') : 'none';
     });
+    const casteBar = document.getElementById('caste-bar');
+    if (casteBar) casteBar.style.display = hasActiveGame ? 'flex' : 'none';
+    const ugBtn = document.getElementById('btn-underground');
+    if (ugBtn) ugBtn.style.display = hasActiveGame ? 'inline-block' : 'none';
+    const cardsBtn = document.getElementById('btn-cards');
+    if (cardsBtn) cardsBtn.style.display = hasActiveGame ? 'inline-block' : 'none';
+    updateUGUI();
 }
 
 /* ============================================================
@@ -9170,7 +9732,7 @@ function pvpUseAbility(side, which) {
             const y = clamp(q.y + Math.sin(ang) * rr * TILT, 34, WORLD_H - 34);
             if (checkObstacleCollision(x, y, 18)) continue;
             if (galTraps.some(t => Math.hypot(t.x - x, (t.y - y) / TILT) < 80)) continue;
-            galTraps.push({ x, y, r: 46, life: Math.round(25 / STEP), stuck: null, rearm: 0, owner: side });
+            galTraps.push({ x, y, r: 46, life: 1e9, stuck: null, rearm: 0, owner: side });
             q.abilityCD = 32;
             spawnHitParticles(x, y, '#f4d35e', 18);
             fb(`Trampa de galería desplegada (${galTraps.length}/3) — inmoviliza hormigas rivales`, false);
@@ -9205,6 +9767,23 @@ function pvpUseAbility(side, which) {
         if (!biters) return fb('Ninguna obrera está lo bastante cerca del objetivo', true);
         q.abilityCD = 28;
         fb(`Mándíbulas aplastantes: ${biters} obrera(s) mordieron al 250%`, false);
+        return;
+    }
+
+    if (key === 'lasius') {
+        if (q.abilityCD > 0) return fb(`Pulgones disponibles en ${fs(q.abilityCD)}s`, true);
+        const tree = nearestTree(q.x, q.y);
+        const n = 1 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < n; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const rr = 14 + Math.random() * 32;
+            const x = clamp((tree ? tree.x : q.x) + Math.cos(a) * rr, 26, WORLD_W - 26);
+            const y = clamp((tree ? tree.y + 10 : q.y) + Math.sin(a) * rr * TILT, 26, WORLD_H - 26);
+            aphids.push(new Aphid(x, y, tree, side));
+            spawnHitParticles(x, y, '#8ac926', 6);
+        }
+        q.abilityCD = Math.max(6, 22 - cardCostReduction());
+        fb(`Llamaste ${n} pulgón${n === 1 ? '' : 'es'}: sueltan miel poco a poco`, false);
         return;
     }
 
@@ -9399,6 +9978,7 @@ function init() {
     if (pvp) modeBadge.textContent = `[PvP · ${pvp.side === 'A' ? 'Anfitrion' : pvp.side === 'B' ? 'Jugador 2' : 'Jugador 3'}]`;
     else if (netRole === 'host') modeBadge.textContent = '[Salas · Anfitrion]';
     else if (netRole === 'guest') modeBadge.textContent = '[Salas · Invitado]';
+    configureModeUI();
     updateUI();
 }
 
@@ -9503,7 +10083,7 @@ function abilityLeap() {
 
     queen.angle = aim;
     queen.hp -= 12;
-    queen.leapCD = 7;
+    queen.leapCD = Math.max(2, 7 - cardCostReduction());
     queenTarget = null;
     spawnHitParticles(startX, startY, '#ffb703', 12);
     spawnHitParticles(queen.x, queen.y, '#ffd166', 12);
@@ -9614,7 +10194,7 @@ function abilityRaid() {
         setStatus('Aún no hay termiteros en el mapa para saquear', true);
         return;
     }
-    queen.raidCD = 26;
+    queen.raidCD = Math.max(5, 26 - cardCostReduction());
     raidBoost = 22;
     const dist = Math.hypot(n.x - queen.x, (n.y - queen.y) / TILT);
     spawnHitParticles(n.x, n.y, '#ffb703', 16);
@@ -9639,6 +10219,8 @@ function endDefense() {
 function abilityDefense() {
     if (!abilityReady() || speciesKey !== 'cephalotes' || !queen) return;
     if (!antNests.length) { setStatus('Funda la colonia antes de formar la falange', true); return; }
+    const majorGuards = ants.filter(a => a.caste === 'major' && a.hp > 0);
+    if (!majorGuards.length) { setStatus('La formación tortuga solo se puede usar con MAJORS', true); return; }
     if (defenseActive) {
         endDefense();
         setStatus('Formación tortuga disuelta — las obreras vuelven a trabajar');
@@ -9651,10 +10233,10 @@ function abilityDefense() {
     }
 
     const nest = antNests[0];
-    const guards = ants.slice();
+    const guards = majorGuards;
     defenseActive = true;
     defenseTimer = 20;
-    defenseCD = 55;
+    defenseCD = Math.max(10, 55 - cardCostReduction());
 
     guards.forEach((a, i) => {
         const ang = (i / Math.max(1, guards.length)) * Math.PI * 2 - Math.PI / 2;
@@ -9707,8 +10289,8 @@ function abilityGallery() {
             }
         }
         if (!ok) continue;
-        galTraps.push({ x, y, r: 46, life: Math.round(25 / STEP), stuck: null, rearm: 0 });
-        queen.abilityCD = 32;
+        galTraps.push({ x, y, r: 46, life: 1e9, stuck: null, rearm: 0 });
+        queen.abilityCD = Math.max(4, 32 - cardCostReduction());
         spawnHitParticles(x, y, '#f4d35e', 18);
         setStatus(`Trampa de galería desplegada (${galTraps.length}/3) — 25s · inmoviliza 2.5s · +30% daño de obreras`);
         updateUI();
@@ -9779,6 +10361,42 @@ function abilityCrushingMandibles() {
     updateUI();
 }
 
+function abilityCallAphids() {
+    if (!abilityReady() || speciesKey !== 'lasius' || !queen) return;
+    if ((queen.abilityCD || 0) > 0) {
+        setStatus(`Pulgones disponibles en ${queen.abilityCD.toFixed(1)}s`, true);
+        return;
+    }
+    const tree = nearestTree(queen.x, queen.y, gameMode === 'infinite' ? 400 : Infinity);
+    const n = 1 + Math.floor(Math.random() * 3);
+    let placed = 0;
+    for (let i = 0; i < n; i++) {
+        let x;
+        let y;
+        if (tree) {
+            const a = Math.random() * Math.PI * 2;
+            const rr = 8 + Math.random() * Math.max(10, tree.radius * 0.5);
+            x = tree.x + Math.cos(a) * rr;
+            y = tree.y + 10 + Math.sin(a) * rr * TILT;
+        } else {
+            const a = Math.random() * Math.PI * 2;
+            const rr = 18 + Math.random() * 26;
+            x = queen.x + Math.cos(a) * rr;
+            y = queen.y + Math.sin(a) * rr * TILT;
+        }
+        if (gameMode !== 'infinite') {
+            x = clamp(x, 26, WORLD_W - 26);
+            y = clamp(y, 26, WORLD_H - 26);
+        }
+        aphids.push(new Aphid(x, y, tree));
+        spawnHitParticles(x, y, '#8ac926', 8);
+        placed++;
+    }
+    queen.abilityCD = Math.max(6, 22 - cardCostReduction());
+    setStatus(`Llamaste ${placed} pulgón${placed === 1 ? '' : 'es'}: sueltan miel poco a poco. Los enemigos pueden matarlos.`);
+    updateUI();
+}
+
 function refreshAbilityUI() {
     const pvpMode = !!pvp;
     const normalMode = (gameMode === 'normal' || gameMode === 'infinite') && !pvpMode;
@@ -9797,8 +10415,9 @@ function refreshAbilityUI() {
     const isAllomerus = key === 'allomerus';
     const isMyrmecia = key === 'myrmecia';
     const isCremato = key === 'crematogaster';
+    const isLasius = key === 'lasius';
 
-    const showA = hasQueen && (isOdonto || isLepto || isCephalotes || isAllomerus || isMyrmecia);
+    const showA = hasQueen && (isOdonto || isLepto || isCephalotes || isAllomerus || isMyrmecia || isLasius);
     const showB = hasQueen && isOdonto;
     const showNote = !hasQueen || isCarpenter || isAtta || isCremato || isMyrmecia;
 
@@ -9883,6 +10502,10 @@ function refreshAbilityUI() {
         const cd = actQueen.abilityCD || 0;
         abilityAEl.innerHTML = `Mándíbulas aplastantes<small>Q · ${cd > 0 ? cd.toFixed(1) + 's' : 'lista'} · 250% daño · aturde 1s</small>`;
         abilityAEl.disabled = cd > 0;
+    } else if (isLasius) {
+        const cd = actQueen.abilityCD || 0;
+        abilityAEl.innerHTML = `Llamar pulgones<small>Q · ${cd > 0 ? cd.toFixed(1) + 's' : 'lista'} · 1-3 al azar · ${aphids.length} activos</small>`;
+        abilityAEl.disabled = cd > 0;
     }
 
     chargeTrackEl.classList.toggle('show', !pvpMode && isOdonto && actQueen.isCharging);
@@ -9903,6 +10526,7 @@ function placeNest(x, y, type, initialAnts = 0, opts = {}) {
             hunger: style === 'fungus' ? 100 : null
         };
         antNests.push(nest);
+        ugEnsure();
         for (let i = 0; i < initialAnts; i++) ants.push(new Ant(x, y, nest));
         updateUI();
         return nest;
@@ -10082,7 +10706,7 @@ function damageTermiteNest(nest, amount) {
     let reward = nest.isCathedra ? 30 + w * 4 : nest.isWaveNest ? 14 + w * 3 : 8 + w * 2;
     if (S().venom) reward += 4;
     if (raidLoot) reward = Math.round(reward * 1.5);
-    storedFood += reward;
+    addFood(reward, 'berry');
     if (queen && queen.hp > 0) queen.hp = Math.min(queen.maxHp, queen.hp + 8);
 
     const label = nest.isCathedra ? 'Termitero de la Cátedra' : nest.isWaveNest ? 'Termitero de guerra' : 'Termitero';
@@ -10140,6 +10764,19 @@ function startWave() {
         bt.wave = normal.wave;
         beetles.push(bt);
         mobDiscover('beetle');
+    }
+
+    if (normal.wave >= 3 && normal.wave % 3 === 0) {
+        const mp = waveSpawnPoint(beacon);
+        const mb = new Enemy(mp.x, mp.y, 'mantis');
+        mb.maxHp = Math.round(mb.maxHp * diff);
+        mb.hp = mb.maxHp;
+        mb.damage = mb.damage * (0.9 + diff * 0.15);
+        mb.wave = normal.wave;
+        mb.beacon = beacon;
+        enemies.push(mb);
+        mobDiscover('mantis');
+        setStatus(`¡MINI JEFE! Una mantis religiosa acecha la colonia — oleada ${normal.wave}`, true);
     }
 
     if (normal.wave >= 2 && (normal.wave % 2 === 0 || normal.wave >= 4)) {
@@ -10257,19 +10894,20 @@ function finishWave() {
 
     if (cleared === MAX_WAVES) {
         normal.endless = true;
-        storedFood += 60;
-        setStatus(`¡5 oleadas superadas! MODO INFINITO desbloqueado: cada oleada será más dura (+60 )${vetMsg}`, vetCount > 0);
+        addFood(60, 'berry');
+        PROG.chests++;
+        setStatus(`¡5 oleadas superadas! MODO INFINITO desbloqueado · +60 comida · ¡COFRE DE CARTAS ganado (ábrelo en Cartas)!${vetMsg}`, vetCount > 0);
     } else if (cleared === 6) {
         normal.endless = true;
         normal.bestWave = Math.max(normal.bestWave || 0, cleared);
-        storedFood += 40;
+        addFood(40, 'berry');
         setStatus(`¡Cátedra de termitas saqueada! +40 · La siguiente oleada será aún más dura${vetMsg}`, vetCount > 0);
     } else if (normal.endless) {
         normal.bestWave = Math.max(normal.bestWave || 0, cleared);
-        storedFood += 20;
+        addFood(20, 'berry');
         setStatus(`Oleada ${cleared} repelida · +20 · Próxima en ${Math.ceil(normal.timer)}s${vetMsg}`, vetCount > 0);
     } else {
-        storedFood += 15;
+        addFood(15, 'berry');
         setStatus(`Oleada ${cleared} repelida · +15 · Próxima en ${Math.ceil(normal.timer)}s${vetMsg}`, vetCount > 0);
     }
     updateUI();
@@ -10365,6 +11003,10 @@ function checkEndConditions() {
     }
     if (gameMode !== 'normal' || endState) return;
     if (queen && queen.hp <= 0) {
+        if (SP(queen.species || speciesKey).explosive && !queen.exploded) {
+            queen.exploded = true;
+            explodeColobopsis(queen.x, queen.y, null, 'queen');
+        }
         endGame('defeat', 'Tu reina cayó en batalla.');
     } else if (antNests.length > 0 && antNests[0].hp <= 0) {
         endGame('defeat', 'Tu colonia fue destruida por los invasores.');
@@ -10389,6 +11031,10 @@ function endGame(kind, reason) {
         : (reason || 'La colonia ha caído.');
     document.getElementById('end-text').innerHTML =
         `${body}<br><br>Oleadas superadas: <strong>${survived}</strong> · Récord: <strong>${best}</strong> · Hormigas: <strong>${ants.length}</strong> · Tiempo: <strong>${Math.floor(gameTime)}s</strong>`;
+    if (kind === 'victory') {
+        const chestBtn = document.getElementById('btn-end-chest');
+        if (chestBtn) chestBtn.style.display = 'inline-block';
+    }
     endScreen.classList.add('show');
     updateUI();
 }
@@ -10435,6 +11081,101 @@ function loadSave() {
     } catch (e) { return null; }
 }
 
+/* Colobopsis explodens: las obreras estallan al morir y dejan un charco
+   corrosivo que sigue dañando a los enemigos que lo atraviesan. */
+function explodeColobopsis(x, y, ownerSide, kind) {
+    const radius = kind === 'queen' ? 130 : 95;
+    const burst = kind === 'queen' ? 26 : 16;
+    const victims = [...enemies, ...termites, ...beetles];
+    if (gameMode === 'infinite' && infResident && infResident.creatures) victims.push(...infResident.creatures);
+    for (const e of victims) {
+        if (!e || e.hp <= 0) continue;
+        const d = Math.hypot(e.x - x, (e.y - y) / TILT);
+        if (d <= radius + (e.radius || 8)) {
+            e.hp -= burst * Math.max(0.35, 1 - d / (radius * 1.6));
+            spawnHitParticles(e.x, e.y, '#e9ff70', 5);
+        }
+    }
+    if (pvp) {
+        for (const side of pvpActiveSides()) {
+            if (ownerSide && side === ownerSide) continue;
+            const col = pvp.colonies[side];
+            if (!col) continue;
+            for (const a of ants) {
+                if (!a.nest || a.nest.owner !== side || a.hp <= 0) continue;
+                if (Math.hypot(a.x - x, (a.y - y) / TILT) <= radius) a.hp -= burst;
+            }
+            if (col.queen && col.queen.hp > 0 && Math.hypot(col.queen.x - x, (col.queen.y - y) / TILT) <= radius) col.queen.hp -= burst;
+        }
+    }
+    spawnHitParticles(x, y, '#d8f340', 26);
+    spawnHitParticles(x, y, '#ff9f1c', 12);
+    const life = kind === 'queen' ? 18 : 12;
+    causticPools.push({
+        x, y, r: kind === 'queen' ? 58 : 44,
+        life, maxLife: life,
+        dps: kind === 'queen' ? 1.6 : 1.1,
+        tick: 0, owner: ownerSide || null
+    });
+    if (kind === 'queen') setStatus('¡Colobopsis explodens! La reina estalló y roció ácido a los enemigos', true);
+}
+
+function updateCausticPools() {
+    for (let i = causticPools.length - 1; i >= 0; i--) {
+        const pool = causticPools[i];
+        pool.life -= STEP;
+        pool.tick += STEP;
+        if (pool.tick >= 0.5) {
+            pool.tick -= 0.5;
+            const dmg = pool.dps * 0.5;
+            const victims = [...enemies, ...termites, ...beetles];
+            if (gameMode === 'infinite' && infResident && infResident.creatures) victims.push(...infResident.creatures);
+            for (const e of victims) {
+                if (!e || e.hp <= 0) continue;
+                if (Math.hypot(e.x - pool.x, (e.y - pool.y) / TILT) <= pool.r) {
+                    e.hp -= dmg;
+                    if (Math.random() < 0.1) spawnHitParticles(e.x, e.y, '#d8f340', 1);
+                }
+            }
+            for (const a of ants) {
+                if (a.hp <= 0 || !a.nest) continue;
+                if (pool.owner && a.nest.owner === pool.owner) continue;
+                if (Math.hypot(a.x - pool.x, (a.y - pool.y) / TILT) <= pool.r) a.hp -= dmg;
+            }
+        }
+        if (pool.life <= 0) causticPools.splice(i, 1);
+    }
+}
+
+function drawCausticPools() {
+    if (!causticPools.length) return;
+    for (const pool of causticPools) {
+        if (gameMode === 'infinite' && !isInView(pool.x, pool.y, pool.r + 40)) continue;
+        const a = Math.max(0, Math.min(1, pool.life / pool.maxLife));
+        ctx.save();
+        const g = ctx.createRadialGradient(pool.x, pool.y, 2, pool.x, pool.y, pool.r);
+        g.addColorStop(0, `rgba(226, 247, 96, ${0.52 * a})`);
+        g.addColorStop(0.55, `rgba(158, 205, 50, ${0.34 * a})`);
+        g.addColorStop(1, 'rgba(90, 140, 20, 0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.ellipse(pool.x, pool.y, pool.r, pool.r * TILT, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = `rgba(232, 255, 130, ${0.5 * a})`;
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+        for (let k = 0; k < 6; k++) {
+            const bx = pool.x + Math.sin(gameTime * 2 + k * 1.7 + pool.x) * pool.r * 0.5;
+            const by = pool.y + Math.cos(gameTime * 1.6 + k * 2.1 + pool.y) * pool.r * 0.4 * TILT;
+            ctx.fillStyle = `rgba(240, 255, 160, ${0.55 * a})`;
+            ctx.beginPath();
+            ctx.arc(bx, by, 1.2 + (k % 2), 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+}
+
 function saveGame() {
     if (netRole !== 'offline') return;
     if (gameMode === 'infinite') {
@@ -10470,17 +11211,26 @@ function saveGame() {
                 x: a.x, y: a.y, angle: a.angle, hp: a.hp, hasFood: a.hasFood,
                 nest: antNests.indexOf(a.nest), isRaider: !!a.isRaider,
                 tempLife: a.tempLife ?? null,
-                vetRounds: a.vetRounds || 0, maxHp: a.maxHp, damage: a.damage
+                vetRounds: a.vetRounds || 0, maxHp: a.maxHp, damage: a.damage,
+                caste: a.caste || 'worker'
             })),
             termites: termites.map(t => ({
                 x: t.x, y: t.y, angle: t.angle, hp: t.hp, maxHp: t.maxHp, hasFood: t.hasFood,
                 soldier: t.soldier, wave: t.wave, nest: termiteNests.indexOf(t.nest)
             })),
             beetles: beetles.map(b => ({ x: b.x, y: b.y, angle: b.angle, hp: b.hp, hasBall: b.hasBall })),
+            aphids: aphids.map(a => ({ x: a.ax, y: a.ay, hp: a.hp, produceT: a.produceT, produceEvery: a.produceEvery })),
             enemies: enemies.map(e => ({ x: e.x, y: e.y, angle: e.angle, hp: e.hp, maxHp: e.maxHp, type: e.type, wave: e.wave, damage: e.damage })),
-            eggs: eggs.map(e => ({ x: e.x, y: e.y, timer: e.timer, nest: antNests.indexOf(e.nest) })),
-            foods: foods.map(f => ({ x: f.x, y: f.y, amount: f.amount, age: f.age || 0 })),
+            eggs: eggs.map(e => ({ x: e.x, y: e.y, timer: e.timer, nest: antNests.indexOf(e.nest), caste: e.caste || 'worker' })),
+            foods: foods.map(f => ({ x: f.x, y: f.y, amount: f.amount, age: f.age || 0, type: f.type || 'berry' })),
             behavior: behaviorMode,
+            prog: {
+                cards: { ...PROG.cards }, levels: { ...PROG.levels },
+                speciesCard: PROG.speciesCard, speciesLevel: PROG.speciesLevel,
+                chests: PROG.chests, food: { ...PROG.food }, honeyBuff: PROG.honeyBuff, sugarBuff: PROG.sugarBuff
+            },
+            ug: UG.ready ? UG.grid.map(row => row.map(cell => [cell.t, cell.room || '', cell.v])) : null,
+            ugTool: UG.tool,
             normal: normal ? { ...normal, founded: normal.founded } : null
         };
         localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -10511,6 +11261,38 @@ function applySave(d) {
         if (normal.bestWave == null) normal.bestWave = 0;
     }
     endState = null;
+
+    if (d.prog) {
+        Object.assign(PROG.cards, d.prog.cards || {});
+        Object.assign(PROG.levels, d.prog.levels || {});
+        PROG.speciesCard = d.prog.speciesCard || null;
+        PROG.speciesLevel = d.prog.speciesLevel || 0;
+        PROG.chests = d.prog.chests || 0;
+        if (d.prog.food) Object.assign(PROG.food, d.prog.food);
+        const hb = d.prog.honeyBuff || 0;
+        const sb = d.prog.sugarBuff || 0;
+        const savedBuff = hb > 0 ? HONEY_BUFF : sb > 0 ? SUGAR_BUFF : null;
+        PROG.honeyBuff = hb;
+        PROG.sugarBuff = sb;
+        const curBuff = activeBuff();
+        for (const a of ants) {
+            /* El daño guardado ya incluye el multiplicador del buff activo al guardar:
+               lo quitamos y volvemos a aplicar el efecto vigente. La velocidad no se
+               guarda, por eso siempre se recalcula desde el valor base de la especie. */
+            if (savedBuff && a.damage) a.damage /= savedBuff.dmg;
+            a.buffMul = curBuff || { dmg: 1, spd: 1 };
+            if (curBuff) {
+                a.damage *= curBuff.dmg;
+                a.speed *= curBuff.spd;
+            }
+        }
+        PROG.buffApplied = !!curBuff;
+    }
+    if (d.ug && Array.isArray(d.ug)) {
+        UG.grid = d.ug.map(row => row.map(v => ({ t: v[0], room: v[1] || null, v: v[2] || 0, progress: 0 })));
+        UG.ready = true;
+        if (d.ugTool) UG.tool = d.ugTool;
+    }
 
     camera.x = d.camera ? d.camera.x : WORLD_W / 2;
     camera.y = d.camera ? d.camera.y : WORLD_H / 2;
@@ -10561,7 +11343,7 @@ function applySave(d) {
     ants = (d.ants || []).map(a => {
         const nest = antNests[a.nest];
         if (!nest) return null;
-        const ant = new Ant(a.x, a.y, nest);
+        const ant = new Ant(a.x, a.y, nest, a.caste || 'worker');
         ant.angle = a.angle || 0;
         if (a.maxHp) ant.maxHp = a.maxHp;
         if (a.damage) ant.damage = a.damage;
@@ -10595,6 +11377,15 @@ function applySave(d) {
         return beetle;
     });
 
+    aphids = (d.aphids || []).map(a => {
+        const ap = new Aphid(a.x, a.y);
+        ap.hp = a.hp ?? ap.maxHp;
+        ap.produceT = a.produceT || 0;
+        ap.produceEvery = a.produceEvery || ap.produceEvery;
+        ap.tree = nearestTree(ap.x, ap.y);
+        return ap;
+    });
+
     enemies = (d.enemies || []).map(e => {
         const en = new Enemy(e.x, e.y, ENEMY_STATS[e.type] ? e.type : 'spider');
         en.angle = e.angle || 0;
@@ -10609,10 +11400,10 @@ function applySave(d) {
     eggs = (d.eggs || []).map(e => {
         const nest = antNests[e.nest];
         if (!nest) return null;
-        return { x: e.x, y: e.y, timer: e.timer, nest };
+        return { x: e.x, y: e.y, timer: e.timer, nest, caste: e.caste || 'worker' };
     }).filter(Boolean);
 
-    foods = (d.foods || []).map(f => ({ x: f.x, y: f.y, amount: f.amount, age: f.age || 0 }));
+    foods = (d.foods || []).map(f => ({ x: f.x, y: f.y, amount: f.amount, age: f.age || 0, type: f.type || 'berry' }));
     behaviorMode = BEHAVIOR_LABELS[d.behavior] ? d.behavior : 'gather';
     updateBehaviorUI();
     webs = [];
@@ -10630,14 +11421,44 @@ function applySave(d) {
 /* ============================================================
    UI
    ============================================================ */
+const DROP_SVG = `<svg width="24" height="28" viewBox="0 0 24 28" aria-hidden="true"><defs><linearGradient id="dropG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe9a3"/><stop offset="1" stop-color="#e9a11b"/></linearGradient></defs><path d="M12 1C12 1 2 14 2 19c0 5.5 4.5 8 10 8s10-2.5 10-8C22 14 12 1 12 1z" fill="url(#dropG)" stroke="#8a5a12" stroke-width="1.2"/><ellipse cx="8.5" cy="18" rx="2.6" ry="3.8" fill="rgba(255,255,255,0.45)" transform="rotate(-20 8.5 18)"/></svg>`;
+const SUGAR_SVG = `<svg width="24" height="28" viewBox="0 0 24 28" aria-hidden="true"><defs><linearGradient id="cubeG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#c9d6c2"/></linearGradient></defs><path d="M12 3 21 8v11l-9 5-9-5V8z" fill="url(#cubeG)" stroke="#8d9b86" stroke-width="1.2"/><path d="M3 8l9 5 9-5M12 13v11" fill="none" stroke="#8d9b86" stroke-width="1.1"/></svg>`;
+let buffIconMode = null;
+
+function updateBuffIndicator() {
+    const el = document.getElementById('buff-indicator');
+    if (!el) return;
+    const honey = PROG.honeyBuff > 0;
+    const sugar = PROG.sugarBuff > 0;
+    if (!honey && !sugar) {
+        el.style.display = 'none';
+        buffIconMode = null;
+        return;
+    }
+    el.style.display = 'flex';
+    const mode = honey ? 'honey' : 'sugar';
+    if (mode !== buffIconMode) {
+        document.getElementById('buff-icon').innerHTML = honey ? DROP_SVG : SUGAR_SVG;
+        document.getElementById('buff-label').textContent = honey ? 'Miel activa' : 'Azúcar activa (75% menos)';
+        el.style.borderColor = honey ? '#ffd166' : '#f4f1de';
+        buffIconMode = mode;
+    }
+    document.getElementById('buff-time').textContent = `${Math.ceil(honey ? PROG.honeyBuff : PROG.sugarBuff)}s`;
+}
+
 function updateUI() {
+    updateBuffIndicator();
     if (pvp) { updatePvpUI(); return; }
     if (dayClockEl) dayClockEl.textContent = dayClockText();
     foodEl.textContent = Math.floor(storedFood);
+    const hs = document.getElementById('honey-stock');
+    const ss = document.getElementById('sugar-stock');
+    if (hs) hs.textContent = Math.floor(PROG.food.honey || 0);
+    if (ss) ss.textContent = Math.floor(PROG.food.sugar || 0);
     antEl.textContent = ants.length + (queen ? 1 : 0);
     termiteEl.textContent = termites.length;
     enemyEl.textContent = enemies.length;
-    eggEl.textContent = eggs.length;
+    eggEl.textContent = eggs.length + '/' + ugEggCap();
     nestEl.textContent = antNests.length + termiteNests.length;
     progressEl.textContent = `${foodSpawnCounter}/10`;
     btnSpeed.textContent = `Velocidad: ${gameSpeed}x`;
@@ -10674,6 +11495,7 @@ function updateUI() {
     }
 
     if (speciesLabelEl) speciesLabelEl.textContent = speciesKey === 'generic' ? '—' : S().name;
+    updateUGUI();
     refreshAbilityUI();
     if (gameMode === 'infinite') {
         if (biomeNameEl) biomeNameEl.textContent = (BIOMES[worldBiome] || BIOMES.forest).name;
@@ -10858,7 +11680,7 @@ function drawMinimapInfinite(r) {
 
     ctx.globalAlpha = 0.9;
     ctx.fillStyle = 'rgba(215, 243, 220, 0.85)';
-    ctx.font = '9px Segoe UI';
+    ctx.font = 'bold 15px monospace';
     ctx.textAlign = 'center';
     ctx.fillText(`${Math.round(camera.x)}, ${Math.round(camera.y)}`, r.x + r.w / 2, r.y + r.h - 4);
     ctx.globalAlpha = 1;
@@ -11329,7 +12151,7 @@ function drawPvpMarkers() {
         ctx.ellipse(col.nest.x, col.nest.y, col.nest.radius + 24, (col.nest.radius + 24) * TILT, 0, 0, Math.PI * 2);
         ctx.stroke();
         ctx.setLineDash([]);
-        ctx.font = 'bold 12px Segoe UI';
+        ctx.font = 'bold 18px monospace';
         ctx.textAlign = 'center';
         ctx.fillStyle = color;
         if (side !== pvp.side) rivalNo++;
@@ -11538,7 +12360,7 @@ function drawPvpLabels() {
         const x = col.nest.x;
         const y = col.nest.y - col.nest.radius - 40;
         ctx.save();
-        ctx.font = 'bold 13px Segoe UI';
+        ctx.font = 'bold 18px monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         const w = ctx.measureText(text).width + 16;
@@ -11578,9 +12400,11 @@ function drawPuddleShimmer(light) {
 }
 
 function render() {
+    updateBuffIndicator();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = '#0b1109';
     ctx.fillRect(0, 0, viewW, viewH);
+    if (UG.on) { renderUnderground(); return; }
 
     ctx.save();
     ctx.translate(viewW / 2, viewH / 2);
@@ -11656,6 +12480,7 @@ function render() {
 
     for (const trap of traps) drawTrap(trap);
     for (const t of galTraps) drawGalleryTrap(t);
+    drawCausticPools();
 
     for (const n of antNests) drawNest(n);
     drawPvpMarkers();
@@ -11667,7 +12492,7 @@ function render() {
         ctx.fill();
 
         ctx.fillStyle = '#ffd166';
-        ctx.font = 'bold 11px Segoe UI';
+        ctx.font = 'bold 15px monospace';
         ctx.textAlign = 'center';
         ctx.fillText(`${Math.ceil(egg.timer)}s`, egg.x, egg.y - 10);
     }
@@ -11774,7 +12599,7 @@ function render() {
         ctx.restore();
     }
 
-    const allEntities = [...ants, ...termites, ...beetles, ...enemies];
+    const allEntities = [...ants, ...termites, ...beetles, ...aphids, ...enemies];
     if (pvp) {
         for (const s of pvpActiveSides()) {
             if (pvp.colonies[s].queen) allEntities.push(pvp.colonies[s].queen);
@@ -12236,6 +13061,11 @@ canvas.addEventListener('mousedown', e => {
     }
     if (e.button !== 0 || paused) return;
 
+    if (UG.on) {
+        const ugc = ugCellFromScreen(sx, sy);
+        handleUGClick(ugc.c, ugc.r);
+        return;
+    }
     const mm = getMinimapRect();
     if (sx >= mm.x && sx <= mm.x + mm.w && sy >= mm.y && sy <= mm.y + mm.h) {
         dragging = { minimap: true };
@@ -12330,6 +13160,7 @@ window.addEventListener('keydown', e => {
                 if (speciesKey === 'cephalotes') abilityDefense();
                 else if (speciesKey === 'allomerus') abilityGallery();
                 else if (speciesKey === 'myrmecia') abilityCrushingMandibles();
+                else if (speciesKey === 'lasius') abilityCallAphids();
                 else abilityLeap();
             }
             else if (k === 'e') abilityStartCharge();
@@ -12349,6 +13180,7 @@ window.addEventListener('keyup', e => {
    ============================================================ */
 function step() {
     gameTime += STEP;
+    ugStep();
 
     if (gameMode === 'infinite' && inf.on) {
         infStepCreatures();
@@ -12396,8 +13228,7 @@ function step() {
     // Trampas de la Hormiga León
     for (let i = traps.length - 1; i >= 0; i--) {
         const trap = traps[i];
-        trap.life--;
-        if (!trap.owner || !enemies.includes(trap.owner) || trap.life <= 0) {
+        if (!trap.owner || !enemies.includes(trap.owner)) {
             if (trap.owner && trap.owner.trapTarget === trap.target) trap.owner.trapTarget = null;
             traps.splice(i, 1);
             continue;
@@ -12429,12 +13260,7 @@ function step() {
     // Trampas de galería de Allomerus
     for (let i = galTraps.length - 1; i >= 0; i--) {
         const t = galTraps[i];
-        t.life--;
-        if (t.life <= 0) {
-            if (t.stuck) t.stuck.trapped = 0;
-            galTraps.splice(i, 1);
-            continue;
-        }
+        // La trampa de galería dura hasta que alguien la pisa.
         if (t.stuck && (t.stuck.hp <= 0 || (!enemies.includes(t.stuck) && !ants.includes(t.stuck) && !infResident.creatures.includes(t.stuck)))) t.stuck = null;
         if (t.stuck) {
             const d = Math.hypot(t.stuck.x - t.x, (t.stuck.y - t.y) / TILT);
@@ -12532,17 +13358,21 @@ function step() {
         egg.timer -= STEP;
         if (egg.timer <= 0) {
             eggs.splice(i, 1);
-            ants.push(new Ant(egg.nest.x, egg.nest.y, egg.nest));
+            ants.push(new Ant(egg.nest.x, egg.nest.y, egg.nest, egg.caste || 'worker'));
             spawnHitParticles(egg.nest.x, egg.nest.y, '#b5e48c', 12);
             setStatus('¡Un huevo eclosionó! Nueva hormiga obrera');
             updateUI();
         }
     }
 
+    for (const ap of aphids) ap.update();
+    updateCausticPools();
+
     for (let i = foods.length - 1; i >= 0; i--) {
         if (foods[i]._ck) continue;
         foods[i].age = (foods[i].age || 0) + STEP;
-        if (foods[i].age > FOOD_LIFETIME) foods.splice(i, 1);
+        const life = (FOOD_TYPES[foods[i].type] || FOOD_TYPES.berry).life;
+        if (foods[i].age > life) foods.splice(i, 1);
     }
 
     for (let i = particles.length - 1; i >= 0; i--) {
@@ -12588,15 +13418,20 @@ function step() {
     for (const en of enemies) en.update();
 
     for (let i = ants.length - 1; i >= 0; i--) {
-        if (ants[i].hp <= 0) {
-            foods.push({ x: ants[i].x, y: ants[i].y, amount: 2, age: 0 });
+        const dead = ants[i];
+        if (dead.hp <= 0) {
+            if (SP(dead.species || speciesKey).explosive && !dead.exploded) {
+                dead.exploded = true;
+                explodeColobopsis(dead.x, dead.y, dead.nest ? dead.nest.owner : null, 'worker');
+            }
+            foods.push({ x: dead.x, y: dead.y, amount: 2, age: 0 });
             ants.splice(i, 1);
         }
     }
 
     for (let i = termites.length - 1; i >= 0; i--) {
         if (termites[i].hp <= 0) {
-            foods.push({ x: termites[i].x, y: termites[i].y, amount: 3, age: 0 });
+            foods.push({ x: termites[i].x, y: termites[i].y, amount: 3, age: 0, type: 'meat' });
             termites.splice(i, 1);
         }
     }
@@ -12608,7 +13443,7 @@ function step() {
             continue;
         }
         if (beetles[i].hp <= 0) {
-            spawnFoodCluster(beetles[i].x, beetles[i].y, 6);
+            spawnFoodCluster(beetles[i].x, beetles[i].y, 6, 'meat');
             beetles.splice(i, 1);
         }
     }
@@ -12616,9 +13451,22 @@ function step() {
     for (let i = enemies.length - 1; i >= 0; i--) {
         if (enemies[i].hp <= 0) {
             const drop = enemies[i].drop || 15;
-            spawnFoodCluster(enemies[i].x, enemies[i].y, Math.ceil(drop / 3));
-            if (S().venom) storedFood += Math.ceil(drop / 6);
+            spawnFoodCluster(enemies[i].x, enemies[i].y, Math.ceil(drop / 3), 'meat');
+            if (Math.random() < HONEY_CHANCE * (enemies[i].isMiniBoss ? 6 : 1)) {
+                foods.push({ x: enemies[i].x, y: enemies[i].y, amount: 1, age: 0, type: 'honey' });
+                setStatus('¡Miel encontrada! Vale x10 y potencia las hormigas 5 min', true);
+            }
+            if (S().venom) addFood(Math.ceil(drop / 6), 'berry');
             enemies.splice(i, 1);
+        }
+    }
+
+    for (let i = aphids.length - 1; i >= 0; i--) {
+        const ap = aphids[i];
+        if (ap.hp <= 0 || ap.dead) {
+            foods.push({ x: ap.x, y: ap.y, amount: 1, age: 0, type: 'honey' });
+            spawnHitParticles(ap.x, ap.y, '#8ac926', 10);
+            aphids.splice(i, 1);
         }
     }
 
@@ -12752,12 +13600,14 @@ function loop(ts) {
 function buildSpeciesCards() {
     if (!speciesGrid) return;
     speciesGrid.innerHTML = '';
-    const order = ['camponotus', 'leptogenys', 'odontomachus', 'cephalotes', 'atta', 'allomerus', 'myrmecia', 'crematogaster'];
+    const order = ['camponotus', 'leptogenys', 'odontomachus', 'cephalotes', 'atta', 'allomerus', 'myrmecia', 'crematogaster', 'lasius', 'colobopsis'];
 
     for (const key of order) {
         const sp = SPECIES[key];
         const card = document.createElement('div');
         card.className = 'species-card';
+        const accent = (ANT_PALETTES[key] && ANT_PALETTES[key].accent) || '#b5e48c';
+        card.style.setProperty('--sp-accent', accent);
 
         const cnv = document.createElement('canvas');
         cnv.width = 330;
@@ -12773,6 +13623,22 @@ function buildSpeciesCards() {
         latin.textContent = `${sp.family} · ${sp.title}`;
         card.appendChild(latin);
 
+        const banner = document.createElement('div');
+        banner.className = 'species-banner';
+        const badge = document.createElement('span');
+        badge.className = 'species-badge';
+        badge.textContent = sp.family;
+        const kind = document.createElement('span');
+        kind.className = 'species-kind';
+        kind.textContent = sp.nestStyle === 'tree' ? 'ARBÓREA'
+            : sp.nestStyle === 'fungus' ? 'HONGO'
+            : sp.nestStyle === 'cactus' ? 'CACTUS'
+            : sp.nestStyle === 'volcano' ? 'VOLCÁN'
+            : 'SUBTERRÁNEA';
+        banner.appendChild(badge);
+        banner.appendChild(kind);
+        card.appendChild(banner);
+
         const p = document.createElement('p');
         p.textContent = sp.blurb;
         card.appendChild(p);
@@ -12785,6 +13651,24 @@ function buildSpeciesCards() {
             traits.appendChild(chip);
         }
         card.appendChild(traits);
+
+        const stats = document.createElement('div');
+        stats.className = 'species-stats';
+        const mkStat = (label, val, max) => {
+            const cell = document.createElement('div');
+            cell.className = 'species-stat';
+            const txt = document.createElement('span');
+            txt.textContent = `${label} ${val}`;
+            const bar = document.createElement('i');
+            bar.style.setProperty('--val', Math.round(Math.min(1, val / max) * 100) + '%');
+            cell.appendChild(txt);
+            cell.appendChild(bar);
+            return cell;
+        };
+        stats.appendChild(mkStat('VIDA', sp.queenHp, 700));
+        stats.appendChild(mkStat('DAÑO', sp.queenDamage, 4));
+        stats.appendChild(mkStat('VEL', sp.queenSpeed, 3.2));
+        card.appendChild(stats);
 
         const btn = document.createElement('button');
         btn.className = 'menu-btn';
@@ -13606,6 +14490,7 @@ abilityAEl.addEventListener('click', () => {
     else if (speciesKey === 'cephalotes') abilityDefense();
     else if (speciesKey === 'allomerus') abilityGallery();
     else if (speciesKey === 'myrmecia') abilityCrushingMandibles();
+    else if (speciesKey === 'lasius') abilityCallAphids();
 });
 abilityBEl.addEventListener('pointerdown', (e) => {
     e.preventDefault();
@@ -14132,6 +15017,19 @@ function renderMobIndex() {
     }
 }
 
+if (document.getElementById('btn-underground')) document.getElementById('btn-underground').addEventListener('click', toggleUnderground);
+if (document.getElementById('ug-exit')) document.getElementById('ug-exit').addEventListener('click', toggleUnderground);
+if (document.getElementById('btn-cards')) document.getElementById('btn-cards').addEventListener('click', () => toggleCardsScreen(true));
+if (document.getElementById('btn-cards-back')) document.getElementById('btn-cards-back').addEventListener('click', () => toggleCardsScreen(false));
+if (document.getElementById('btn-up-worker')) document.getElementById('btn-up-worker').addEventListener('click', () => upgradeCaste('worker'));
+if (document.getElementById('btn-up-major')) document.getElementById('btn-up-major').addEventListener('click', () => upgradeCaste('major'));
+if (document.getElementById('btn-open-chest')) document.getElementById('btn-open-chest').addEventListener('click', openChest);
+if (document.getElementById('btn-convert-sugar')) document.getElementById('btn-convert-sugar').addEventListener('click', convertHoneyToSugar);
+if (document.getElementById('btn-use-sugar')) document.getElementById('btn-use-sugar').addEventListener('click', useSugar);
+if (document.getElementById('btn-use-honey')) document.getElementById('btn-use-honey').addEventListener('click', useHoney);
+if (document.getElementById('btn-end-chest')) document.getElementById('btn-end-chest').addEventListener('click', () => toggleCardsScreen(true));
+if (document.getElementById('btn-major-raid')) document.getElementById('btn-major-raid').addEventListener('click', orderMajorRaid);
+
 if (btnPlayEl) {
     btnPlayEl.addEventListener('click', () => {
         btnPlayEl.style.display = 'none';
@@ -14162,6 +15060,596 @@ if (document.getElementById('btn-ranking-refresh')) document.getElementById('btn
 if (authLoginPass) authLoginPass.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 if (authLoginUser) authLoginUser.addEventListener('keydown', e => { if (e.key === 'Enter') authLoginPass.focus(); });
 if (authRegPass) authRegPass.addEventListener('keydown', e => { if (e.key === 'Enter') doRegister(); });
+
+/* ============================================================
+   SISTEMAS NUEVOS: colonia subterránea, castas, comida y cartas
+   ============================================================ */
+const UG = {
+    on: false, ready: false,
+    grid: [], jobs: [],
+    camX: UG_COLS * UG_CELL_W / 2,
+    camY: UG_ROWS * UG_CELL_H / 2,
+    zoom: 1.25,
+    tool: 'dig',
+    entranceC: Math.floor(UG_COLS / 2),
+    entranceR: 1
+};
+
+const PROG = {
+    caste: 'worker',
+    cards: { worker: 0, major: 0, species: 0 },
+    levels: { worker: 1, major: 1 },
+    speciesCard: null,
+    speciesLevel: 0,
+    chests: 0,
+    honeyBuff: 0,
+    sugarBuff: 0,
+    buffApplied: false,
+    food: { berry: 0, meat: 0, honey: 0, sugar: 0 }
+};
+
+let majorRaidAssigned = [];
+
+function ugReset() {
+    UG.on = false; UG.ready = false; UG.grid = []; UG.jobs = [];
+    UG.camX = UG_COLS * UG_CELL_W / 2;
+    UG.camY = UG_ROWS * UG_CELL_H / 2;
+    majorRaidAssigned = [];
+    PROG.honeyBuff = 0;
+    PROG.sugarBuff = 0;
+    PROG.buffApplied = false;
+    PROG.food = { berry: 0, meat: 0, honey: 0, sugar: 0 };
+}
+
+function ugEnsure() {
+    if (UG.ready) return;
+    UG.grid = [];
+    for (let r = 0; r < UG_ROWS; r++) {
+        const row = [];
+        for (let c = 0; c < UG_COLS; c++) {
+            const noise = ((c * 73856093) ^ (r * 19349663) ^ (worldSeed | 0)) >>> 0;
+            const rocky = (noise % 17 === 0) && !(Math.abs(c - UG.entranceC) <= 2 && r < 7);
+            row.push({ t: rocky ? 'rock' : 'soil', v: noise % 100, room: null, progress: 0 });
+        }
+        UG.grid.push(row);
+    }
+    for (let r = 0; r <= 3; r++) UG.grid[r][UG.entranceC].t = 'tunnel';
+    const q = UG.grid[4][UG.entranceC];
+    q.t = 'queen'; q.room = 'queen';
+    UG.ready = true;
+    updateUGUI();
+}
+
+function ugCell(c, r) {
+    if (!UG.ready || c < 0 || r < 0 || c >= UG_COLS || r >= UG_ROWS) return null;
+    return UG.grid[r][c];
+}
+function ugCount(t) {
+    if (!UG.ready) return t === 'queen' ? 1 : 0;
+    let n = 0;
+    for (const row of UG.grid) for (const cell of row) if (cell.t === t) n++;
+    return n;
+}
+function ugFoodCap() { return 100 + ugCount('food') * 80; }
+function ugEggCap() { return Math.max(1, ugCount('queen') * 5); }
+function ugMajorCap() { return ugCount('major') * 5; }
+function ugMajorEggs() { return eggs.filter(e => e.caste === 'major').length; }
+function ugLivingMajors() { return ants.filter(a => a.caste === 'major').length; }
+function ugOpenNeighbor(c, r) {
+    for (const [dc, dr] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+        const cell = ugCell(c + dc, r + dr);
+        if (cell && cell.t !== 'soil' && cell.t !== 'rock') return true;
+    }
+    return false;
+}
+function ugFreeWorker() { return ants.find(a => a.caste === 'worker' && !a.defending && !a.ugJob && a.hp > 0) || null; }
+
+const UG_COST = { queen_chamber: 45, food_chamber: 30, major_chamber: 40 };
+
+function setUGTool(tool) {
+    UG.tool = tool;
+    document.querySelectorAll('#toolbar-underground .tool-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('tool-' + tool);
+    if (btn) btn.classList.add('active');
+    updateUGUI();
+}
+
+function toggleUnderground() {
+    if (!antNests.length && !UG.ready) { setStatus('Primero funda una colonia para entrar bajo tierra', true); return; }
+    ugEnsure();
+    UG.on = !UG.on;
+    const bar = document.getElementById('toolbar-underground');
+    const info = document.getElementById('ug-info');
+    if (bar) bar.style.display = UG.on ? 'flex' : 'none';
+    if (info) info.classList.toggle('show', UG.on);
+    const btn = document.getElementById('btn-underground');
+    if (btn) btn.textContent = UG.on ? 'Salir de la colonia' : 'Entrar a la colonia';
+    setStatus(UG.on
+        ? 'Colonia subterránea: excava con el pico y construye cámaras. Las obreras trabajarán las órdenes.'
+        : 'De vuelta en la superficie');
+}
+
+function ugCellFromScreen(sx, sy) {
+    const x = (sx - viewW / 2) / UG.zoom + UG.camX;
+    const y = (sy - viewH / 2) / UG.zoom + UG.camY;
+    return { c: Math.floor(x / UG_CELL_W), r: Math.floor(y / UG_CELL_H) };
+}
+
+function handleUGClick(c, r) {
+    ugEnsure();
+    const cell = ugCell(c, r);
+    if (!cell) return;
+    const existing = UG.jobs.find(j => j.c === c && j.r === r);
+    if (UG.tool === 'dig') {
+        if (existing) {
+            UG.jobs.splice(UG.jobs.indexOf(existing), 1);
+            if (existing.ant) existing.ant.ugJob = null;
+            setStatus('Orden de excavación cancelada');
+        } else {
+            if (cell.t !== 'soil') { setStatus('Ahí ya hay un túnel, cámara o roca', true); return; }
+            if (!ugOpenNeighbor(c, r)) { setStatus('Excava desde un túnel o cámara existente', true); return; }
+            UG.jobs.push({ c, r, type: 'dig', progress: 0, ant: null });
+            setStatus('Excavación ordenada: una obrera cavará el túnel');
+        }
+    } else {
+        if (existing) { setStatus('Ya hay una obra en esa celda', true); return; }
+        if (cell.t !== 'tunnel') { setStatus('Las cámaras se construyen sobre túneles excavados', true); return; }
+        const cost = UG_COST[UG.tool] || 30;
+        if (storedFood < cost) { setStatus(`Faltan ${cost - Math.floor(storedFood)} de comida para la cámara`, true); return; }
+        if (!ugFreeWorker()) { setStatus('Necesitas una obrera libre para construir', true); return; }
+        UG.jobs.push({ c, r, type: 'build', room: UG.tool.replace('_chamber', ''), progress: 0, ant: null, cost });
+        setStatus('Cámara en construcción: una obrera la está preparando');
+    }
+    updateUGUI();
+}
+
+function ugStep() {
+    if (!UG.ready || !paused) {
+        if (!UG.ready) return;
+    }
+    const buffBefore = activeBuff();
+    if (PROG.honeyBuff > 0) PROG.honeyBuff = Math.max(0, PROG.honeyBuff - STEP);
+    if (PROG.sugarBuff > 0) PROG.sugarBuff = Math.max(0, PROG.sugarBuff - STEP);
+    const buffNow = activeBuff();
+    if (buffBefore !== buffNow) {
+        syncAntBuffs();
+        if (!buffNow) setStatus('Los efectos de miel y azúcar terminaron');
+        else setStatus(buffNow === HONEY_BUFF ? 'La miel potencia a las hormigas' : 'El azúcar potencia a las hormigas (efecto reducido)');
+    }
+    if (gameMode === 'infinite' && UG.on) {
+        const pan = 420 * STEP;
+        if (keysPressed['w'] || keysPressed['arrowup']) UG.camY -= pan;
+        if (keysPressed['s'] || keysPressed['arrowdown']) UG.camY += pan;
+        if (keysPressed['a'] || keysPressed['arrowleft']) UG.camX -= pan;
+        if (keysPressed['d'] || keysPressed['arrowright']) UG.camX += pan;
+    }
+    UG.camX = clamp(UG.camX, viewW / (2 * UG.zoom), UG_COLS * UG_CELL_W - viewW / (2 * UG.zoom));
+    UG.camY = clamp(UG.camY, viewH / (2 * UG.zoom), UG_ROWS * UG_CELL_H - viewH / (2 * UG.zoom));
+
+    for (let i = UG.jobs.length - 1; i >= 0; i--) {
+        const j = UG.jobs[i];
+        if (j.ant && !ants.includes(j.ant)) { j.ant = null; j.progress = 0; }
+        if (!j.ant) {
+            const w = ugFreeWorker();
+            if (!w) continue;
+            j.ant = w; w.ugJob = j;
+        }
+        j.progress += STEP * (PROG.honeyBuff > 0 ? 1.5 : PROG.sugarBuff > 0 ? 1.125 : 1);
+        if (j.progress < 4.5) continue;
+        const cell = ugCell(j.c, j.r);
+        if (cell) {
+            if (j.type === 'dig') {
+                cell.t = 'tunnel';
+                spawnHitParticles(camera.x, camera.y, '#c9a36a', 5);
+            } else {
+                cell.t = j.room; cell.room = j.room;
+                storedFood = Math.max(0, storedFood - (j.cost || 0));
+                spawnHitParticles(camera.x, camera.y, '#ffd166', 10);
+                setStatus(j.room === 'food' ? '¡Cámara de comida lista! Aumenta el almacén +80'
+                    : j.room === 'major' ? '¡Sala de majors lista! Capacidad +5 majors'
+                    : '¡Cámara de reina lista! Capacidad +5 huevos');
+            }
+        }
+        if (j.ant) j.ant.ugJob = null;
+        UG.jobs.splice(i, 1);
+        updateUGUI();
+    }
+}
+
+function addFood(amount, type = 'berry') {
+    const ft = FOOD_TYPES[type] || FOOD_TYPES.berry;
+    const cap = ugFoodCap();
+    const raw = amount * ft.value;
+    const gained = Math.max(0, Math.min(raw, cap - storedFood));
+    storedFood += gained;
+    PROG.food[type] = (PROG.food[type] || 0) + gained / ft.value;
+    if (type === 'sugar' && gained > 0) applySugarBuff();
+    if (storedFood >= cap - 0.001 && raw > gained + 0.01) {
+        setStatus('Almacén lleno: construye cámaras de comida bajo tierra', true);
+    }
+    return gained;
+}
+
+const HONEY_BUFF = { dmg: 1.25, spd: 1.15, time: 300 };
+const SUGAR_BUFF = { dmg: 1.0625, spd: 1.0375, time: 90 };
+
+/* La miel da +25% daño y +15% velocidad 5 min. El azúcar hace lo mismo
+   un 75% más débil (+6.25% / +3.75%) y dura solo 90 s. */
+function activeBuff() {
+    if (PROG.honeyBuff > 0) return HONEY_BUFF;
+    if (PROG.sugarBuff > 0) return SUGAR_BUFF;
+    return null;
+}
+
+function syncAntBuffs() {
+    const m = activeBuff() || { dmg: 1, spd: 1 };
+    for (const a of ants) {
+        const cur = a.buffMul || { dmg: 1, spd: 1 };
+        if (cur.dmg === m.dmg && cur.spd === m.spd) continue;
+        a.damage = a.damage / cur.dmg * m.dmg;
+        a.speed = a.speed / cur.spd * m.spd;
+        a.buffMul = m;
+    }
+    PROG.buffApplied = !!activeBuff();
+}
+
+function applyHoneyBuff() {
+    PROG.honeyBuff = HONEY_BUFF.time;
+    syncAntBuffs();
+    setStatus('¡MIEL! +25% daño y +15% velocidad para todas las hormigas durante 5 minutos');
+}
+
+function applySugarBuff() {
+    PROG.sugarBuff = SUGAR_BUFF.time;
+    syncAntBuffs();
+    setStatus('¡AZÚCAR! +6.25% daño y +3.75% velocidad durante 90s (75% menos que la miel)');
+}
+
+function convertHoneyToSugar() {
+    if ((PROG.food.honey || 0) < 1) {
+        setStatus('Necesitas 1 de miel almacenada para cambiarla por 5 de azúcar', true);
+        renderCards();
+        return;
+    }
+    PROG.food.honey -= 1;
+    PROG.food.sugar = (PROG.food.sugar || 0) + 5;
+    setStatus('Cambiaste 1 de miel por 5 de azúcar. Usa una unidad para activar el efecto.');
+    renderCards();
+    updateUI();
+    saveGame();
+}
+
+function useSugar() {
+    if ((PROG.food.sugar || 0) < 1) {
+        setStatus('No tienes azúcar almacenada', true);
+        renderCards();
+        return;
+    }
+    PROG.food.sugar -= 1;
+    applySugarBuff();
+    renderCards();
+    updateUI();
+    saveGame();
+}
+
+/* La miel se guarda al recogerla; el jugador decide cuándo activar el efecto. */
+function useHoney() {
+    if ((PROG.food.honey || 0) < 1) {
+        setStatus('No tienes miel almacenada: recoge miel de los pulgones o del mapa', true);
+        renderCards();
+        return;
+    }
+    PROG.food.honey -= 1;
+    applyHoneyBuff();
+    renderCards();
+    updateUI();
+    saveGame();
+}
+
+function applyLevelStats(ant, caste) {
+    const lvl = PROG.levels[caste] || 1;
+    const mul = 1 + (lvl - 1) * CARD_LEVEL_GAIN;
+    ant.maxHp = Math.round(ant.maxHp * mul);
+    ant.hp = ant.maxHp;
+    ant.damage *= mul;
+    if (caste === 'major') ant.scale *= 1.32;
+}
+
+function setCaste(caste) {
+    PROG.caste = caste === 'major' ? 'major' : 'worker';
+    const w = document.getElementById('caste-worker');
+    const m = document.getElementById('caste-major');
+    if (w) w.classList.toggle('active', PROG.caste === 'worker');
+    if (m) m.classList.toggle('active', PROG.caste === 'major');
+    setStatus(PROG.caste === 'major'
+        ? 'Casta major seleccionada: necesitas salas de majors (5 por sala) y más vida/daño'
+        : 'Casta obrera seleccionada: recogen comida, excavan y construyen');
+}
+
+function cardNeed(level) { return level * 2; }
+function cardCostReduction() { return PROG.speciesLevel * 5; }
+
+function addCard(type, key) {
+    if (type === 'species') {
+        PROG.cards.species++;
+        applySpeciesCard(key);
+    } else {
+        PROG.cards[type] = (PROG.cards[type] || 0) + 1;
+    }
+    renderCards();
+}
+
+function applySpeciesCard(key) {
+    if (!SPECIES[key] || key === 'generic') return;
+    if (PROG.speciesCard && PROG.speciesCard !== key) {
+        PROG.cards.worker += 2;
+        setStatus(`Solo puede actuar una especie de carta. Carta ${SP(key).name} convertida en 2 cartas de obrera`, true);
+        return;
+    }
+    PROG.speciesCard = key;
+    PROG.speciesLevel++;
+    if (queen && queen.hp > 0) {
+        queen.maxHp = Math.round(queen.maxHp * 1.12);
+        queen.hp = queen.maxHp;
+        for (const cd of ['abilityCD', 'leapCD', 'chargeCD', 'raidCD']) {
+            if (queen[cd] != null) queen[cd] = Math.max(2, queen[cd] - 5);
+        }
+    }
+    setStatus(`¡Carta de ${SP(key).name}! Nivel ${PROG.speciesLevel}: la reina gana +12% vida y -5s de cooldown`);
+}
+
+function upgradeCaste(caste) {
+    const need = cardNeed(PROG.levels[caste]);
+    if (PROG.cards[caste] < need) { setStatus(`Te faltan ${need - PROG.cards[caste]} cartas de ${caste}`, true); return; }
+    PROG.cards[caste] -= need;
+    PROG.levels[caste]++;
+    for (const a of ants) if (a.caste === caste) applyLevelStats(a, caste);
+    setStatus(`${caste === 'major' ? 'Majors' : 'Obreras'} nivel ${PROG.levels[caste]} · +7.5% vida y daño`);
+    renderCards();
+}
+
+function openChest() {
+    if (PROG.chests <= 0) { setStatus('No tienes cofres para abrir. Gana el modo normal (5 oleadas)', true); return; }
+    PROG.chests--;
+    const got = [];
+    for (let i = 0; i < 3; i++) {
+        const roll = Math.random();
+        if (roll < 0.08) {
+            const key = SPECIES_CARD_KEYS[Math.floor(Math.random() * SPECIES_CARD_KEYS.length)];
+            addCard('species', key);
+            got.push('especie: ' + SP(key).name);
+        } else if (roll < 0.52) {
+            addCard('worker'); got.push('obrera');
+        } else {
+            addCard('major'); got.push('major');
+        }
+    }
+    setStatus('Cofre abierto: ' + got.join(', '));
+    renderCards();
+    updateUI();
+}
+
+function renderCards() {
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('card-worker-count', PROG.cards.worker);
+    set('card-major-count', PROG.cards.major);
+    set('card-species-count', PROG.cards.species);
+    set('worker-level', PROG.levels.worker);
+    set('major-level', PROG.levels.major);
+    set('worker-need', cardNeed(PROG.levels.worker));
+    set('major-need', cardNeed(PROG.levels.major));
+    set('species-card-info', PROG.speciesCard
+        ? `${SP(PROG.speciesCard).name} · nivel ${PROG.speciesLevel} · -${cardCostReduction()}s cooldown`
+        : 'Sin especie activa · cartas muy raras');
+    const bw = document.getElementById('btn-up-worker');
+    const bm = document.getElementById('btn-up-major');
+    if (bw) bw.disabled = PROG.cards.worker < cardNeed(PROG.levels.worker);
+    if (bm) bm.disabled = PROG.cards.major < cardNeed(PROG.levels.major);
+    const banner = document.getElementById('chest-banner');
+    if (banner) {
+        banner.style.display = PROG.chests > 0 ? 'block' : 'none';
+        banner.textContent = PROG.chests > 0
+            ? `¡Tienes ${PROG.chests} cofre(s) sin abrir! Ábrelos para obtener cartas.`
+            : '';
+    }
+    const stock = document.getElementById('sugar-stock-label');
+    if (stock) stock.textContent = `Miel almacenada: ${Math.floor(PROG.food.honey || 0)} · Azúcar almacenada: ${Math.floor(PROG.food.sugar || 0)}`;
+    const bc = document.getElementById('btn-convert-sugar');
+    const bu = document.getElementById('btn-use-sugar');
+    const bh = document.getElementById('btn-use-honey');
+    if (bc) bc.disabled = (PROG.food.honey || 0) < 1;
+    if (bu) bu.disabled = (PROG.food.sugar || 0) < 1;
+    if (bh) bh.disabled = (PROG.food.honey || 0) < 1;
+    const setBar = (id, pct) => {
+        const el = document.getElementById(id);
+        if (el) el.style.width = Math.round(Math.max(0, Math.min(100, pct))) + '%';
+    };
+    setBar('worker-progress', 100 * (PROG.cards.worker % cardNeed(PROG.levels.worker)) / cardNeed(PROG.levels.worker));
+    setBar('major-progress', 100 * (PROG.cards.major % cardNeed(PROG.levels.major)) / cardNeed(PROG.levels.major));
+    setBar('species-progress', Math.min(100, PROG.cards.species * 20));
+    const st = document.getElementById('cards-status');
+    if (st) st.textContent = `Nivel obrera ${PROG.levels.worker} · nivel major ${PROG.levels.major} · miel ${Math.floor(PROG.food.honey || 0)} · azúcar ${Math.floor(PROG.food.sugar || 0)} · efecto miel ${Math.ceil(PROG.honeyBuff)}s / azúcar ${Math.ceil(PROG.sugarBuff)}s`;
+}
+
+function toggleCardsScreen(show) {
+    const el = document.getElementById('cards-screen');
+    if (!el) return;
+    el.classList.toggle('show', show);
+    if (show) renderCards();
+}
+
+function orderMajorRaid() {
+    const input = document.getElementById('major-raid-count');
+    const qty = clamp(parseInt(input && input.value, 10) || 5, 1, 30);
+    const target = getRaidTarget() || nearestTermiteNest(queen ? queen.x : WORLD_W / 2, queen ? queen.y : WORLD_H / 2);
+    if (!target) { setStatus('No hay termiteros que atacar', true); return; }
+    const majors = ants.filter(a => a.caste === 'major' && a.hp > 0).slice(0, qty);
+    if (!majors.length) {
+        setStatus('Solo los MAJORS pueden atacar termiteros. Cría majors en salas de majors', true);
+        return;
+    }
+    for (const a of ants) a.raidAssigned = false;
+    for (const a of majors) a.raidAssigned = true;
+    majorRaidAssigned = majors;
+    raidTarget = target;
+    setStatus(`${majors.length} major(es) enviados al termitero (${Math.ceil(target.hp)} HP). Los obreros no atacan termiteros.`, true);
+    spawnHitParticles(target.x, target.y, '#ff8f1f', 10);
+    updateUI();
+}
+
+function isRaidAssigned(ant) { return !!ant.raidAssigned && ant.caste === 'major'; }
+
+function updateUGUI() {
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('ug-queen-rooms', ugCount('queen'));
+    set('ug-food-rooms', ugCount('food'));
+    set('ug-major-rooms', ugCount('major'));
+    set('ug-dug', ugCount('tunnel') + ugCount('queen') + ugCount('food') + ugCount('major'));
+    const labels = { dig: 'Excavar', queen_chamber: 'Cámara de reina', food_chamber: 'Cámara de comida', major_chamber: 'Sala de majors' };
+    set('ug-tool-label', labels[UG.tool] || UG.tool);
+    set('food-cap-label', ' / ' + ugFoodCap());
+    set('food-cap-label2', ' / ' + ugFoodCap());
+    set('egg-cap-label', eggs.length + '/' + ugEggCap());
+    set('worker-count', ants.filter(a => a.caste === 'worker').length);
+    set('major-count', ugLivingMajors());
+    set('major-cap', ugMajorCap());
+}
+
+/* ---------- Render subterráneo pixel-art 2.5D ---------- */
+function ugPx(x, y, w, h, color) { ctx.fillStyle = color; ctx.fillRect(Math.round(x), Math.round(y), Math.ceil(w), Math.ceil(h)); }
+
+function renderUnderground() {
+    ugEnsure();
+    ctx.imageSmoothingEnabled = false;
+    ctx.save();
+    ctx.translate(viewW / 2, viewH / 2);
+    ctx.scale(UG.zoom, UG.zoom);
+    ctx.translate(-UG.camX, -UG.camY);
+
+    const x0 = Math.max(0, Math.floor((UG.camX - viewW / (2 * UG.zoom)) / UG_CELL_W) - 1);
+    const x1 = Math.min(UG_COLS - 1, Math.ceil((UG.camX + viewW / (2 * UG.zoom)) / UG_CELL_W) + 1);
+    const y0 = Math.max(0, Math.floor((UG.camY - viewH / (2 * UG.zoom)) / UG_CELL_H) - 1);
+    const y1 = Math.min(UG_ROWS - 1, Math.ceil((UG.camY + viewH / (2 * UG.zoom)) / UG_CELL_H) + 1);
+
+    // Cielo y entrada
+    ugPx(x0 * UG_CELL_W, -34, (x1 - x0 + 1) * UG_CELL_W, 34, '#162a35');
+    ugPx(x0 * UG_CELL_W, -6, (x1 - x0 + 1) * UG_CELL_W, 6, '#3e6b32');
+
+    for (let r = y0; r <= y1; r++) {
+        for (let c = x0; c <= x1; c++) {
+            const cell = UG.grid[r][c];
+            const x = c * UG_CELL_W, y = r * UG_CELL_H;
+            if (cell.t === 'soil' || cell.t === 'rock') {
+                const dark = cell.v % 3 === 0;
+                ugPx(x, y, UG_CELL_W, UG_CELL_H, cell.t === 'rock' ? '#4c4b46' : (dark ? '#4a2d1a' : '#59371f'));
+                for (let k = 0; k < 10; k++) {
+                    const px = (cell.v * (k + 3) * 37) % (UG_CELL_W - 6);
+                    const py = (cell.v * (k + 7) * 19) % (UG_CELL_H - 6);
+                    ugPx(x + px, y + py, k % 3 === 0 ? 5 : 3, k % 2 ? 2 : 3,
+                        cell.t === 'rock' ? (k % 2 ? '#66655e' : '#393935') : (k % 2 ? '#6a4325' : '#3c2515'));
+                }
+                if (cell.t === 'rock') {
+                    ugPx(x + 7, y + 9, 30, 5, '#77766e');
+                    ugPx(x + 15, y + 20, 22, 4, '#373732');
+                    ugPx(x + 4, y + 30, 18, 3, '#6d6c64');
+                } else if (cell.v > 60) {
+                    ugPx(x + 6, y, 3, UG_CELL_H, '#7a5a32');
+                    ugPx(x + 30, y + 14, 2, UG_CELL_H - 14, '#6d4b29');
+                }
+                ugPx(x, y, UG_CELL_W, 2, '#2e1c10');
+                ugPx(x, y + UG_CELL_H - 2, UG_CELL_W, 2, '#382011');
+            } else {
+                ugPx(x, y, UG_CELL_W, UG_CELL_H, '#1c120b');
+                ugPx(x + 3, y + 3, UG_CELL_W - 6, UG_CELL_H - 8, '#2c1d12');
+                ugPx(x + 4, y + UG_CELL_H - 10, UG_CELL_W - 8, 5, '#4a3020');
+                ugPx(x + 8, y + UG_CELL_H - 12, 10, 2, '#64432b');
+                if (cell.t === 'tunnel' && cell.v % 4 === 0) {
+                    ugPx(x + 18, y + 12, 3, 3, '#d9b45c');
+                }
+                if (cell.t !== 'tunnel') {
+                    const col = cell.t === 'queen' ? '#ffd166' : cell.t === 'food' ? '#b7e4c7' : '#ff758f';
+                    ugPx(x + 2, y + 2, UG_CELL_W - 4, 3, col);
+                    ugPx(x + 2, y + UG_CELL_H - 5, UG_CELL_W - 4, 3, col);
+                    ugPx(x + 2, y + 2, 3, UG_CELL_H - 4, col);
+                    ugPx(x + UG_CELL_W - 5, y + 2, 3, UG_CELL_H - 4, col);
+                }
+            }
+        }
+    }
+
+    // Cámaras: decoración según tipo
+    for (let r = y0; r <= y1; r++) {
+        for (let c = x0; c <= x1; c++) {
+            const cell = UG.grid[r][c];
+            if (cell.t === 'tunnel' || cell.t === 'rock' || cell.t === 'soil') continue;
+            const x = c * UG_CELL_W + UG_CELL_W / 2;
+            const y = r * UG_CELL_H + UG_CELL_H / 2;
+            if (cell.t === 'queen') {
+                const n = Math.min(5, eggs.length);
+                for (let i = 0; i < n; i++) {
+                    ugPx(x - 15 + i * 6, y + 5, 5, 4, '#fefae0');
+                    ugPx(x - 15 + i * 6, y + 4, 3, 2, '#fff8dc');
+                }
+                ugPx(x - 10, y - 12, 20, 4, '#8b5e3c');
+                ugPx(x - 6, y - 16, 12, 5, '#c98f52');
+                ctx.fillStyle = '#ffd166'; ctx.font = 'bold 15px monospace'; ctx.textAlign = 'center';
+                ctx.fillText('REINA ' + eggs.length + '/' + ugEggCap(), x, y - 8);
+            } else if (cell.t === 'food') {
+                const fill = clamp(storedFood / ugFoodCap(), 0, 1);
+                for (let i = 0; i < 5; i++) {
+                    ugPx(x - 16 + i * 7, y + 9, 6, 5, i / 5 < fill ? '#d97706' : '#5a4530');
+                }
+                ctx.fillStyle = '#b7e4c7'; ctx.font = 'bold 15px monospace'; ctx.textAlign = 'center';
+                ctx.fillText('COMIDA ' + Math.floor(storedFood) + '/' + ugFoodCap(), x, y - 10);
+            } else if (cell.t === 'major') {
+                const majors = ugLivingMajors();
+                for (let i = 0; i < Math.min(5, majors); i++) {
+                    ugPx(x - 14 + i * 6, y + 6, 5, 6, '#b03a1e');
+                    ugPx(x - 15 + i * 6, y + 2, 7, 5, '#8f1d14');
+                }
+                ctx.fillStyle = '#ff8fa3'; ctx.font = 'bold 15px monospace'; ctx.textAlign = 'center';
+                ctx.fillText('MAJORS ' + majors + '/' + ugMajorCap(), x, y - 10);
+            }
+        }
+    }
+
+    // Hormigas moviéndose por los túneles
+    const tunnels = [];
+    for (let r = 0; r < UG_ROWS; r++) for (let c = 0; c < UG_COLS; c++) {
+        if (UG.grid[r][c].t === 'tunnel') tunnels.push({ c, r });
+    }
+    for (let i = 0; i < Math.min(14, tunnels.length); i++) {
+        const t = tunnels[(i * 7 + Math.floor(gameTime * 0.6)) % tunnels.length];
+        const px = t.c * UG_CELL_W + 10 + ((gameTime * 12 + i * 9) % (UG_CELL_W - 20));
+        const py = t.r * UG_CELL_H + 24 + Math.sin(gameTime * 2 + i) * 2;
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.scale(0.55, 0.55);
+        drawWorkerBody(ctx, speciesKey === 'generic' ? 'generic' : speciesKey, gameTime * 4 + i);
+        ctx.restore();
+    }
+
+    // Obras en curso
+    for (const j of UG.jobs) {
+        const x = j.c * UG_CELL_W, y = j.r * UG_CELL_H;
+        ctx.strokeStyle = j.ant ? '#ffd166' : '#95d5b2';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 3]);
+        ctx.strokeRect(x + 3, y + 3, UG_CELL_W - 6, UG_CELL_H - 6);
+        ctx.setLineDash([]);
+        ugPx(x + 4, y + UG_CELL_H - 6, UG_CELL_W - 8, 4, '#20140c');
+        ugPx(x + 4, y + UG_CELL_H - 6, (UG_CELL_W - 8) * clamp(j.progress / 4.5, 0, 1), 4, '#e09f3e');
+    }
+
+    // Entrada
+    ugPx(UG.entranceC * UG_CELL_W + 10, -2, UG_CELL_W - 20, 10, '#6b4a2a');
+    ctx.fillStyle = '#d8f3dc'; ctx.font = 'bold 18px monospace'; ctx.textAlign = 'center';
+    ctx.fillText('↑ SUPERFICIE', UG.entranceC * UG_CELL_W + UG_CELL_W / 2, -16);
+
+    ctx.restore();
+    ctx.imageSmoothingEnabled = true;
+}
+
 initAuth();
 
 buildSpeciesCards();
