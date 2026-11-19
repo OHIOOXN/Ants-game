@@ -1204,7 +1204,7 @@
         <button id="tool-queen_chamber" class="tool-btn btn-queen" onclick="setUGTool('queen_chamber')">Cámara de reina (5 huevos)</button>
         <button id="tool-food_chamber" class="tool-btn" onclick="setUGTool('food_chamber')">Cámara de comida (+80)</button>
         <button id="tool-major_chamber" class="tool-btn btn-predator" onclick="setUGTool('major_chamber')">Sala de majors (5)</button>
-        <button id="tool-fungus_chamber" class="tool-btn btn-fungus" onclick="setUGTool('fungus_chamber')">Granja de hongo (+comida)</button>
+        <button id="tool-fungus_chamber" class="tool-btn btn-fungus" onclick="setUGTool('fungus_chamber')">Cámara fúngica (gratis)</button>
         <button id="ug-exit" class="tool-btn btn-menu-back">Salir al exterior</button>
     </div>
 
@@ -1254,7 +1254,8 @@
             <div>Cámaras reina: <strong id="ug-queen-rooms">0</strong></div>
             <div>Cámaras comida: <strong id="ug-food-rooms">0</strong></div>
             <div>Salas de majors: <strong id="ug-major-rooms">0</strong></div>
-            <div>Granjas de hongo: <strong id="ug-fungus-rooms">0</strong></div>
+            <div>Cámaras fúngicas: <strong id="ug-fungus-rooms">0</strong></div>
+            <div id="ug-fungus-status" style="display:none;">Hongo: <strong id="ug-fungus-hunger">100%</strong> · Bono: <strong id="ug-fungus-bonus">+0%</strong></div>
             <div>Excavadas: <strong id="ug-dug">0</strong></div>
             <div>Herramienta: <strong id="ug-tool-label">Excavar</strong></div>
         </div>
@@ -1604,9 +1605,9 @@ const SPECIES = {
         name: 'Atta cephalotes',
         family: 'Atta',
         title: 'Cortadora de hojas',
-        blurb: 'En vez de nido funda un jardín de hongo que las obreras deben alimentar cada segundo. A cambio, el hongo les da más vida y daño, una IA excelente y la capacidad de cortar hojas. Cada oleada superada las vuelve más oscuras y fuertes.',
-        traits: ['Hongo que alimentar', 'IA mejorada', 'Corta hojas', 'Veteranas +7.5% por oleada'],
-        nestStyle: 'fungus',
+        blurb: 'Funda una colonia normal, pero es la ÚNICA especie que puede excavar cámaras fúngicas subterráneas. La primera es gratis y cada otra cuesta 500 de comida. Producen comida y dan +12% de vida y daño por cámara extra, pero hay que alimentar el hongo: si muere de hambre, muere la colonia.',
+        traits: ['Colonia normal', 'Cámaras fúngicas exclusivas', '+12% vida/daño por cámara extra', 'El hongo debe comer'],
+        nestStyle: 'classic',
         queenHp: 470, queenDamage: 2.8, queenSpeed: 2.9,
         workerHp: 34, workerDamage: 0.85, workerSpeed: 2.35, workerScale: 1.04,
         venom: false, workerCharge: false, fungus: true
@@ -2958,11 +2959,6 @@ class Ant extends Entity {
         if (sp.swarm) this.damage *= 1.08;
         if (sp.nomadic) { this.speed *= 1.2; this.damage *= 1.12; }
         if (sp.leafNest) { this.maxHp = Math.round(this.maxHp * 1.15); this.hp = this.maxHp; }
-        if (sp.fungus) {
-            this.maxHp = Math.round(this.maxHp * 1.3);
-            this.hp = this.maxHp;
-            this.damage *= 1.35;
-        }
         this.hasFood = false;
         this.carriesLeaf = false;
         this.slowTimer = 0;
@@ -3006,6 +3002,7 @@ class Ant extends Entity {
             this.speed *= 0.92;
             this.scale *= 1.18;
         }
+        this.fungusLevel = 0;
         applyLevelStats(this, this.caste);
         if (PROG.honeyBuff > 0 || PROG.sugarBuff > 0) {
             const m = activeBuff();
@@ -3014,6 +3011,7 @@ class Ant extends Entity {
             this.buffMul = m;
         }
         applyResearchToAnt(this);
+        applyFungusBonusToAnt(this);
     }
 
     tryEscapeJump() {
@@ -3285,10 +3283,7 @@ class Ant extends Entity {
                     col.food += 1;
                     growNest(this.nest, 2);
                     this.hp = Math.min(this.maxHp, this.hp + 4);
-                    if (this.nest.style === 'fungus' && this.nest.hunger != null) {
-                        this.nest.hunger = Math.min(100, this.nest.hunger + 9);
-                        this.nest.hp = Math.min(this.nest.maxHp, this.nest.hp + 3);
-                    }
+                    if (sp.fungus) fungusHunger = Math.min(100, fungusHunger + 9);
                     if (col.side === pvp.side) {
                         if (col.food >= EGG_COST && pvpOwnEggs(this.nest) < PVP_EGG_MAX && layEgg(this.nest)) {
                             spawnHitParticles(this.nest.x, this.nest.y, '#ffd166', 10);
@@ -3299,10 +3294,7 @@ class Ant extends Entity {
                     moveEntitySmooth(this, currentSpeed, 4);
                     return;
                 }
-                if (this.nest.style === 'fungus') {
-                    this.nest.hunger = Math.min(100, (this.nest.hunger ?? 100) + 9);
-                    this.nest.hp = Math.min(this.nest.maxHp, this.nest.hp + 3);
-                }
+                if (sp.fungus) fungusHunger = Math.min(100, fungusHunger + 9);
                 addFood(this.carriesLeaf ? 1 : 1, this.foodType || 'berry');
                 growNest(this.nest, 2);
                 if (gameMode === 'sandbox') {
@@ -10221,7 +10213,7 @@ function refreshNormalTools() {
     } else if (antNests.length === 0) {
         bq.disabled = true;
         bn.disabled = false;
-        bn.textContent = S().nestStyle === 'fungus' ? 'Plantar Hongo (0/1)' : 'Colocar Colonia (0/1)';
+        bn.textContent = 'Colocar Colonia (0/1)';
         setTool('normal_nest');
     } else {
         bq.disabled = true;
@@ -10635,9 +10627,9 @@ function refreshAbilityUI() {
         return;
     }
     if (isAtta) {
-        const nest = pvpMode ? (colony ? colony.nest : null) : antNests[0];
-        const hunger = nest && nest.hunger != null ? Math.round(nest.hunger) : 100;
-        abilityNoteEl.textContent = `Hongo simbiótico: +35% daño y +30% vida · ${nest ? `alimento del hongo ${hunger}%` : 'funda el hongo'}`;
+        const rooms = ugCount('fungus');
+        const bonus = fungusExtraChambers() * 12;
+        abilityNoteEl.textContent = `Cámaras fúngicas: ${rooms} · +${bonus}% vida/daño · hongo ${Math.round(fungusHunger)}% · 1ª gratis, otras 500 comida`;
         return;
     }
     if (isCremato) {
@@ -11646,6 +11638,7 @@ function saveGame() {
             },
             season: { ...seasonState },
             fungusTimer,
+            fungusHunger,
             ug: UG.ready ? UG.grid.map(row => row.map(cell => [cell.t, cell.room || '', cell.v])) : null,
             ugTool: UG.tool,
             normal: normal ? { ...normal, founded: normal.founded } : null
@@ -11711,6 +11704,7 @@ function applySave(d) {
     }
     if (d.season) Object.assign(seasonState, d.season);
     fungusTimer = d.fungusTimer || 0;
+    fungusHunger = d.fungusHunger ?? 100;
     if (d.ug && Array.isArray(d.ug)) {
         UG.grid = d.ug.map(row => row.map(v => ({ t: v[0], room: v[1] || null, v: v[2] || 0, progress: 0 })));
         UG.ready = true;
@@ -11789,6 +11783,7 @@ function applySave(d) {
         for (const ant of ants) {
             const dmgBase = (savedBuff ? ant.damage / savedBuff.dmg : ant.damage) / (1 + 0.06 * mand);
             ant.researchBase = { dmg: dmgBase, hp: Math.max(1, Math.round(ant.maxHp / (1 + 0.05 * ven))) };
+            ant.fungusLevel = fungusExtraChambers();
             ant.damage = dmgBase * (1 + 0.06 * mand) * curBuff.dmg;
             ant.buffMul = curBuff;
             if (curBuff.dmg !== 1) ant.speed *= curBuff.spd;
@@ -13345,7 +13340,9 @@ function handleLeftClick(wx, wy) {
             } else if (sp.nestStyle === 'cactus') {
                 setStatus('Colonia Crematogaster fundada entre espinas de cactus. ¡Primera oleada en 55s!');
             } else if (sp.nestStyle === 'classic') {
-                setStatus(`Colonia de ${sp.name} fundada bajo tierra. ¡Primera oleada en 55s!`);
+                setStatus(sp.key === 'atta'
+                    ? 'Colonia de Atta fundada. Entra bajo tierra y construye tu primera cámara fúngica gratis. ¡Primera oleada en 55s!'
+                    : `Colonia de ${sp.name} fundada bajo tierra. ¡Primera oleada en 55s!`);
             } else {
                 setStatus('Colonia Leptogenys oculta bajo la hojarasca. ¡Primera oleada en 55s!');
             }
@@ -13449,13 +13446,10 @@ function handleLeftClick(wx, wy) {
                 setStatus('Espacio bloqueado para fundar la Colonia', true);
                 return;
             }
-            if (sp.nestStyle === 'fungus') {
-                placeNest(wx, wy, 'ant', 6, { style: 'fungus', species: sp.key });
-                setStatus('Hongo de Atta cephalotes plantado — aliméntalo llevando hojas o comida');
-            } else {
-                placeNest(wx, wy, 'ant', 6, { style: sp.nestStyle, species: sp.key });
-                setStatus(`Colonia de ${sp.name} fundada`);
-            }
+            placeNest(wx, wy, 'ant', 6, { style: sp.nestStyle, species: sp.key });
+            setStatus(sp.key === 'atta'
+                ? 'Colonia de Atta fundada. Construye cámaras fúngicas bajo tierra (la primera es gratis)'
+                : `Colonia de ${sp.name} fundada`);
         }
         updateUI();
         return;
@@ -13649,12 +13643,17 @@ function step() {
         }
     }
 
-    // Hambre del hongo de Atta cephalotes
-    for (const n of antNests) {
-        if (n.style !== 'fungus' || n.hunger == null) continue;
-        n.hunger = Math.max(0, n.hunger - STEP * 2.2);
-        if (n.hunger < 45) n.hp -= (1.5 + (45 - n.hunger) * 0.05) * STEP;
-        else if (n.hunger > 80) n.hp = Math.min(n.maxHp, n.hp + 3 * STEP);
+    // Hambre del hongo: se alimenta con las entregas de las obreras Atta
+    if (isAttaColony() && ugCount('fungus') > 0) {
+        fungusHunger = Math.max(0, fungusHunger - STEP * 2.2);
+        if (fungusHunger < 45) {
+            const dmg = (1.5 + (45 - fungusHunger) * 0.05) * STEP;
+            for (const a of ants) if (SP(a.species || speciesKey).fungus) a.hp -= dmg;
+            if (queen && SP(queen.species || speciesKey).fungus) queen.hp -= dmg;
+            for (const n of antNests) if (n.species === 'atta') n.hp -= dmg;
+        } else if (fungusHunger > 80) {
+            for (const n of antNests) if (n.species === 'atta') n.hp = Math.min(n.maxHp, n.hp + 3 * STEP);
+        }
     }
 
     // La colonia del mundo infinito pone huevos con la comida almacenada
@@ -14079,7 +14078,8 @@ function buildSpeciesCards() {
         badge.textContent = sp.family;
         const kind = document.createElement('span');
         kind.className = 'species-kind';
-        kind.textContent = sp.nestStyle === 'tree' ? 'ARBÓREA'
+        kind.textContent = sp.key === 'atta' ? 'HONGO'
+            : sp.nestStyle === 'tree' ? 'ARBÓREA'
             : sp.nestStyle === 'fungus' ? 'HONGO'
             : sp.nestStyle === 'cactus' ? 'CACTUS'
             : sp.nestStyle === 'volcano' ? 'VOLCÁN'
@@ -15563,7 +15563,7 @@ const MISSIONS = [
     { id: 'kills', name: 'Cazadora', desc: 'Mata 10 enemigos', target: 10, reward: '1 cofre', progress: () => PROG.stats.kills || 0 },
     { id: 'food', name: 'Almacenista', desc: 'Recolecta 60 de comida', target: 60, reward: '2 cartas de obrera', progress: () => PROG.stats.food || 0 },
     { id: 'ants', name: 'Guardería', desc: 'Eclosiona 12 huevos', target: 12, reward: '2 cartas de major', progress: () => PROG.stats.ants || 0 },
-    { id: 'fungus', name: 'Micóloga', desc: 'Construye 1 granja de hongo', target: 1, reward: '1 cofre', progress: () => (typeof ugCount === 'function' ? ugCount('fungus') : 0) },
+    { id: 'fungus', name: 'Micóloga', desc: 'Construye 1 cámara fúngica (Atta)', target: 1, reward: '1 cofre', progress: () => (typeof ugCount === 'function' ? ugCount('fungus') : 0) },
     { id: 'honey', name: 'Dulce energía', desc: 'Usa 1 miel manualmente', target: 1, reward: '3 cartas de especie', progress: () => PROG.stats.honeyUsed || 0 },
     { id: 'wave', name: 'Superviviente', desc: 'Llega a la oleada 3', target: 3, reward: '2 cartas de soldado', progress: () => (normal && normal.wave) || 0 }
 ];
@@ -15582,6 +15582,33 @@ const WEATHER_EVENTS = {
 };
 let seasonState = { index: 0, event: 'none', timer: 120, eventTimer: 70 };
 let fungusTimer = 0;
+let fungusHunger = 100;
+
+function isAttaColony() {
+    return speciesKey === 'atta' || antNests.some(n => n.species === 'atta');
+}
+function fungusExtraChambers() { return Math.max(0, ugCount('fungus') - 1); }
+
+function applyFungusBonusToAnt(a) {
+    if (!a || !SP(a.species || speciesKey).fungus) return;
+    const target = fungusExtraChambers();
+    const applied = a.fungusLevel || 0;
+    if (target === applied) return;
+    const mul = Math.pow(1.12, target - applied);
+    const oldMax = a.maxHp;
+    a.maxHp = Math.round(a.maxHp * mul);
+    a.hp = Math.min(a.maxHp, a.hp + Math.max(0, a.maxHp - oldMax));
+    a.damage *= mul;
+    if (a.researchBase) {
+        a.researchBase.dmg *= mul;
+        a.researchBase.hp = Math.round(a.researchBase.hp * mul);
+    }
+    a.fungusLevel = target;
+}
+
+function syncFungusBonuses() {
+    for (const a of ants) applyFungusBonusToAnt(a);
+}
 let perkTimer = 0;
 let convertTimer = 0;
 let leafTimer = 0;
@@ -15598,6 +15625,7 @@ function ugReset() {
     PROG.buffApplied = false;
     PROG.food = { berry: 0, meat: 0, honey: 0, sugar: 0 };
     fungusTimer = 0;
+    fungusHunger = 100;
     perkTimer = 0;
     convertTimer = 0;
     leafTimer = 0;
@@ -15651,7 +15679,7 @@ function ugOpenNeighbor(c, r) {
 }
 function ugFreeWorker() { return ants.find(a => a.caste === 'worker' && !a.defending && !a.ugJob && a.hp > 0) || null; }
 
-const UG_COST = { queen_chamber: 45, food_chamber: 30, major_chamber: 40, fungus_chamber: 50 };
+const UG_COST = { queen_chamber: 45, food_chamber: 30, major_chamber: 40, fungus_chamber: 500 };
 
 function setUGTool(tool) {
     UG.tool = tool;
@@ -15701,7 +15729,13 @@ function handleUGClick(c, r) {
     } else {
         if (existing) { setStatus('Ya hay una obra en esa celda', true); return; }
         if (cell.t !== 'tunnel') { setStatus('Las cámaras se construyen sobre túneles excavados', true); return; }
-        const cost = UG_COST[UG.tool] || 30;
+        if (UG.tool === 'fungus_chamber' && !isAttaColony()) {
+            setStatus('Las cámaras fúngicas son exclusivas de Atta cephalotes', true);
+            return;
+        }
+        const cost = UG.tool === 'fungus_chamber'
+            ? (ugCount('fungus') === 0 ? 0 : 500)
+            : (UG_COST[UG.tool] || 30);
         if (storedFood < cost) { setStatus(`Faltan ${cost - Math.floor(storedFood)} de comida para la cámara`, true); return; }
         if (!ugFreeWorker()) { setStatus('Necesitas una obrera libre para construir', true); return; }
         UG.jobs.push({ c, r, type: 'build', room: UG.tool.replace('_chamber', ''), progress: 0, ant: null, cost });
@@ -15714,12 +15748,16 @@ function ugStep() {
     if (!UG.ready || !paused) {
         if (!UG.ready) return;
     }
-    if (gameMode !== 'infinite' && ugCount('fungus') > 0) {
+    if (isAttaColony() && ugCount('fungus') > 0) {
         fungusTimer += STEP;
         if (fungusTimer >= 12) {
             fungusTimer -= 12;
-            const made = addFood(2 * ugCount('fungus'), 'berry');
-            if (made > 0) setStatus(`La granja de hongo produjo ${Math.floor(made)} de comida`);
+            if (fungusHunger > 20) {
+                const made = addFood(2 * ugCount('fungus'), 'berry');
+                if (made > 0) setStatus(`Las cámaras fúngicas produjeron ${Math.floor(made)} de comida`);
+            } else {
+                setStatus('El hongo está hambriento y no produce comida', true);
+            }
         }
     }
     const buffBefore = activeBuff();
@@ -15760,9 +15798,10 @@ function ugStep() {
                 cell.t = j.room; cell.room = j.room;
                 storedFood = Math.max(0, storedFood - (j.cost || 0));
                 spawnHitParticles(camera.x, camera.y, '#ffd166', 10);
+                if (j.room === 'fungus') { syncFungusBonuses(); updateUI(); }
                 setStatus(j.room === 'food' ? '¡Cámara de comida lista! Aumenta el almacén +80'
                     : j.room === 'major' ? '¡Sala de majors lista! Capacidad +5 majors/soldados'
-                    : j.room === 'fungus' ? '¡Granja de hongo lista! Produce comida cada 12 s'
+                    : j.room === 'fungus' ? '¡Cámara fúngica lista! Produce comida y da +12% vida/daño a las Atta'
                     : '¡Cámara de reina lista! Capacidad +5 huevos');
             }
         }
@@ -15870,6 +15909,10 @@ function applyLevelStats(ant, caste) {
     ant.maxHp = Math.round(ant.maxHp * mul);
     ant.hp = ant.maxHp;
     ant.damage *= mul;
+    if (ant.researchBase) {
+        ant.researchBase.dmg *= mul;
+        ant.researchBase.hp = Math.round(ant.researchBase.hp * mul);
+    }
     if (caste === 'major') ant.scale *= 1.32;
     if (caste === 'soldier') ant.scale *= 1.18;
 }
@@ -16036,8 +16079,17 @@ function updateUGUI() {
     set('ug-food-rooms', ugCount('food'));
     set('ug-major-rooms', ugCount('major'));
     set('ug-fungus-rooms', ugCount('fungus'));
+    const fs = document.getElementById('ug-fungus-status');
+    if (fs) fs.style.display = (isAttaColony() && ugCount('fungus') > 0) ? 'block' : 'none';
+    set('ug-fungus-hunger', Math.round(fungusHunger) + '%');
+    set('ug-fungus-bonus', '+' + (fungusExtraChambers() * 12) + '%');
+    const fb = document.getElementById('tool-fungus_chamber');
+    if (fb) {
+        fb.disabled = !isAttaColony();
+        fb.textContent = ugCount('fungus') === 0 ? 'Cámara fúngica (gratis)' : 'Cámara fúngica (500 comida)';
+    }
     set('ug-dug', ugCount('tunnel') + ugCount('queen') + ugCount('food') + ugCount('major') + ugCount('fungus'));
-    const labels = { dig: 'Excavar', queen_chamber: 'Cámara de reina', food_chamber: 'Cámara de comida', major_chamber: 'Sala de majors', fungus_chamber: 'Granja de hongo' };
+    const labels = { dig: 'Excavar', queen_chamber: 'Cámara de reina', food_chamber: 'Cámara de comida', major_chamber: 'Sala de majors', fungus_chamber: 'Cámara fúngica' };
     set('ug-tool-label', labels[UG.tool] || UG.tool);
     set('food-cap-label', ' / ' + ugFoodCap());
     set('food-cap-label2', ' / ' + ugFoodCap());
@@ -16140,7 +16192,7 @@ function renderUnderground() {
                     ugPx(gx, y + 4, 3, 4, '#80ed99');
                 }
                 ctx.fillStyle = '#80ed99'; ctx.font = 'bold 15px monospace'; ctx.textAlign = 'center';
-                ctx.fillText('HONGO', x, y - 10);
+                ctx.fillText('FUNGO', x, y - 10);
             } else if (cell.t === 'major') {
                 const majors = ugLivingMajors();
                 for (let i = 0; i < Math.min(5, majors); i++) {
