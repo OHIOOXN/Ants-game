@@ -11531,20 +11531,25 @@ function updateGuardAndPerks() {
         }
     }
 
-    if (perkTick % 8 === 0) {
+    leafTimer += dt;
+    raidTimer += dt;
+    if (leafTimer >= 8) {
+        leafTimer = 0;
         for (const a of mine) {
             if (SP(a.species || speciesKey).leafNest && a.nest) {
                 foods.push({ x: a.nest.x + (Math.random() - 0.5) * 40, y: a.nest.y + 20, amount: 1, age: 0, type: 'berry' });
             }
         }
     }
-    if (perkTick % 15 === 0) {
+    if (raidTimer >= 30) {
+        raidTimer = 0;
         const poly = mine.find(a => SP(a.species || speciesKey).slaveRaid && a.nest);
         if (poly && termites.length) {
             const t = termites.shift();
             ants.push(new Ant(t.x, t.y, poly.nest, 'worker'));
             spawnHitParticles(t.x, t.y, '#ffd166', 10);
             setStatus('Polyergus capturó una termita y la adoptó como obrera');
+            updateUI();
         }
     }
 }
