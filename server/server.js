@@ -8,6 +8,7 @@ const { WebSocketServer } = require('ws');
 
 const PORT = process.env.PORT || 3000;
 const ROOT = path.resolve(__dirname, '..');
+const AEC_ADMIN_KEY = process.env.AEC_ADMIN_KEY || 'aec-admin-2026';
 
 /* ---------------- Cuentas y ranking ---------------- */
 const DATA_DIR = process.env.AEC_DATA_DIR || path.join(__dirname, 'data');
@@ -64,6 +65,24 @@ function userPayload(key) {
     const u = db.users[key];
     if (!u) return null;
     return { user: u.user, bestWave: u.bestWave || 0, rank: rankOf(key), created: u.created || 0 };
+}
+
+/* ---- Bans de administrador ----
+   Un usuario baneado tiene best_wave=0 y best_at=futuro. No hace falta
+   anadir columnas: best_at guarda el instante en que termina el castigo. */
+function banUntil(u) {
+    if (!u) return 0;
+    const until = Number((u.best_at !== undefined ? u.best_at : u.bestAt) || 0);
+    if (!(until > Date.now())) return 0;
+    if ((u.best_wave || u.bestWave || 0) !== 0) return 0;
+    return until;
+}
+function isBanned(u) { return banUntil(u) > 0; }
+function adminAuthorized(req, body) {
+    const h = String(req.headers['x-admin-key'] || '');
+    const b = body ? String(body.adminKey || '') : '';
+    const q = (new URL(req.url, 'http://x')).searchParams.get('adminKey') || '';
+    return h === AEC_ADMIN_KEY || b === AEC_ADMIN_KEY || q === AEC_ADMIN_KEY;
 }
 
 /* ---- Almacenamiento en Supabase (opcional, sobrevive a redeploys) ----
@@ -157,7 +176,7 @@ function jsonResponse(res, status, obj) {
         'Content-Type': 'application/json; charset=utf-8',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Headers': 'Content-Type, x-admin-key',
         'Cache-Control': 'no-store'
     });
     res.end(body);
@@ -192,7 +211,7 @@ async function handleApi(req, res, urlPath) {
         res.writeHead(204, {
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
+            'Access-Control-Allow-Headers': 'Content-Type, x-admin-key',
             'Access-Control-Max-Age': '86400'
         });
         res.end();
@@ -265,6 +284,10 @@ async function handleApi(req, res, urlPath) {
                 jsonResponse(res, 401, { error: 'Usuario o contrasena incorrectos' });
                 return;
             }
+            if (isBanned(u)) {
+                jsonResponse(res, 403, { error: 'Este usuario esta baneado. Intentalo cuando termine el castigo.' });
+                return;
+            }
             const token = await sbCreateToken(key);
             jsonResponse(res, 200, { token, profile: await sbProfile(u) });
             return;
@@ -280,6 +303,10 @@ async function handleApi(req, res, urlPath) {
             jsonResponse(res, 401, { error: 'Usuario o contrasena incorrectos' });
             return;
         }
+        if (isBanned(u)) {
+            jsonResponse(res, 403, { error: 'Este usuario esta baneado. Intentalo cuando termine el castigo.' });
+            return;
+        }
         const token = newToken();
         db.tokens[token] = { key, created: Date.now() };
         saveDb();
@@ -292,11 +319,13 @@ async function handleApi(req, res, urlPath) {
         if (usingSupabase()) {
             const u = await sbTokenUser(token);
             if (!u) { jsonResponse(res, 401, { error: 'Sesion no valida' }); return; }
+            if (isBanned(u)) { jsonResponse(res, 403, { error: 'Usuario baneado' }); return; }
             jsonResponse(res, 200, { profile: await sbProfile(u) });
             return;
         }
         const key = tokenUser(token);
         if (!key) { jsonResponse(res, 401, { error: 'Sesion no valida' }); return; }
+        if (isBanned(db.users[key])) { jsonResponse(res, 403, { error: 'Usuario baneado' }); return; }
         jsonResponse(res, 200, { profile: userPayload(key) });
         return;
     }
@@ -307,6 +336,7 @@ async function handleApi(req, res, urlPath) {
         if (usingSupabase()) {
             const u = await sbTokenUser(String(body.token || ''));
             if (!u) { jsonResponse(res, 401, { error: 'Sesion no valida' }); return; }
+            if (isBanned(u)) { jsonResponse(res, 403, { error: 'Usuario baneado: no se guardan puntajes' }); return; }
             const wave = Math.max(0, Math.min(500, Math.floor(Number(body.wave) || 0)));
             const mode = String(body.mode || 'normal').slice(0, 12);
             let improved = false;
@@ -324,6 +354,7 @@ async function handleApi(req, res, urlPath) {
         }
         const key = tokenUser(String(body.token || ''));
         if (!key) { jsonResponse(res, 401, { error: 'Sesion no valida' }); return; }
+        if (isBanned(db.users[key])) { jsonResponse(res, 403, { error: 'Usuario baneado: no se guardan puntajes' }); return; }
         const wave = Math.max(0, Math.min(500, Math.floor(Number(body.wave) || 0)));
         const mode = String(body.mode || 'normal').slice(0, 12);
         const u = db.users[key];
@@ -354,6 +385,84 @@ async function handleApi(req, res, urlPath) {
             .slice(0, 50)
             .map(([k, u], i) => ({ pos: i + 1, user: u.user, bestWave: u.bestWave || 0 }));
         jsonResponse(res, 200, { top: list });
+        return;
+    }
+
+    if (urlPath === '/api/admin/ban' && isPost) {
+        const body = await readBody(req);
+        if (!adminAuthorized(req, body)) { jsonResponse(res, 403, { error: 'Clave de administrador incorrecta' }); return; }
+        if (!body) { jsonResponse(res, 400, { error: 'Datos invalidos' }); return; }
+        const key = String(body.user || '').trim().toLowerCase();
+        if (!/^[a-z0-9_]{3,16}$/.test(key)) { jsonResponse(res, 400, { error: 'Usuario invalido' }); return; }
+        const minutes = Math.max(1, Math.min(525600, Math.floor(Number(body.minutes) || 0)));
+        const until = Date.now() + minutes * 60000;
+        if (usingSupabase()) {
+            const u = await sbFindUser(key);
+            if (!u) { jsonResponse(res, 404, { error: 'Usuario no encontrado' }); return; }
+            const r = await sbRequest('aec_users?key=eq.' + encodeURIComponent(key), {
+                method: 'PATCH',
+                headers: { Prefer: 'return=minimal' },
+                body: { best_wave: 0, best_at: until }
+            });
+            if (r.status === 0 || r.status >= 400) { jsonResponse(res, 500, { error: 'No se pudo banear al usuario' }); return; }
+            await sbRequest('aec_tokens?user_key=eq.' + encodeURIComponent(key), { method: 'DELETE' });
+        } else {
+            const u = db.users[key];
+            if (!u) { jsonResponse(res, 404, { error: 'Usuario no encontrado' }); return; }
+            u.bestWave = 0;
+            u.bestAt = until;
+            for (const [t, rec] of Object.entries(db.tokens)) {
+                if (rec.key === key) delete db.tokens[t];
+            }
+            saveDb();
+        }
+        console.log('Admin ban:', key, minutes, 'min');
+        jsonResponse(res, 200, { ok: true, user: key, minutes, until });
+        return;
+    }
+
+    if (urlPath === '/api/admin/unban' && isPost) {
+        const body = await readBody(req);
+        if (!adminAuthorized(req, body)) { jsonResponse(res, 403, { error: 'Clave de administrador incorrecta' }); return; }
+        if (!body) { jsonResponse(res, 400, { error: 'Datos invalidos' }); return; }
+        const key = String(body.user || '').trim().toLowerCase();
+        if (!/^[a-z0-9_]{3,16}$/.test(key)) { jsonResponse(res, 400, { error: 'Usuario invalido' }); return; }
+        if (usingSupabase()) {
+            const u = await sbFindUser(key);
+            if (!u) { jsonResponse(res, 404, { error: 'Usuario no encontrado' }); return; }
+            const r = await sbRequest('aec_users?key=eq.' + encodeURIComponent(key), {
+                method: 'PATCH',
+                headers: { Prefer: 'return=minimal' },
+                body: { best_at: 0 }
+            });
+            if (r.status === 0 || r.status >= 400) { jsonResponse(res, 500, { error: 'No se pudo desbanear al usuario' }); return; }
+        } else {
+            const u = db.users[key];
+            if (!u) { jsonResponse(res, 404, { error: 'Usuario no encontrado' }); return; }
+            u.bestAt = 0;
+            saveDb();
+        }
+        console.log('Admin unban:', key);
+        jsonResponse(res, 200, { ok: true, user: key });
+        return;
+    }
+
+    if (urlPath === '/api/admin/bans') {
+        if (!adminAuthorized(req, null)) { jsonResponse(res, 403, { error: 'Clave de administrador incorrecta' }); return; }
+        let list = [];
+        if (usingSupabase()) {
+            const r = await sbRequest('aec_users?select=username,best_wave,best_at&limit=1000');
+            if (r.status === 200 && Array.isArray(r.data)) {
+                list = r.data.filter(u => banUntil(u) > 0)
+                    .map(u => ({ user: u.username, until: Number(u.best_at) || 0 }));
+            }
+        } else {
+            list = Object.entries(db.users)
+                .filter(([, u]) => banUntil(u) > 0)
+                .map(([k, u]) => ({ user: u.user || k, until: Number(u.bestAt || u.best_at || 0) }));
+        }
+        list.sort((a, b) => a.until - b.until);
+        jsonResponse(res, 200, { bans: list });
         return;
     }
 
