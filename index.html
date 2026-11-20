@@ -935,7 +935,6 @@
             </div>
             <div id="auth-msg">—</div>
             <button id="btn-auth-skip">Jugar sin cuenta (sin ranking)</button>
-            <button id="btn-admin-open">Panel de administración</button>
             <div class="auth-server" id="auth-server-label"></div>
         </div>
     </div>
@@ -965,6 +964,7 @@
             <div id="ranking-status">—</div>
             <div class="rooms-row">
                 <button id="btn-ranking-refresh" class="menu-btn btn-mode-sandbox">Actualizar</button>
+                <button id="btn-ranking-admin" class="menu-btn btn-mode-normal" style="display:none;">Panel de administración</button>
                 <button id="btn-ranking-back" class="menu-btn btn-menu-back">Volver</button>
             </div>
         </div>
@@ -988,8 +988,6 @@
         <h1>Panel de administración</h1>
         <p>Banea usuarios por nombre y duración. El castigo se aplica en el servidor: no podrán entrar ni guardar oleadas.</p>
         <div class="admin-box">
-            <label class="rooms-label" for="admin-key">Clave de administrador</label>
-            <input id="admin-key" type="password" maxlength="64" autocomplete="off" placeholder="Clave secreta">
             <label class="rooms-label" for="admin-user">Usuario</label>
             <input id="admin-user" type="text" maxlength="16" spellcheck="false" autocomplete="off" placeholder="Nombre exacto del usuario">
             <label class="rooms-label" for="admin-minutes">Duración del ban</label>
@@ -15234,13 +15232,12 @@ const mobToastEl = document.getElementById('mob-toast');
 const btnPlayEl = document.getElementById('btn-play');
 const modesPanelEl = document.getElementById('modes-panel');
 const adminScreenEl = document.getElementById('admin-screen');
-const adminKeyEl = document.getElementById('admin-key');
 const adminUserEl = document.getElementById('admin-user');
 const adminMinutesEl = document.getElementById('admin-minutes');
 const adminUnitEl = document.getElementById('admin-unit');
 const adminStatusEl = document.getElementById('admin-status');
 const adminListEl = document.getElementById('admin-list');
-const btnAdminOpen = document.getElementById('btn-admin-open');
+const btnRankingAdmin = document.getElementById('btn-ranking-admin');
 
 const auth = { token: null, user: null, bestWave: 0, rank: 0, offline: false, guest: false };
 let mobToastTimer = null;
@@ -15291,31 +15288,36 @@ function setAdminStatus(text, bad) {
 }
 
 function adminRequest(path, body) {
-    const key = adminKeyEl ? adminKeyEl.value.trim() : '';
-    if (!key) {
-        setAdminStatus('Escribe la clave de administrador.', true);
-        return Promise.resolve({ ok: false, status: 0, data: { error: 'Falta clave' } });
+    if (!isAdminUser() || !auth.token) {
+        setAdminStatus('Solo la cuenta OHIO puede usar el panel de administración.', true);
+        return Promise.resolve({ ok: false, status: 0, data: { error: 'Sin permiso' } });
     }
-    const headers = { 'Content-Type': 'application/json', 'x-admin-key': key };
-    const options = body
-        ? { method: 'POST', headers, body: JSON.stringify(body) }
+    const headers = { 'Content-Type': 'application/json', 'x-admin-token': auth.token };
+    const payload = body ? Object.assign({}, body, { token: auth.token }) : null;
+    const options = payload
+        ? { method: 'POST', headers, body: JSON.stringify(payload) }
         : { method: 'GET', headers };
     return aecFetch(path, options, 20000);
 }
 
 function openAdminScreen() {
+    if (!isAdminUser()) {
+        setStatus('Solo la cuenta OHIO puede usar el panel de administración.');
+        return;
+    }
     if (authScreenEl) authScreenEl.classList.remove('show');
     if (rankingScreenEl) rankingScreenEl.classList.remove('show');
     if (indexScreenEl) indexScreenEl.classList.remove('show');
     if (startScreen) startScreen.classList.remove('show');
     if (adminScreenEl) adminScreenEl.classList.add('show');
-    setAdminStatus('Introduce la clave y el usuario. La duración se multiplica por la unidad elegida.');
+    setAdminStatus('Sesión: ' + auth.user + '. Introduce el usuario y la duración del ban.');
     if (adminUserEl) adminUserEl.focus();
 }
 
 function closeAdminScreen() {
     if (adminScreenEl) adminScreenEl.classList.remove('show');
-    showAuthScreen();
+    rankingScreenEl.classList.add('show');
+    refreshRanking();
 }
 
 function renderAdminBans(bans) {
@@ -15411,7 +15413,17 @@ function clearSession() {
     try { localStorage.removeItem(AEC_SESSION_KEY); } catch (e) {}
 }
 
+function isAdminUser() {
+    return !!auth.user && !auth.guest && String(auth.user).toLowerCase() === 'ohio';
+}
+
+function updateAdminButton() {
+    if (!btnRankingAdmin) return;
+    btnRankingAdmin.style.display = isAdminUser() ? 'inline-block' : 'none';
+}
+
 function updateProfileChip() {
+    updateAdminButton();
     if (!profileChipEl) return;
     if (!auth.user) {
         profileChipEl.classList.remove('show');
@@ -15667,6 +15679,7 @@ async function refreshRanking() {
 
 function openRanking() {
     if (typeof showMainMenu === 'function') showMainMenu();
+    updateAdminButton();
     rankingScreenEl.classList.add('show');
     refreshRanking();
 }
@@ -15797,13 +15810,12 @@ if (authTabRegister) authTabRegister.addEventListener('click', () => setAuthPane
 if (btnAuthLogin) btnAuthLogin.addEventListener('click', doLogin);
 if (btnAuthRegister) btnAuthRegister.addEventListener('click', doRegister);
 if (btnAuthSkip) btnAuthSkip.addEventListener('click', playAsGuest);
-if (btnAdminOpen) btnAdminOpen.addEventListener('click', openAdminScreen);
+if (btnRankingAdmin) btnRankingAdmin.addEventListener('click', openAdminScreen);
 if (document.getElementById('btn-admin-back')) document.getElementById('btn-admin-back').addEventListener('click', closeAdminScreen);
 if (document.getElementById('btn-admin-ban')) document.getElementById('btn-admin-ban').addEventListener('click', adminBan);
 if (document.getElementById('btn-admin-unban')) document.getElementById('btn-admin-unban').addEventListener('click', adminUnban);
 if (document.getElementById('btn-admin-refresh')) document.getElementById('btn-admin-refresh').addEventListener('click', adminRefresh);
 if (adminUserEl) adminUserEl.addEventListener('keydown', e => { if (e.key === 'Enter') adminBan(); });
-if (adminKeyEl) adminKeyEl.addEventListener('keydown', e => { if (e.key === 'Enter') adminUserEl.focus(); });
 if (btnLogoutEl) btnLogoutEl.addEventListener('click', e => { e.stopPropagation(); doLogout(); });
 if (profileChipEl) profileChipEl.addEventListener('click', () => {
     if (!auth.user) return;

@@ -9,6 +9,7 @@ const { WebSocketServer } = require('ws');
 const PORT = process.env.PORT || 3000;
 const ROOT = path.resolve(__dirname, '..');
 const AEC_ADMIN_KEY = process.env.AEC_ADMIN_KEY || 'aec-admin-2026';
+const AEC_ADMIN_USERS = ['ohio'];
 
 /* ---------------- Cuentas y ranking ---------------- */
 const DATA_DIR = process.env.AEC_DATA_DIR || path.join(__dirname, 'data');
@@ -78,11 +79,24 @@ function banUntil(u) {
     return until;
 }
 function isBanned(u) { return banUntil(u) > 0; }
-function adminAuthorized(req, body) {
+async function adminAuthorized(req, body) {
+    const url = new URL(req.url, 'http://x');
     const h = String(req.headers['x-admin-key'] || '');
     const b = body ? String(body.adminKey || '') : '';
-    const q = (new URL(req.url, 'http://x')).searchParams.get('adminKey') || '';
-    return h === AEC_ADMIN_KEY || b === AEC_ADMIN_KEY || q === AEC_ADMIN_KEY;
+    const q = url.searchParams.get('adminKey') || '';
+    if (h === AEC_ADMIN_KEY || b === AEC_ADMIN_KEY || q === AEC_ADMIN_KEY) return true;
+
+    const token = String((req.headers['x-admin-token'] || '')
+        || (body && body.token) || url.searchParams.get('token') || '');
+    if (!token) return false;
+    let key = null;
+    if (usingSupabase()) {
+        const u = await sbTokenUser(token);
+        if (u) key = u.key || u.username;
+    } else {
+        key = tokenUser(token);
+    }
+    return key ? AEC_ADMIN_USERS.includes(String(key).toLowerCase()) : false;
 }
 
 /* ---- Almacenamiento en Supabase (opcional, sobrevive a redeploys) ----
@@ -390,7 +404,7 @@ async function handleApi(req, res, urlPath) {
 
     if (urlPath === '/api/admin/ban' && isPost) {
         const body = await readBody(req);
-        if (!adminAuthorized(req, body)) { jsonResponse(res, 403, { error: 'Clave de administrador incorrecta' }); return; }
+        if (!(await adminAuthorized(req, body))) { jsonResponse(res, 403, { error: 'No tienes permiso de administrador' }); return; }
         if (!body) { jsonResponse(res, 400, { error: 'Datos invalidos' }); return; }
         const key = String(body.user || '').trim().toLowerCase();
         if (!/^[a-z0-9_]{3,16}$/.test(key)) { jsonResponse(res, 400, { error: 'Usuario invalido' }); return; }
@@ -423,7 +437,7 @@ async function handleApi(req, res, urlPath) {
 
     if (urlPath === '/api/admin/unban' && isPost) {
         const body = await readBody(req);
-        if (!adminAuthorized(req, body)) { jsonResponse(res, 403, { error: 'Clave de administrador incorrecta' }); return; }
+        if (!(await adminAuthorized(req, body))) { jsonResponse(res, 403, { error: 'No tienes permiso de administrador' }); return; }
         if (!body) { jsonResponse(res, 400, { error: 'Datos invalidos' }); return; }
         const key = String(body.user || '').trim().toLowerCase();
         if (!/^[a-z0-9_]{3,16}$/.test(key)) { jsonResponse(res, 400, { error: 'Usuario invalido' }); return; }
@@ -448,7 +462,7 @@ async function handleApi(req, res, urlPath) {
     }
 
     if (urlPath === '/api/admin/bans') {
-        if (!adminAuthorized(req, null)) { jsonResponse(res, 403, { error: 'Clave de administrador incorrecta' }); return; }
+        if (!(await adminAuthorized(req, null))) { jsonResponse(res, 403, { error: 'No tienes permiso de administrador' }); return; }
         let list = [];
         if (usingSupabase()) {
             const r = await sbRequest('aec_users?select=username,best_wave,best_at&limit=1000');
