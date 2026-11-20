@@ -986,7 +986,7 @@
     <!-- Panel de administración -->
     <div id="admin-screen" class="overlay">
         <h1>Panel de administración</h1>
-        <p>Banea usuarios por nombre y duración. El castigo se aplica en el servidor: no podrán entrar ni guardar oleadas.</p>
+        <p>Banea por usuario o por identidad (dispositivo, IP, email). Al banear un usuario también se banean sus señales, para que no entre con otra cuenta desde el mismo navegador o red.</p>
         <div class="admin-box">
             <label class="rooms-label" for="admin-user">Usuario</label>
             <input id="admin-user" type="text" maxlength="16" spellcheck="false" autocomplete="off" placeholder="Nombre exacto del usuario">
@@ -1003,6 +1003,19 @@
                 <button id="btn-admin-ban" class="menu-btn btn-mode-normal">Banear</button>
                 <button id="btn-admin-unban" class="menu-btn btn-mode-sandbox">Desbanear</button>
                 <button id="btn-admin-refresh" class="menu-btn btn-mode-sandbox">Ver baneos</button>
+            </div>
+            <div class="rooms-row">
+                <select id="admin-id-kind">
+                    <option value="device">Dispositivo</option>
+                    <option value="ip">IP</option>
+                    <option value="email">Email</option>
+                    <option value="user">Usuario</option>
+                </select>
+                <input id="admin-id-value" type="text" maxlength="256" spellcheck="false" autocomplete="off" placeholder="Valor de la identidad">
+            </div>
+            <div class="rooms-row">
+                <button id="btn-admin-id-ban" class="menu-btn btn-mode-normal">Banear identidad</button>
+                <button id="btn-admin-id-unban" class="menu-btn btn-mode-sandbox">Quitar ban</button>
             </div>
             <div id="admin-status">—</div>
             <div id="admin-list" class="admin-list"><div>Sin datos. Pulsa «Ver baneos».</div></div>
@@ -15237,6 +15250,8 @@ const adminMinutesEl = document.getElementById('admin-minutes');
 const adminUnitEl = document.getElementById('admin-unit');
 const adminStatusEl = document.getElementById('admin-status');
 const adminListEl = document.getElementById('admin-list');
+const adminIdKindEl = document.getElementById('admin-id-kind');
+const adminIdValueEl = document.getElementById('admin-id-value');
 const btnRankingAdmin = document.getElementById('btn-ranking-admin');
 
 const auth = { token: null, user: null, bestWave: 0, rank: 0, offline: false, guest: false };
@@ -15258,11 +15273,28 @@ function aecApiBase() {
     return aecServerUrl().replace(/^ws/, 'http').replace(/\/+$/, '');
 }
 
+function aecDeviceId() {
+    try {
+        let id = localStorage.getItem('aec_device');
+        if (!id || id.length < 16) {
+            id = (window.crypto && window.crypto.randomUUID)
+                ? window.crypto.randomUUID()
+                : String(Date.now()) + '-' + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+            localStorage.setItem('aec_device', id);
+        }
+        return id;
+    } catch (e) {
+        return 'fallback-' + String(Date.now()) + '-' + Math.random().toString(36).slice(2);
+    }
+}
+
 async function aecFetch(path, options, timeoutMs) {
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), timeoutMs || 30000);
     try {
-        const res = await fetch(aecApiBase() + path, Object.assign({ signal: ctl.signal }, options || {}));
+        const opts = Object.assign({}, options || {});
+        opts.headers = Object.assign({}, opts.headers || {}, { 'x-device-id': aecDeviceId() });
+        const res = await fetch(aecApiBase() + path, Object.assign({ signal: ctl.signal }, opts));
         const data = await res.json().catch(() => ({}));
         return { ok: res.ok, status: res.status, data };
     } catch (e) {
@@ -15320,23 +15352,36 @@ function closeAdminScreen() {
     refreshRanking();
 }
 
-function renderAdminBans(bans) {
+function adminUntilText(until) {
+    const n = Number(until);
+    if (!(n > 0)) return '¿?';
+    const d = new Date(n);
+    return isNaN(d.getTime()) ? '¿?' : d.toLocaleString();
+}
+
+function renderAdminBans(bans, identities) {
     if (!adminListEl) return;
     adminListEl.innerHTML = '';
-    if (!bans || !bans.length) {
-        adminListEl.innerHTML = '<div>Sin usuarios baneados.</div>';
+    const users = bans || [];
+    const ids = identities || [];
+    if (!users.length && !ids.length) {
+        adminListEl.innerHTML = '<div>Sin baneos activos.</div>';
         return;
     }
-    for (const b of bans) {
+    for (const b of users) {
         const div = document.createElement('div');
-        let untilText = '¿?';
-        const until = Number(b.until);
-        if (until > 0) {
-            const d = new Date(until);
-            untilText = isNaN(d.getTime()) ? '¿?' : d.toLocaleString();
-        }
-        div.textContent = b.user + ' — hasta ' + untilText;
+        div.textContent = b.user + ' — hasta ' + adminUntilText(b.until);
         adminListEl.appendChild(div);
+    }
+    if (ids.length) {
+        const head = document.createElement('div');
+        head.textContent = '— Identidades —';
+        adminListEl.appendChild(head);
+        for (const b of ids) {
+            const div = document.createElement('div');
+            div.textContent = (b.kind || '?') + ':' + (b.value || '?') + ' — hasta ' + adminUntilText(b.until);
+            adminListEl.appendChild(div);
+        }
     }
 }
 
@@ -15375,6 +15420,44 @@ async function adminUnban() {
     adminRefresh();
 }
 
+async function adminIdentityBan() {
+    const kind = adminIdKindEl ? adminIdKindEl.value : 'device';
+    const value = adminIdValueEl ? adminIdValueEl.value.trim() : '';
+    if (!value || value.length > 256) {
+        setAdminStatus('Escribe el valor de la identidad (máximo 256 caracteres).', true);
+        return;
+    }
+    const amount = Math.max(1, Math.floor(Number(adminMinutesEl ? adminMinutesEl.value : 0) || 0));
+    const factor = Math.max(1, Math.floor(Number(adminUnitEl ? adminUnitEl.value : 1) || 1));
+    const minutes = Math.min(525600, amount * factor);
+    setAdminStatus('Baneando ' + kind + '...');
+    const r = await adminRequest('/api/admin/ban-identity', { kind, value, minutes, reason: 'ban manual OHIO' });
+    if (!r.ok) {
+        setAdminStatus(r.data.error || 'No se pudo banear la identidad.', true);
+        return;
+    }
+    setAdminStatus('Identidad ' + kind + ' baneada durante ' + minutes + ' minuto(s).');
+    if (adminIdValueEl) adminIdValueEl.value = '';
+    adminRefresh();
+}
+
+async function adminIdentityUnban() {
+    const kind = adminIdKindEl ? adminIdKindEl.value : 'device';
+    const value = adminIdValueEl ? adminIdValueEl.value.trim() : '';
+    if (!value || value.length > 256) {
+        setAdminStatus('Escribe el valor exacto de la identidad a liberar.', true);
+        return;
+    }
+    setAdminStatus('Quitando ban de ' + kind + '...');
+    const r = await adminRequest('/api/admin/unban-identity', { kind, value });
+    if (!r.ok) {
+        setAdminStatus(r.data.error || 'No se pudo quitar el ban de identidad.', true);
+        return;
+    }
+    setAdminStatus('Ban de ' + kind + ' eliminado.');
+    adminRefresh();
+}
+
 async function adminRefresh() {
     setAdminStatus('Cargando baneos...');
     const r = await adminRequest('/api/admin/bans');
@@ -15382,7 +15465,7 @@ async function adminRefresh() {
         setAdminStatus(r.data.error || 'No se pudo cargar la lista de baneos.', true);
         return;
     }
-    renderAdminBans(r.data.bans || []);
+    renderAdminBans(r.data.bans || [], r.data.identities || []);
     setAdminStatus('Baneos actualizados.');
 }
 
@@ -15816,6 +15899,9 @@ if (document.getElementById('btn-admin-ban')) document.getElementById('btn-admin
 if (document.getElementById('btn-admin-unban')) document.getElementById('btn-admin-unban').addEventListener('click', adminUnban);
 if (document.getElementById('btn-admin-refresh')) document.getElementById('btn-admin-refresh').addEventListener('click', adminRefresh);
 if (adminUserEl) adminUserEl.addEventListener('keydown', e => { if (e.key === 'Enter') adminBan(); });
+if (document.getElementById('btn-admin-id-ban')) document.getElementById('btn-admin-id-ban').addEventListener('click', adminIdentityBan);
+if (document.getElementById('btn-admin-id-unban')) document.getElementById('btn-admin-id-unban').addEventListener('click', adminIdentityUnban);
+if (adminIdValueEl) adminIdValueEl.addEventListener('keydown', e => { if (e.key === 'Enter') adminIdentityBan(); });
 if (btnLogoutEl) btnLogoutEl.addEventListener('click', e => { e.stopPropagation(); doLogout(); });
 if (profileChipEl) profileChipEl.addEventListener('click', () => {
     if (!auth.user) return;

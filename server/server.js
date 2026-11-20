@@ -10,11 +10,12 @@ const PORT = process.env.PORT || 3000;
 const ROOT = path.resolve(__dirname, '..');
 const AEC_ADMIN_KEY = process.env.AEC_ADMIN_KEY || 'aec-admin-2026';
 const AEC_ADMIN_USERS = ['ohio'];
+const BAN_SALT = process.env.AEC_BAN_SALT || 'aec-salt-2026';
 
 /* ---------------- Cuentas y ranking ---------------- */
 const DATA_DIR = process.env.AEC_DATA_DIR || path.join(__dirname, 'data');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
-let db = { users: {}, tokens: {} };
+let db = { users: {}, tokens: {}, bans: [], identities: {} };
 let saveTimer = null;
 
 function loadDb() {
@@ -24,9 +25,11 @@ function loadDb() {
         if (parsed && typeof parsed === 'object') {
             db.users = parsed.users && typeof parsed.users === 'object' ? parsed.users : {};
             db.tokens = parsed.tokens && typeof parsed.tokens === 'object' ? parsed.tokens : {};
+            db.bans = Array.isArray(parsed.bans) ? parsed.bans : [];
+            db.identities = parsed.identities && typeof parsed.identities === 'object' ? parsed.identities : {};
         }
     } catch (e) {
-        db = { users: {}, tokens: {} };
+        db = { users: {}, tokens: {}, bans: [], identities: {} };
     }
 }
 
@@ -52,6 +55,128 @@ function hashPass(pass, salt) {
 
 function newToken() {
     return crypto.randomBytes(32).toString('hex');
+}
+
+/* ---- Bans por identidad ----
+   Ademas del nombre de usuario se guarda un hash del dispositivo, la IP y el
+   email. Asi banear una cuenta tambien alcanza a cuentas nuevas creadas desde
+   el mismo navegador o red. Los valores nunca se guardan en claro. */
+function hashIdentity(value) {
+    return crypto.createHash('sha256').update(BAN_SALT + '|' + String(value)).digest('hex');
+}
+function clientIp(req) {
+    const xf = String(req.headers['x-forwarded-for'] || '');
+    return xf.split(',')[0].trim() || String(req.socket.remoteAddress || 'x');
+}
+function deviceOf(req, body) {
+    return String((req.headers['x-device-id'] || '') || (body && body.device) || '').slice(0, 128);
+}
+function identitySignals(req, body) {
+    const out = [];
+    if (body && body.user) out.push(['user', String(body.user).trim().toLowerCase()]);
+    if (body && body.email) out.push(['email', String(body.email).trim().toLowerCase()]);
+    const did = deviceOf(req, body);
+    if (did) out.push(['device', did]);
+    const ip = clientIp(req);
+    if (ip) out.push(['ip', ip]);
+    return out;
+}
+
+async function identityBanHit(req, body) {
+    for (const [kind, value] of identitySignals(req, body)) {
+        const hash = hashIdentity(value);
+        if (usingSupabase()) {
+            const r = await sbRequest('aec_bans?kind=eq.' + kind + '&value_hash=eq.' + hash +
+                '&expires_at=gt.' + Date.now() + '&select=id&limit=1');
+            if (r.status === 200 && Array.isArray(r.data) && r.data.length) return kind;
+        } else if ((db.bans || []).some(b => b.kind === kind && b.value_hash === hash && Number(b.expires_at) > Date.now())) {
+            return kind;
+        }
+    }
+    return null;
+}
+
+async function addIdentityBanHash(kind, hash, minutes, reason) {
+    if (!['user', 'device', 'email', 'ip'].includes(kind) || !hash) return false;
+    const row = {
+        kind,
+        value_hash: hash,
+        expires_at: Date.now() + Math.max(1, Math.min(525600, Math.floor(minutes || 0))) * 60000,
+        created_at: Date.now(),
+        reason: String(reason || '').slice(0, 120)
+    };
+    if (usingSupabase()) {
+        const r = await sbRequest('aec_bans', {
+            method: 'POST',
+            headers: { Prefer: 'resolution=merge-duplicates, return=minimal' },
+            body: row
+        });
+        return r.status >= 200 && r.status < 300;
+    }
+    db.bans = (db.bans || []).filter(b => !(b.kind === kind && b.value_hash === hash));
+    db.bans.push(row);
+    saveDb();
+    return true;
+}
+function addIdentityBan(kind, value, minutes, reason) {
+    return addIdentityBanHash(kind, hashIdentity(value), minutes, reason);
+}
+
+async function removeIdentityBanHash(kind, hash) {
+    if (usingSupabase()) {
+        await sbRequest('aec_bans?kind=eq.' + kind + '&value_hash=eq.' + hash, { method: 'DELETE' });
+    } else {
+        db.bans = (db.bans || []).filter(b => !(b.kind === kind && b.value_hash === hash));
+        saveDb();
+    }
+}
+function removeIdentityBan(kind, value) {
+    return removeIdentityBanHash(kind, hashIdentity(value));
+}
+
+async function rememberIdentity(key, req, body) {
+    if (!key) return;
+    const did = deviceOf(req, body);
+    const row = {
+        user_key: key,
+        device_hash: did ? hashIdentity(did) : null,
+        ip_hash: hashIdentity(clientIp(req)),
+        email_hash: body && body.email ? hashIdentity(String(body.email).trim().toLowerCase()) : null,
+        updated_at: Date.now()
+    };
+    if (usingSupabase()) {
+        await sbRequest('aec_identities', {
+            method: 'POST',
+            headers: { Prefer: 'resolution=merge-duplicates, return=minimal' },
+            body: row
+        });
+    } else {
+        db.identities = db.identities || {};
+        db.identities[key] = row;
+        saveDb();
+    }
+}
+
+async function identityRecord(key) {
+    if (usingSupabase()) {
+        const r = await sbRequest('aec_identities?user_key=eq.' + encodeURIComponent(key) + '&select=*&limit=1');
+        return (r.status === 200 && Array.isArray(r.data) && r.data[0]) || null;
+    }
+    return (db.identities || {})[key] || null;
+}
+async function banIdentityOf(key, minutes, reason) {
+    const rec = await identityRecord(key);
+    if (!rec) return;
+    if (rec.device_hash) await addIdentityBanHash('device', rec.device_hash, minutes, reason);
+    if (rec.ip_hash) await addIdentityBanHash('ip', rec.ip_hash, minutes, reason);
+    if (rec.email_hash) await addIdentityBanHash('email', rec.email_hash, minutes, reason);
+}
+async function unbanIdentityOf(key) {
+    const rec = await identityRecord(key);
+    if (!rec) return;
+    if (rec.device_hash) await removeIdentityBanHash('device', rec.device_hash);
+    if (rec.ip_hash) await removeIdentityBanHash('ip', rec.ip_hash);
+    if (rec.email_hash) await removeIdentityBanHash('email', rec.email_hash);
 }
 
 function rankOf(nameKey) {
@@ -190,7 +315,7 @@ function jsonResponse(res, status, obj) {
         'Content-Type': 'application/json; charset=utf-8',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, x-admin-key',
+        'Access-Control-Allow-Headers': 'Content-Type, x-admin-key, x-admin-token, x-device-id',
         'Cache-Control': 'no-store'
     });
     res.end(body);
@@ -225,7 +350,7 @@ async function handleApi(req, res, urlPath) {
         res.writeHead(204, {
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, x-admin-key',
+            'Access-Control-Allow-Headers': 'Content-Type, x-admin-key, x-admin-token, x-device-id',
             'Access-Control-Max-Age': '86400'
         });
         res.end();
@@ -239,6 +364,8 @@ async function handleApi(req, res, urlPath) {
         if (authRateLimited(ip)) { jsonResponse(res, 429, { error: 'Demasiados intentos, espera un minuto' }); return; }
         const body = await readBody(req);
         if (!body) { jsonResponse(res, 400, { error: 'Datos invalidos' }); return; }
+        const hit = await identityBanHit(req, body);
+        if (hit) { jsonResponse(res, 403, { error: 'Esta identidad esta baneada (' + hit + ')' }); return; }
         const user = String(body.user || '').trim();
         const pass = String(body.pass || '');
         if (!/^[A-Za-z0-9_]{3,16}$/.test(user)) {
@@ -262,6 +389,7 @@ async function handleApi(req, res, urlPath) {
             if (r.status === 0 || r.status >= 400) { jsonResponse(res, 500, { error: 'No se pudo crear la cuenta, intentalo de nuevo' }); return; }
             await sbRequest('aec_tokens?created=lt.' + (created - 90 * 24 * 3600 * 1000), { method: 'DELETE' });
             const token = await sbCreateToken(key);
+            await rememberIdentity(key, req, body);
             console.log('Cuenta creada (Supabase):', user);
             jsonResponse(res, 200, { token, profile: { user, bestWave: 0, rank: 0, created } });
             return;
@@ -277,6 +405,7 @@ async function handleApi(req, res, urlPath) {
         };
         const token = newToken();
         db.tokens[token] = { key, created: Date.now() };
+        await rememberIdentity(key, req, body);
         saveDb();
         console.log('Cuenta creada:', user);
         jsonResponse(res, 200, { token, profile: userPayload(key) });
@@ -287,6 +416,8 @@ async function handleApi(req, res, urlPath) {
         if (authRateLimited(ip)) { jsonResponse(res, 429, { error: 'Demasiados intentos, espera un minuto' }); return; }
         const body = await readBody(req);
         if (!body) { jsonResponse(res, 400, { error: 'Datos invalidos' }); return; }
+        const hit = await identityBanHit(req, body);
+        if (hit) { jsonResponse(res, 403, { error: 'Esta identidad esta baneada (' + hit + ')' }); return; }
         const key = String(body.user || '').trim().toLowerCase();
         const pass = String(body.pass || '');
         if (usingSupabase()) {
@@ -302,6 +433,7 @@ async function handleApi(req, res, urlPath) {
                 jsonResponse(res, 403, { error: 'Este usuario esta baneado. Intentalo cuando termine el castigo.' });
                 return;
             }
+            await rememberIdentity(key, req, body);
             const token = await sbCreateToken(key);
             jsonResponse(res, 200, { token, profile: await sbProfile(u) });
             return;
@@ -321,6 +453,7 @@ async function handleApi(req, res, urlPath) {
             jsonResponse(res, 403, { error: 'Este usuario esta baneado. Intentalo cuando termine el castigo.' });
             return;
         }
+        await rememberIdentity(key, req, body);
         const token = newToken();
         db.tokens[token] = { key, created: Date.now() };
         saveDb();
@@ -333,12 +466,16 @@ async function handleApi(req, res, urlPath) {
         if (usingSupabase()) {
             const u = await sbTokenUser(token);
             if (!u) { jsonResponse(res, 401, { error: 'Sesion no valida' }); return; }
+            const hit = await identityBanHit(req, null);
+            if (hit) { jsonResponse(res, 403, { error: 'Identidad baneada (' + hit + ')' }); return; }
             if (isBanned(u)) { jsonResponse(res, 403, { error: 'Usuario baneado' }); return; }
             jsonResponse(res, 200, { profile: await sbProfile(u) });
             return;
         }
         const key = tokenUser(token);
         if (!key) { jsonResponse(res, 401, { error: 'Sesion no valida' }); return; }
+        const hit = await identityBanHit(req, null);
+        if (hit) { jsonResponse(res, 403, { error: 'Identidad baneada (' + hit + ')' }); return; }
         if (isBanned(db.users[key])) { jsonResponse(res, 403, { error: 'Usuario baneado' }); return; }
         jsonResponse(res, 200, { profile: userPayload(key) });
         return;
@@ -350,6 +487,8 @@ async function handleApi(req, res, urlPath) {
         if (usingSupabase()) {
             const u = await sbTokenUser(String(body.token || ''));
             if (!u) { jsonResponse(res, 401, { error: 'Sesion no valida' }); return; }
+            const hit = await identityBanHit(req, body);
+            if (hit) { jsonResponse(res, 403, { error: 'Identidad baneada: no se guardan puntajes (' + hit + ')' }); return; }
             if (isBanned(u)) { jsonResponse(res, 403, { error: 'Usuario baneado: no se guardan puntajes' }); return; }
             const wave = Math.max(0, Math.min(500, Math.floor(Number(body.wave) || 0)));
             const mode = String(body.mode || 'normal').slice(0, 12);
@@ -368,6 +507,8 @@ async function handleApi(req, res, urlPath) {
         }
         const key = tokenUser(String(body.token || ''));
         if (!key) { jsonResponse(res, 401, { error: 'Sesion no valida' }); return; }
+        const hit = await identityBanHit(req, body);
+        if (hit) { jsonResponse(res, 403, { error: 'Identidad baneada: no se guardan puntajes (' + hit + ')' }); return; }
         if (isBanned(db.users[key])) { jsonResponse(res, 403, { error: 'Usuario baneado: no se guardan puntajes' }); return; }
         const wave = Math.max(0, Math.min(500, Math.floor(Number(body.wave) || 0)));
         const mode = String(body.mode || 'normal').slice(0, 12);
@@ -430,6 +571,8 @@ async function handleApi(req, res, urlPath) {
             }
             saveDb();
         }
+        await addIdentityBan('user', key, minutes, 'ban de usuario');
+        await banIdentityOf(key, minutes, 'ban de usuario');
         console.log('Admin ban:', key, minutes, 'min');
         jsonResponse(res, 200, { ok: true, user: key, minutes, until });
         return;
@@ -456,6 +599,8 @@ async function handleApi(req, res, urlPath) {
             u.bestAt = 0;
             saveDb();
         }
+        await removeIdentityBan('user', key);
+        await unbanIdentityOf(key);
         console.log('Admin unban:', key);
         jsonResponse(res, 200, { ok: true, user: key });
         return;
@@ -463,20 +608,73 @@ async function handleApi(req, res, urlPath) {
 
     if (urlPath === '/api/admin/bans') {
         if (!(await adminAuthorized(req, null))) { jsonResponse(res, 403, { error: 'No tienes permiso de administrador' }); return; }
+        const now = Date.now();
         let list = [];
+        let identities = [];
         if (usingSupabase()) {
             const r = await sbRequest('aec_users?select=username,best_wave,best_at&limit=1000');
             if (r.status === 200 && Array.isArray(r.data)) {
                 list = r.data.filter(u => banUntil(u) > 0)
                     .map(u => ({ user: u.username, until: Number(u.best_at) || 0 }));
             }
+            const r2 = await sbRequest('aec_bans?expires_at=gt.' + now +
+                '&select=kind,value_hash,expires_at,reason&order=expires_at.asc&limit=500');
+            if (r2.status === 200 && Array.isArray(r2.data)) {
+                identities = r2.data.map(b => ({
+                    kind: b.kind,
+                    value: String(b.value_hash || '').slice(0, 12),
+                    until: Number(b.expires_at) || 0,
+                    reason: String(b.reason || '')
+                }));
+            }
         } else {
             list = Object.entries(db.users)
                 .filter(([, u]) => banUntil(u) > 0)
                 .map(([k, u]) => ({ user: u.user || k, until: Number(u.bestAt || u.best_at || 0) }));
+            identities = (db.bans || [])
+                .filter(b => Number(b.expires_at) > now)
+                .map(b => ({
+                    kind: b.kind,
+                    value: String(b.value_hash || '').slice(0, 12),
+                    until: Number(b.expires_at) || 0,
+                    reason: String(b.reason || '')
+                }));
         }
         list.sort((a, b) => a.until - b.until);
-        jsonResponse(res, 200, { bans: list });
+        identities.sort((a, b) => a.until - b.until);
+        jsonResponse(res, 200, { bans: list, identities });
+        return;
+    }
+
+    if (urlPath === '/api/admin/ban-identity' && isPost) {
+        const body = await readBody(req);
+        if (!(await adminAuthorized(req, body))) { jsonResponse(res, 403, { error: 'No tienes permiso de administrador' }); return; }
+        if (!body) { jsonResponse(res, 400, { error: 'Datos invalidos' }); return; }
+        const kind = String(body.kind || '').toLowerCase();
+        if (!['user', 'device', 'email', 'ip'].includes(kind)) { jsonResponse(res, 400, { error: 'Tipo de identidad invalido' }); return; }
+        let value = String(body.value || '').trim();
+        if (!value || value.length > 256) { jsonResponse(res, 400, { error: 'Valor invalido' }); return; }
+        if (kind === 'user') value = value.toLowerCase();
+        const minutes = Math.max(1, Math.min(525600, Math.floor(Number(body.minutes) || 0)));
+        const ok = await addIdentityBan(kind, value, minutes, String(body.reason || 'ban manual'));
+        if (!ok) { jsonResponse(res, 500, { error: 'No se pudo guardar el ban de identidad' }); return; }
+        console.log('Admin ban identidad:', kind, minutes, 'min');
+        jsonResponse(res, 200, { ok: true, kind, minutes });
+        return;
+    }
+
+    if (urlPath === '/api/admin/unban-identity' && isPost) {
+        const body = await readBody(req);
+        if (!(await adminAuthorized(req, body))) { jsonResponse(res, 403, { error: 'No tienes permiso de administrador' }); return; }
+        if (!body) { jsonResponse(res, 400, { error: 'Datos invalidos' }); return; }
+        const kind = String(body.kind || '').toLowerCase();
+        if (!['user', 'device', 'email', 'ip'].includes(kind)) { jsonResponse(res, 400, { error: 'Tipo de identidad invalido' }); return; }
+        let value = String(body.value || '').trim();
+        if (!value || value.length > 256) { jsonResponse(res, 400, { error: 'Valor invalido' }); return; }
+        if (kind === 'user') value = value.toLowerCase();
+        await removeIdentityBan(kind, value);
+        console.log('Admin unban identidad:', kind);
+        jsonResponse(res, 200, { ok: true, kind });
         return;
     }
 
